@@ -1,9 +1,6 @@
-import { useState } from 'react';
-import { Plus, ChevronDown, AlignLeft, Shuffle, PenLine, BookOpen, ListChecks, CircleDot, Underline, Image } from 'lucide-react';
+import { Plus, AlignLeft, Shuffle, PenLine, ListChecks, CircleDot, Underline, Image } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 import { QUESTION_TYPES, type QuestionType } from '../types';
-import { TEMPLATES, shuffleArray, type PaperTemplate } from '../helpers';
-import { ThemePanel } from './ThemePanel';
 
 const TYPE_CONFIG: {
   type: QuestionType;
@@ -65,111 +62,33 @@ const TYPE_CONFIG: {
 
 export function AddQuestionBar() {
   const { dispatch } = usePaper();
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [typeConfigs, setTypeConfigs] = useState(TYPE_CONFIG);
-
-  function shuffleTypes() {
-    setTypeConfigs(shuffleArray(typeConfigs));
-  }
 
   function addQuestion(type: QuestionType) {
     dispatch({ type: 'ADD_QUESTION', payload: { type } });
   }
 
-  function loadTemplate(template: PaperTemplate) {
-    template.questions.forEach((q, i) => {
-      setTimeout(() => {
-        dispatch({
-          type: 'ADD_QUESTION',
-          payload: {
-            type: q.type,
-            data: {
-              text: q.text,
-              marks: q.marks,
-              ...(q.lines != null ? { lines: q.lines } : {}),
-              ...(q.sampleText != null ? { sampleText: q.sampleText } : {}),
-              ...(q.options ? { options: q.options.map((o) => ({ ...o })) } : {}),
-              ...(q.image !== undefined ? { image: q.image } : {}),
-              ...(q.blankCount != null ? { blankCount: q.blankCount } : {}),
-              ...(q.partCount != null ? { partCount: q.partCount } : {}),
-            },
-          },
-        });
-      }, i * 100);
-    });
-    setShowTemplates(false);
-  }
-
   return (
-    <aside className="sp-sidebar">
-      <div className="sp-sidebar-card">
-        <div className="sp-sidebar-title">
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <BookOpen size={15} color="#FFB199" /> Add Question
-          </span>
+    <div className="sp-sidebar-card">
+      <div className="sp-sidebar-title">
+        <span>Add Question</span>
+      </div>
+      <div className="sp-sidebar-row">
+        {TYPE_CONFIG.map((config) => (
           <button
+            key={config.type}
             type="button"
-            className="sp-mini-btn blue"
-            onClick={shuffleTypes}
-            title="Shuffle question types"
-            style={{ marginLeft: 'auto' }}
+            className={`sp-add-btn sp-sidebar-add ${config.colorClass}`}
+            onClick={() => addQuestion(config.type)}
           >
-            <Shuffle size={12} /> Shuffle
+            <span className={`sp-add-icon ${config.colorClass}`}>{config.icon}</span>
+            <span className="sp-add-label">
+              <b>{config.label}</b>
+              <span>{config.desc}</span>
+            </span>
+            <Plus size={15} style={{ opacity: 0.6, marginLeft: 'auto' }} />
           </button>
-        </div>
-        <div className="sp-sidebar-row">
-          {typeConfigs.map((config) => (
-            <button
-              key={config.type}
-              type="button"
-              className={`sp-add-btn sp-sidebar-add ${config.colorClass}`}
-              onClick={() => addQuestion(config.type)}
-            >
-              <span className={`sp-add-icon ${config.colorClass}`}>{config.icon}</span>
-              <span className="sp-add-label">
-                <b>{config.label}</b>
-                <span>{config.desc}</span>
-              </span>
-              <Plus size={15} style={{ opacity: 0.6, marginLeft: 'auto' }} />
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
-
-      <ThemePanel />
-
-      <div className="sp-sidebar-card">
-        <button
-          type="button"
-          className="sp-sidebar-title"
-          style={{ width: '100%', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer' }}
-          onClick={() => setShowTemplates((s) => !s)}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <BookOpen size={15} color="#E85D3F" /> Templates
-          </span>
-          <ChevronDown
-            size={15}
-            style={{ transform: showTemplates ? 'rotate(180deg)' : 'none' }}
-          />
-        </button>
-        {showTemplates && (
-          <div className="sp-template-stack">
-            {TEMPLATES.map((template) => (
-              <button
-                key={template.name}
-                type="button"
-                className="sp-template-card"
-                onClick={() => loadTemplate(template)}
-              >
-                <b>{template.name}</b>
-                <span className="desc">{template.description}</span>
-                <span className="qty">{template.questions.length} questions</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </aside>
+    </div>
   );
 }

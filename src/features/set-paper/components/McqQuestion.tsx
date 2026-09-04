@@ -125,9 +125,11 @@ export function McqQuestion({
               </div>
             ))}
           </div>
-          <button type="button" className="sp-mcq-add" onClick={addOption}>
+          <div className="button-flex">
+            <button type="button" className="sp-mcq-add" onClick={addOption}>
             <Plus size={14} /> Add option
           </button>
+          </div>
         </div>
       </div>
     </div>

@@ -10,16 +10,6 @@ interface CardProps {
   canMoveDown?: boolean;
 }
 
-export function FillBlankPreview({ count }: { count: number }) {
-  return (
-    <div className="sp-fill-blank-preview">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="sp-fill-blank-line" />
-      ))}
-    </div>
-  );
-}
-
 export function FillBlankQuestion({
   question,
   onMoveUp,
@@ -33,8 +23,6 @@ export function FillBlankQuestion({
     dispatch({ type: 'UPDATE_QUESTION', payload: { id: question.id, data } });
   }
 
-  const blankCount = question.blankCount ?? 3;
-
   return (
     <div className="sp-question-card">
       <div className="sp-q-head">
@@ -42,17 +30,28 @@ export function FillBlankQuestion({
           <button type="button" onClick={onMoveUp} disabled={!canMoveUp} title="Move up">
             <ChevronUp size={14} />
           </button>
+
           <button type="button" onClick={onMoveDown} disabled={!canMoveDown} title="Move down">
             <ChevronDown size={14} />
           </button>
         </div>
-        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#0d9488,#5eead4)' }}>
+
+        {/* Fill in the Blanks - Green */}
+        <div
+          className="sp-q-number"
+          style={{
+            background: 'linear-gradient(135deg, #347a58, #63ad82)',
+          }}
+        >
           {question.number}
         </div>
+
         <span className="sp-q-type green">Fill in the Blanks</span>
+
         <div className="sp-q-actions">
           <div className="sp-marks">
             <Star size={12} color="#FFE29A" fill="#FFE29A" />
+
             <input
               type="number"
               min={0}
@@ -60,12 +59,19 @@ export function FillBlankQuestion({
               value={question.marks}
               onChange={(e) => update({ marks: Number(e.target.value) })}
             />
+
             <span>pts</span>
           </div>
+
           <button
             type="button"
             className="sp-icon-btn"
-            onClick={() => dispatch({ type: 'DELETE_QUESTION', payload: question.id })}
+            onClick={() =>
+              dispatch({
+                type: 'DELETE_QUESTION',
+                payload: question.id,
+              })
+            }
             title="Delete question"
           >
             <Trash2 size={16} />
@@ -73,7 +79,14 @@ export function FillBlankQuestion({
         </div>
       </div>
 
-      <div className="sp-q-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div
+        className="sp-q-body"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+        }}
+      >
         <textarea
           value={question.text}
           onChange={(e) => update({ text: e.target.value })}
@@ -81,29 +94,6 @@ export function FillBlankQuestion({
           rows={2}
           className="sp-textarea"
         />
-        <div className="sp-line-control">
-          <span className="sp-field-label" style={{ margin: 0 }}>
-            Number of blanks:
-          </span>
-          <button
-            type="button"
-            className="sp-line-step sp-theme-step"
-            onClick={() => update({ blankCount: Math.max(1, blankCount - 1) })}
-            aria-label="Fewer blanks"
-          >
-            <span className="sp-step-sym">−</span>
-          </button>
-          <span className="sp-line-count">{blankCount}</span>
-          <button
-            type="button"
-            className="sp-line-step sp-theme-step"
-            onClick={() => update({ blankCount: Math.min(10, blankCount + 1) })}
-            aria-label="More blanks"
-          >
-            <span className="sp-step-sym">+</span>
-          </button>
-        </div>
-        <FillBlankPreview count={blankCount} />
       </div>
     </div>
   );

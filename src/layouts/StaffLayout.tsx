@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { clearToken } from '../services/api';
 import { getStoredProfile } from '../features/auth/hooks/useAuth';
+import { Book } from 'lucide-react';
 
 export function StaffLayout() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export function StaffLayout() {
       <header className="app-header">
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <span className="app-brand">
-            <span className="app-logo">📚</span> Question Bank
+            <span className="app-logo"><Book size={20} /></span> Question Bank
           </span>
           <nav className="app-nav">
             <NavLink

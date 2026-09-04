@@ -1,7 +1,6 @@
 import { usePaper } from '../context/PaperContext';
 import { formatDate } from '../helpers';
 import { WritingLines } from './WritingQuestion';
-import { FillBlankPreview } from './FillBlankQuestion';
 import { LabelPreview } from './LabelQuestion';
 import { QUESTION_TYPES, type Question } from '../types';
 
@@ -19,7 +18,7 @@ function McqPreview({ question }: { question: Question }) {
           <div key={opt.id} className="sp-mcq-preview-row">
             <span className="sp-match-letter sp-mcq-letter">{OPTION_LETTERS[i] ?? i + 1}</span>
             <span className="sp-mcq-answer-dot" />
-            <span className="sp-mcq-preview-label">{opt.label || <em style={{ color: '#cbd5e1' }}>Option...</em>}</span>
+            <span className="sp-mcq-preview-label">{opt.label || <em style={{ color: '#a3a3a3' }}>Option...</em>}</span>
           </div>
         ))}
       </div>
@@ -45,7 +44,7 @@ function ImageMcqPreview({ question }: { question: Question }) {
                 {opt.label || <em style={{ color: '#cbd5e1' }}>Option</em>}
               </div>
             )}
-            {opt.label && <span className="sp-image-mcq-label">{opt.label}</span>}
+            {opt.image && opt.label && <span className="sp-image-mcq-label">{opt.label}</span>}
           </div>
         ))}
       </div>
@@ -190,7 +189,7 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
             <div className="sp-q-row">
               <span className="sp-q-no">Q{question.number}.</span>
               <span className="sp-q-text">
-                {question.text || <em style={{ color: '#cbd5e1' }}>Question text...</em>}
+                {question.text || <em style={{ color: '#a3a3a3' }}>Question text...</em>}
               </span>
               <span className="sp-q-marks">
                 [{question.marks} {Number(question.marks) === 1 ? 'mark' : 'marks'}]
@@ -200,11 +199,12 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
             {question.type === QUESTION_TYPES.MATCH && <MatchPreview question={question} />}
             {question.type === QUESTION_TYPES.MCQ && <McqPreview question={question} />}
             {question.type === QUESTION_TYPES.IMAGE_MCQ && <ImageMcqPreview question={question} />}
-            {question.type === QUESTION_TYPES.FILL_BLANK && (
-              <FillBlankPreview count={question.blankCount ?? 3} />
-            )}
             {question.type === QUESTION_TYPES.LABEL && (
-              <LabelPreview image={question.image} partCount={question.partCount ?? 4} />
+              <LabelPreview
+                image={question.image}
+                partCount={question.partCount ?? 4}
+                markers={question.labelMarkers}
+              />
             )}
             {question.type === QUESTION_TYPES.WRITING && (
               <WritingLines count={question.lines || 4} sampleText={question.sampleText} />

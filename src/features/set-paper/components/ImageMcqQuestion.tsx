@@ -65,7 +65,7 @@ export function ImageMcqQuestion({
             <ChevronDown size={14} />
           </button>
         </div>
-        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#e55039,#ff9a8b)' }}>
+        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#c43a22,#f4624f)' }}>
           {question.number}
         </div>
         <span className="sp-q-type teal">Circle It</span>

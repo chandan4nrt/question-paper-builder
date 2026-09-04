@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   ChevronDown,
@@ -14,10 +15,10 @@ import {
   CircleDot,
   Underline,
   Image as ImageIcon,
-} from 'lucide-react';
-import { usePaper } from '../context/PaperContext';
-import { QUESTION_TYPES, type PaperTheme, type QuestionType } from '../types';
-import { loadThemes, saveThemes } from '../helpers';
+} from "lucide-react";
+import { usePaper } from "../context/PaperContext";
+import { QUESTION_TYPES, type PaperTheme, type QuestionType } from "../types";
+import { loadThemes, saveThemes } from "../helpers";
 
 const TYPE_ORDER: QuestionType[] = [
   QUESTION_TYPES.NORMAL,
@@ -30,13 +31,13 @@ const TYPE_ORDER: QuestionType[] = [
 ];
 
 const TYPE_META: Record<string, { label: string; color: string; icon: ReactNode }> = {
-  [QUESTION_TYPES.NORMAL]: { label: 'Normal', color: '#9a5314', icon: <AlignLeft size={14} /> },
-  [QUESTION_TYPES.MATCH]: { label: 'Match', color: '#8a5a0c', icon: <Shuffle size={14} /> },
-  [QUESTION_TYPES.WRITING]: { label: 'Writing', color: '#b14d40', icon: <PenLine size={14} /> },
-  [QUESTION_TYPES.MCQ]: { label: 'MCQ', color: '#a23b21', icon: <ListChecks size={14} /> },
-  [QUESTION_TYPES.IMAGE_MCQ]: { label: 'Circle It', color: '#b5341f', icon: <CircleDot size={14} /> },
-  [QUESTION_TYPES.FILL_BLANK]: { label: 'Fill Blank', color: '#0f766e', icon: <Underline size={14} /> },
-  [QUESTION_TYPES.LABEL]: { label: 'Label', color: '#7e22ce', icon: <ImageIcon size={14} /> },
+  [QUESTION_TYPES.NORMAL]: { label: "Normal", color: "#7a3b00", icon: <AlignLeft size={14} /> },
+  [QUESTION_TYPES.MATCH]: { label: "Match", color: "#6a4200", icon: <Shuffle size={14} /> },
+  [QUESTION_TYPES.WRITING]: { label: "Writing", color: "#8f240b", icon: <PenLine size={14} /> },
+  [QUESTION_TYPES.MCQ]: { label: "MCQ", color: "#7a1f09", icon: <ListChecks size={14} /> },
+  [QUESTION_TYPES.IMAGE_MCQ]: { label: "Circle It", color: "#8f240b", icon: <CircleDot size={14} /> },
+  [QUESTION_TYPES.FILL_BLANK]: { label: "Fill Blank", color: "#085a54", icon: <Underline size={14} /> },
+  [QUESTION_TYPES.LABEL]: { label: "Label", color: "#6b21a8", icon: <ImageIcon size={14} /> },
 };
 
 function emptyConfig(type: QuestionType, count = 0, marks = 1) {
@@ -65,9 +66,11 @@ function ThemeConfigModal({
   onSave: (theme: PaperTheme) => void;
   onClose: () => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? '');
-  const [configs, setConfigs] = useState(() => (initial ? configFromTheme(initial) : TYPE_ORDER.map((t) => emptyConfig(t))));
-  const [description, setDescription] = useState(initial?.description ?? '');
+  const [name, setName] = useState(initial?.name ?? "");
+  const [configs, setConfigs] = useState(() =>
+    initial ? configFromTheme(initial) : TYPE_ORDER.map((t) => emptyConfig(t)),
+  );
+  const [description, setDescription] = useState(initial?.description ?? "");
 
   const totalQuestions = configs.reduce((s, c) => s + c.count, 0);
   const totalMarks = configs.reduce((s, c) => s + c.count * c.marks, 0);
@@ -83,7 +86,7 @@ function ThemeConfigModal({
   function handleSave() {
     onSave({
       id: initial?.id ?? `theme-${Date.now()}`,
-      name: name.trim() || 'Untitled Theme',
+      name: name.trim() || "Untitled Theme",
       description: description.trim() || undefined,
       questions: configs.filter((c) => c.count > 0),
     });
@@ -93,7 +96,7 @@ function ThemeConfigModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{initial ? 'Edit Theme' : 'New Theme'}</h2>
+          <h2>{initial ? "Edit Theme" : "New Theme"}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
@@ -193,14 +196,14 @@ export function ThemePanel() {
   const { dispatch } = usePaper();
   const [expanded, setExpanded] = useState(true);
   const [themes, setThemes] = useState<PaperTheme[]>(() => loadThemes());
-  const [modalTheme, setModalTheme] = useState<PaperTheme | null | 'new'>(null);
+  const [modalTheme, setModalTheme] = useState<PaperTheme | null | "new">(null);
 
   useEffect(() => {
     saveThemes(themes);
   }, [themes]);
 
   function generate(theme: PaperTheme) {
-    dispatch({ type: 'GENERATE_FROM_THEME', payload: theme });
+    dispatch({ type: "GENERATE_FROM_THEME", payload: theme });
   }
 
   function saveTheme(theme: PaperTheme) {
@@ -220,71 +223,75 @@ export function ThemePanel() {
       <button
         type="button"
         className="sp-sidebar-title"
-        style={{ width: '100%', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer' }}
+        style={{
+          width: "100%",
+          justifyContent: "space-between",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+        }}
         onClick={() => setExpanded((s) => !s)}
       >
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Layers size={15} color="#A855F7" /> Themes (One-Click Paper)
+        <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+          <Layers size={15} color="#9333EA" /> Themes (One-Click Paper)
         </span>
-        <ChevronDown size={15} style={{ transform: expanded ? 'rotate(180deg)' : 'none' }} />
+        <ChevronDown size={15} style={{ transform: expanded ? "rotate(180deg)" : "none" }} />
       </button>
 
       {expanded && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.5rem' }}>
-          {themes.map((theme) => (
-            <div key={theme.id} className="sp-theme-card">
-              <div className="sp-theme-card-head">
-                <b>{theme.name}</b>
-                <span className="sp-theme-summary-text">{themeSummary(theme)}</span>
+        <>
+          <div style={{ display: "flex", flexWrap: "wrap", height: "98px", overflow: "auto", gap: "0.6rem", marginTop: "0.5rem" }}>
+            {themes.map((theme) => (
+              <div key={theme.id} className="sp-theme-card">
+                <div className="sp-theme-card-head">
+                  <b>{theme.name}</b>
+                  <span className="sp-theme-summary-text">{themeSummary(theme)}</span>
+                </div>
+                {theme.description && <span className="sp-theme-desc">{theme.description}</span>}
+                <div className="sp-theme-card-actions">
+                  <button
+                    type="button"
+                    className="sp-theme-generate"
+                    onClick={() => generate(theme)}
+                    title="Generate this paper instantly"
+                  >
+                    Generate
+                  </button>
+                  <button type="button" className="sp-icon-btn" onClick={() => setModalTheme(theme)} title="Edit theme">
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="sp-icon-btn"
+                    onClick={() => deleteTheme(theme.id)}
+                    title="Delete theme"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
-              {theme.description && <span className="sp-theme-desc">{theme.description}</span>}
-              <div className="sp-theme-card-actions">
-                <button
-                  type="button"
-                  className="sp-theme-generate"
-                  onClick={() => generate(theme)}
-                  title="Generate this paper instantly"
-                >
-                  <Sparkles size={13} /> Generate
-                </button>
-                <button
-                  type="button"
-                  className="sp-icon-btn"
-                  onClick={() => setModalTheme(theme)}
-                  title="Edit theme"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="sp-icon-btn"
-                  onClick={() => deleteTheme(theme.id)}
-                  title="Delete theme"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
-
+            ))}
+          </div>
           <button
             type="button"
             className="sp-mcq-add"
-            style={{ width: '100%', justifyContent: 'center' }}
-            onClick={() => setModalTheme('new')}
+            style={{ width: "100%", justifyContent: "center" }}
+            onClick={() => setModalTheme("new")}
           >
             <Plus size={14} /> New Theme
           </button>
-        </div>
+        </>
       )}
 
-      {modalTheme && (
-        <ThemeConfigModal
-          initial={modalTheme === 'new' ? null : modalTheme}
-          onSave={saveTheme}
-          onClose={() => setModalTheme(null)}
-        />
-      )}
+      {modalTheme &&
+        createPortal(
+          <ThemeConfigModal
+            initial={modalTheme === "new" ? null : modalTheme}
+            onSave={saveTheme}
+            onClose={() => setModalTheme(null)}
+          />,
+          document.body,
+        )}
     </div>
   );
 }

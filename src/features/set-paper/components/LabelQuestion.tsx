@@ -1,6 +1,7 @@
-import { Trash2, Star, ChevronUp, ChevronDown, Image as ImageIcon, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Trash2, Star, ChevronUp, ChevronDown, Image as ImageIcon, X, Move } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
-import type { Question } from '../types';
+import type { LabelMarker, Question } from '../types';
 
 interface CardProps {
   question: Question;
@@ -10,22 +11,137 @@ interface CardProps {
   canMoveDown?: boolean;
 }
 
+const DEFAULT_SPOTS = [
+  { x: 30, y: 30 },
+  { x: 70, y: 30 },
+  { x: 30, y: 70 },
+  { x: 70, y: 70 },
+  { x: 50, y: 20 },
+  { x: 20, y: 50 },
+  { x: 80, y: 50 },
+  { x: 50, y: 80 },
+  { x: 15, y: 85 },
+  { x: 85, y: 85 },
+  { x: 85, y: 15 },
+  { x: 15, y: 15 },
+];
+
+function markersFor(question: Question, count: number): LabelMarker[] {
+  const markers = question.labelMarkers ?? [];
+  const result: LabelMarker[] = [];
+  for (let i = 0; i < count; i++) {
+    if (markers[i]) {
+      result.push(markers[i]);
+    } else {
+      result.push({
+        id: `lm-${question.id}-${i}`,
+        x: DEFAULT_SPOTS[i % DEFAULT_SPOTS.length].x,
+        y: DEFAULT_SPOTS[i % DEFAULT_SPOTS.length].y,
+      });
+    }
+  }
+  return result;
+}
+
+function Markers({
+  markers,
+  image,
+  draggable,
+  onMove,
+}: {
+  markers: LabelMarker[];
+  image?: string | null;
+  draggable?: boolean;
+  onMove?: (id: string, x: number, y: number) => void;
+}) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!draggable || !dragId) return;
+    const activeId = dragId;
+
+    function handleMove(e: PointerEvent) {
+      const stage = stageRef.current;
+      if (!stage) return;
+      const rect = stage.getBoundingClientRect();
+      let x = ((e.clientX - rect.left) / rect.width) * 100;
+      let y = ((e.clientY - rect.top) / rect.height) * 100;
+      x = Math.max(0, Math.min(100, x));
+      y = Math.max(0, Math.min(100, y));
+      onMove?.(activeId, x, y);
+    }
+
+    function handleUp() {
+      setDragId(null);
+    }
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+    return () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+    };
+  }, [draggable, dragId, onMove]);
+
+  if (!image) return null;
+
+  return (
+    <div
+      ref={stageRef}
+      className={draggable ? 'sp-label-stage sp-label-stage-editable' : 'sp-label-stage'}
+      style={{
+        position: 'relative',
+        display: 'inline-block',
+        maxWidth: '100%',
+        alignSelf: 'center',
+      }}
+    >
+      <img src={image} alt="diagram" className="sp-label-diagram" />
+      {markers.map((m, i) => (
+        <button
+          key={m.id}
+          type="button"
+          onPointerDown={
+            draggable
+              ? (e) => {
+                  e.preventDefault();
+                  (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+                  setDragId(m.id);
+                }
+              : undefined
+          }
+          className="sp-label-marker"
+          style={{ left: `${m.x}%`, top: `${m.y}%` }}
+          title={draggable ? `Drag label ${i + 1} to position` : undefined}
+        >
+          {i + 1}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function LabelPreview({
   image,
   partCount,
+  markers,
 }: {
   image?: string | null;
   partCount: number;
+  markers?: LabelMarker[];
 }) {
+  const resolved = markers ?? Array.from({ length: partCount }, (_, i) => ({
+    id: `pl-${i}`,
+    x: DEFAULT_SPOTS[i % DEFAULT_SPOTS.length].x,
+    y: DEFAULT_SPOTS[i % DEFAULT_SPOTS.length].y,
+  }));
+
   return (
     <div className="sp-label-preview">
-      {image && (
-        <div className="sp-label-diagram-wrap">
-          <img src={image} alt="diagram" className="sp-label-diagram" />
-        </div>
-      )}
+      <Markers markers={resolved} image={image} />
       <div className="sp-label-blanks">
-        {Array.from({ length: partCount }).map((_, i) => (
+        {Array.from({ length: resolved.length }).map((_, i) => (
           <div key={i} className="sp-label-blank-row">
             <span className="sp-label-num">{i + 1}.</span>
             <span className="sp-blank-line sp-w24" />
@@ -50,6 +166,7 @@ export function LabelQuestion({
   }
 
   const partCount = question.partCount ?? 4;
+  const markers = markersFor(question, partCount);
 
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -57,6 +174,30 @@ export function LabelQuestion({
     const reader = new FileReader();
     reader.onload = (ev) => update({ image: String(ev.target?.result) });
     reader.readAsDataURL(file);
+  }
+
+  function setCount(next: number) {
+    const n = Math.max(1, Math.min(12, next));
+    const current = markersFor(question, question.partCount ?? 4);
+    let nextMarkers = current;
+    if (n < current.length) {
+      nextMarkers = current.slice(0, n);
+    } else if (n > current.length) {
+      nextMarkers = [
+        ...current,
+        ...Array.from({ length: n - current.length }, (_, i) => ({
+          id: `lm-${question.id}-${Date.now()}-${i}`,
+          x: DEFAULT_SPOTS[(current.length + i) % DEFAULT_SPOTS.length].x,
+          y: DEFAULT_SPOTS[(current.length + i) % DEFAULT_SPOTS.length].y,
+        })),
+      ];
+    }
+    update({ partCount: n, labelMarkers: nextMarkers });
+  }
+
+  function moveMarker(id: string, x: number, y: number) {
+    const next = markers.map((m) => (m.id === id ? { ...m, x, y } : m));
+    update({ labelMarkers: next, partCount: markers.length });
   }
 
   return (
@@ -70,7 +211,7 @@ export function LabelQuestion({
             <ChevronDown size={14} />
           </button>
         </div>
-        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#a855f7,#ffb199)' }}>
+        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#9333ea,#ff7a52)' }}>
           {question.number}
         </div>
         <span className="sp-q-type pink">Picture Labeling</span>
@@ -105,21 +246,25 @@ export function LabelQuestion({
           className="sp-input"
         />
 
-        <div className="sp-diagram-upload">
+        <div className="sp-diagram-upload" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
           {question.image ? (
-            <div className="sp-match-img-wrap" style={{ width: '100%' }}>
-              <img src={question.image} alt="diagram" className="sp-label-diagram-editor" />
+            <>
+              <div className="sp-label-hint">
+                <Move size={13} /> Drag the numbered labels onto the picture
+              </div>
+              <Markers markers={markers} image={question.image} draggable onMove={moveMarker} />
               <button
                 type="button"
-                className="sp-img-remove"
+                className="sp-icon-btn"
+                style={{ alignSelf: 'flex-end' }}
                 onClick={() => update({ image: null })}
                 title="Remove diagram"
               >
-                <X size={12} />
+                <X size={14} /> Remove picture
               </button>
-            </div>
+            </>
           ) : (
-            <label className="sp-upload-label" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>
+            <label className="sp-upload-label" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem', alignSelf: 'center' }}>
               <ImageIcon size={14} /> Upload diagram / picture
               <input
                 type="file"
@@ -133,12 +278,12 @@ export function LabelQuestion({
 
         <div className="sp-line-control">
           <span className="sp-field-label" style={{ margin: 0 }}>
-            Number of labels to write:
+            Number of labels:
           </span>
           <button
             type="button"
             className="sp-line-step sp-theme-step"
-            onClick={() => update({ partCount: Math.max(1, partCount - 1) })}
+            onClick={() => setCount(partCount - 1)}
             aria-label="Fewer labels"
           >
             <span className="sp-step-sym">−</span>
@@ -147,14 +292,12 @@ export function LabelQuestion({
           <button
             type="button"
             className="sp-line-step sp-theme-step"
-            onClick={() => update({ partCount: Math.min(12, partCount + 1) })}
+            onClick={() => setCount(partCount + 1)}
             aria-label="More labels"
           >
             <span className="sp-step-sym">+</span>
           </button>
         </div>
-
-        <LabelPreview image={question.image} partCount={partCount} />
       </div>
     </div>
   );

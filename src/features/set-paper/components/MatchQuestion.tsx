@@ -89,7 +89,7 @@ export function MatchQuestion({
             <ChevronDown size={14} />
           </button>
         </div>
-        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#ffd06b,#ff8e53)' }}>
+        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#f5a623,#e86624)' }}>
           {question.number}
         </div>
         <span className="sp-q-type green">Match the Following</span>
@@ -134,7 +134,7 @@ export function MatchQuestion({
               type="button"
               onClick={handleShuffle}
               className="sp-mini-btn blue"
-              style={shuffled ? { background: 'rgba(255,224,154,0.3)', color: '#e85d3f' } : {}}
+              style={shuffled ? { background: 'rgba(245,166,35,0.25)', color: '#8f240b' } : {}}
             >
               <Shuffle size={12} /> Shuffle
             </button>

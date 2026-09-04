@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Eye, Download } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 import { PrintPreview } from '../components/PrintPreview';
@@ -5,9 +6,12 @@ import { exportToPDF } from '../helpers';
 
 export function PreviewPage() {
   const { totalMarks, state } = usePaper();
+  const [showToast, setShowToast] = useState(false);
 
-  function handleExportPDF() {
-    exportToPDF('print-area', `${state.header.schoolName || 'question-paper'}.pdf`);
+  async function handleExportPDF() {
+    await exportToPDF('print-area', `${state.header.schoolName || 'question-paper'}.pdf`);
+    setShowToast(true);
+    window.setTimeout(() => setShowToast(false), 4000);
   }
 
   return (
@@ -29,6 +33,12 @@ export function PreviewPage() {
       <div className="sp-gradient-border">
         <PrintPreview totalMarks={totalMarks} />
       </div>
+
+      {showToast && (
+        <div className="sp-toast sp-toast-success" role="status">
+          🎉 Congrats! Question paper generated successfully.
+        </div>
+      )}
     </div>
   );
 }

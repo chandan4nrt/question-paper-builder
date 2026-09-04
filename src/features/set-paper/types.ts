@@ -12,6 +12,12 @@ export interface McqOption {
   image?: string | null;
 }
 
+export interface LabelMarker {
+  id: string;
+  x: number;
+  y: number;
+}
+
 export interface Question {
   id: number;
   number: number;
@@ -26,6 +32,7 @@ export interface Question {
   image?: string | null;
   blankCount?: number;
   partCount?: number;
+  labelMarkers?: LabelMarker[];
 }
 
 export interface PaperHeader {

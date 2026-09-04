@@ -51,7 +51,7 @@ export function WritingQuestion({
             <ChevronDown size={14} />
           </button>
         </div>
-        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#ff9a8b,#ffb199)' }}>
+        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#f4624f,#ff7a52)' }}>
           {question.number}
         </div>
         <span className="sp-q-type pink">Writing Practice</span>
@@ -89,7 +89,7 @@ export function WritingQuestion({
           onChange={(e) => update({ sampleText: e.target.value })}
           placeholder="Sample text to trace (optional, shown on first line)"
           className="sp-input"
-          style={{ background: '#fff3e6', color: '#e85d3f' }}
+          style={{ background: '#fff3e6', color: '#c43a22' }}
         />
         <div className="sp-line-control">
           <span className="sp-field-label" style={{ margin: 0 }}>

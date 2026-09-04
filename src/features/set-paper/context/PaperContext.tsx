@@ -6,7 +6,7 @@ import {
   type ReactNode,
   type Dispatch,
 } from 'react';
-import { QUESTION_TYPES, type PaperState, type PaperTheme, type Question, type QuestionType } from '../types';
+import { QUESTION_TYPES, type LabelMarker, type PaperState, type PaperTheme, type Question, type QuestionType } from '../types';
 
 const PaperContext = createContext<{
   state: PaperState;
@@ -21,6 +21,28 @@ function today(): string {
   return new Date().toISOString().split('T')[0];
 }
 
+function defaultLabelMarkers(count: number): LabelMarker[] {
+  const spots = [
+    { x: 30, y: 30 },
+    { x: 70, y: 30 },
+    { x: 30, y: 70 },
+    { x: 70, y: 70 },
+    { x: 50, y: 20 },
+    { x: 20, y: 50 },
+    { x: 80, y: 50 },
+    { x: 50, y: 80 },
+    { x: 15, y: 85 },
+    { x: 85, y: 85 },
+    { x: 85, y: 15 },
+    { x: 15, y: 15 },
+  ];
+  return Array.from({ length: count }, (_, i) => ({
+    id: `lm-${Date.now()}-${i}`,
+    x: spots[i % spots.length].x,
+    y: spots[i % spots.length].y,
+  }));
+}
+
 const initialState: PaperState = {
   header: {
     schoolName: 'Sunshine Playschool',
@@ -31,7 +53,7 @@ const initialState: PaperState = {
     date: today(),
     totalMarks: 0,
     duration: '30 Minutes',
-    teacherName: 'Ms. Priya',
+    teacherName: 'Mr. Chandan',
     instructions: 'Read each question carefully before answering.',
     logo: null,
   },
@@ -91,6 +113,7 @@ function newQuestion(nextId: number, number: number, type: QuestionType): Questi
   if (type === QUESTION_TYPES.LABEL) {
     base.image = null;
     base.partCount = 4;
+    base.labelMarkers = defaultLabelMarkers(4);
   }
   if (type === QUESTION_TYPES.WRITING) {
     base.lines = 4;
