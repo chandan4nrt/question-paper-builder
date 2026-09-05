@@ -1,24 +1,24 @@
-import { usePaper } from '../context/PaperContext';
-import { formatDate } from '../helpers';
-import { WritingLines } from './WritingQuestion';
-import { LabelPreview } from './LabelQuestion';
-import { QUESTION_TYPES, type Question } from '../types';
+import { usePaper } from "../context/PaperContext";
+import { formatDate } from "../helpers";
+import { WritingLines } from "./WritingQuestion";
+import { LabelPreview } from "./LabelQuestion";
+import { QUESTION_TYPES, type Question } from "../types";
 
-const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
 function McqPreview({ question }: { question: Question }) {
   const options = question.options ?? [];
   return (
     <div className="sp-mcq-preview">
       {options.length === 0 && (
-        <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>Add options in the editor...</div>
+        <div style={{ color: "#94a3b8", fontStyle: "italic" }}>Add options in the editor...</div>
       )}
       <div className="sp-mcq-grid">
         {options.map((opt, i) => (
           <div key={opt.id} className="sp-mcq-preview-row">
             <span className="sp-match-letter sp-mcq-letter">{OPTION_LETTERS[i] ?? i + 1}</span>
             <span className="sp-mcq-answer-dot" />
-            <span className="sp-mcq-preview-label">{opt.label || <em style={{ color: '#a3a3a3' }}>Option...</em>}</span>
+            <span className="sp-mcq-preview-label">{opt.label || <em style={{ color: "#a3a3a3" }}>Option...</em>}</span>
           </div>
         ))}
       </div>
@@ -31,17 +31,17 @@ function ImageMcqPreview({ question }: { question: Question }) {
   return (
     <div className="sp-image-mcq-preview">
       {options.length === 0 && (
-        <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>Add picture options in the editor...</div>
+        <div style={{ color: "#94a3b8", fontStyle: "italic" }}>Add picture options in the editor...</div>
       )}
       <div className="sp-image-mcq-grid">
         {options.map((opt, i) => (
           <div key={opt.id} className="sp-image-mcq-card">
             <span className="sp-image-mcq-circle">{OPTION_LETTERS[i] ?? i + 1}</span>
             {opt.image ? (
-              <img src={opt.image} alt={opt.label || 'option'} />
+              <img src={opt.image} alt={opt.label || "option"} />
             ) : (
               <div className="sp-image-mcq-placeholder">
-                {opt.label || <em style={{ color: '#cbd5e1' }}>Option</em>}
+                {opt.label || <em style={{ color: "#cbd5e1" }}>Option</em>}
               </div>
             )}
             {opt.image && opt.label && <span className="sp-image-mcq-label">{opt.label}</span>}
@@ -62,9 +62,9 @@ function MatchPreview({ question }: { question: Question }) {
       <table className="sp-match-table">
         <thead>
           <tr>
-            <th style={{ width: '50%' }}>Column A</th>
+            <th style={{ width: "50%" }}>Column A</th>
             <th style={{ width: 32 }} />
-            <th style={{ width: '50%' }}>Column B</th>
+            <th style={{ width: "50%" }}>Column B</th>
           </tr>
         </thead>
         <tbody>
@@ -77,15 +77,11 @@ function MatchPreview({ question }: { question: Question }) {
                   {l && (
                     <div className="sp-match-box">
                       <span className="sp-match-letter">{String.fromCharCode(65 + i)}</span>
-                      {l.image ? (
-                        <img src={l.image} alt="item" />
-                      ) : (
-                        <span>{l.label}</span>
-                      )}
+                      {l.image ? <img src={l.image} alt="item" /> : <span>{l.label}</span>}
                     </div>
                   )}
                 </td>
-                <td className="sp-match-cell" style={{ textAlign: 'center', color: '#cbd5e1' }}>
+                <td className="sp-match-cell" style={{ textAlign: "center", color: "#cbd5e1" }}>
                   —
                 </td>
                 <td className="sp-match-cell">
@@ -102,7 +98,15 @@ function MatchPreview({ question }: { question: Question }) {
         </tbody>
       </table>
       <div className="sp-answer-key">
-        <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8', marginBottom: '0.25rem' }}>
+        <div
+          style={{
+            fontSize: "0.72rem",
+            fontWeight: 800,
+            textTransform: "uppercase",
+            color: "#94a3b8",
+            marginBottom: "0.25rem",
+          }}
+        >
           Answer:
         </div>
         {left.map((item, i) => (
@@ -165,7 +169,7 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
             <strong>Instructions:</strong>
             <ol className="sp-instructions-list">
               {header.instructions
-                .split('\n')
+                .split("\n")
                 .map((line) => line.trim())
                 .filter(Boolean)
                 .map((line, i) => (
@@ -176,29 +180,34 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
         {questions.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem 0' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📝</div>
+          <div style={{ textAlign: "center", color: "#94a3b8", padding: "2rem 0" }}>
+            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📝</div>
             No questions yet. Add some from the editor!
           </div>
         )}
 
         {questions.map((question) => (
-          <div key={question.id} className="sp-question">
+          <div key={question.id} className="sp-question pdf-question-block">
             <div className="sp-q-row">
               <span className="sp-q-no">Q{question.number}.</span>
+
               <span className="sp-q-text">
-                {question.text || <em style={{ color: '#a3a3a3' }}>Question text...</em>}
+                {question.text || <em style={{ color: "#a3a3a3" }}>Question text...</em>}
               </span>
+
               <span className="sp-q-marks">
-                [{question.marks} {Number(question.marks) === 1 ? 'mark' : 'marks'}]
+                [{question.marks} {Number(question.marks) === 1 ? "mark" : "marks"}]
               </span>
             </div>
 
             {question.type === QUESTION_TYPES.MATCH && <MatchPreview question={question} />}
+
             {question.type === QUESTION_TYPES.MCQ && <McqPreview question={question} />}
+
             {question.type === QUESTION_TYPES.IMAGE_MCQ && <ImageMcqPreview question={question} />}
+
             {question.type === QUESTION_TYPES.LABEL && (
               <LabelPreview
                 image={question.image}
@@ -206,9 +215,11 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
                 markers={question.labelMarkers}
               />
             )}
+
             {question.type === QUESTION_TYPES.WRITING && (
               <WritingLines count={question.lines || 4} sampleText={question.sampleText} />
             )}
+
             {question.type === QUESTION_TYPES.NORMAL && (
               <div className="sp-answer-lines">
                 {[1, 2, 3].map((i) => (
@@ -224,20 +235,16 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
         <div className="sp-footer-block">
           <div className="lbl">Teacher's Signature:</div>
           <span className="sp-blank-line sp-w40" />
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-            {header.teacherName}
-          </div>
+          <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.2rem" }}>{header.teacherName}</div>
         </div>
         <div className="sp-footer-central">
           {/* <div style={{ fontSize: '1.4rem', marginBottom: '0.2rem' }}>🌟</div> */}
           <div>Chak De!! India</div>
         </div>
-        <div className="sp-footer-block" style={{ textAlign: 'right' }}>
+        <div className="sp-footer-block" style={{ textAlign: "right" }}>
           <div className="lbl">Marks Obtained:</div>
           <span className="sp-blank-line sp-w24" />
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-            Out of {totalMarks}
-          </div>
+          <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.2rem" }}>Out of {totalMarks}</div>
         </div>
       </div>
     </div>

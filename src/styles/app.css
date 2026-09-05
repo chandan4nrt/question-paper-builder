@@ -2351,3 +2351,25 @@ body.sp-theme-light {
     transform: translateX(-50%) translateY(0);
   }
 }
+
+
+
+
+.sp-print-area {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 10mm;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.pdf-question-block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+@media print {
+  .pdf-question-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

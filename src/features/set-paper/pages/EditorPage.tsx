@@ -29,7 +29,7 @@ export function EditorPage() {
           <div className="sp-empty">
             <div className="emoji">📝</div>
             <b>No questions yet!</b>
-            <p>Add your first question using the sidebar on the right</p>
+            <p>Add your first question using the sidebar on the left</p>
           </div>
         )}
 
