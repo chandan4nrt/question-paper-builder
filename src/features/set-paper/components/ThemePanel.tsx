@@ -7,7 +7,6 @@ import {
   X,
   Pencil,
   Trash2,
-  Sparkles,
   AlignLeft,
   Shuffle,
   PenLine,
@@ -15,6 +14,7 @@ import {
   CircleDot,
   Underline,
   Image as ImageIcon,
+  CheckCircle2,
 } from "lucide-react";
 import { usePaper } from "../context/PaperContext";
 import { QUESTION_TYPES, type PaperTheme, type QuestionType } from "../types";
@@ -28,6 +28,7 @@ const TYPE_ORDER: QuestionType[] = [
   QUESTION_TYPES.IMAGE_MCQ,
   QUESTION_TYPES.FILL_BLANK,
   QUESTION_TYPES.LABEL,
+  QUESTION_TYPES.TRUE_FALSE,
 ];
 
 const TYPE_META: Record<string, { label: string; color: string; icon: ReactNode }> = {
@@ -38,6 +39,7 @@ const TYPE_META: Record<string, { label: string; color: string; icon: ReactNode 
   [QUESTION_TYPES.IMAGE_MCQ]: { label: "Circle It", color: "#8f240b", icon: <CircleDot size={14} /> },
   [QUESTION_TYPES.FILL_BLANK]: { label: "Fill Blank", color: "#085a54", icon: <Underline size={14} /> },
   [QUESTION_TYPES.LABEL]: { label: "Label", color: "#6b21a8", icon: <ImageIcon size={14} /> },
+  [QUESTION_TYPES.TRUE_FALSE]: { label: "True/False", color: "#6d28d9", icon: <CheckCircle2 size={14} /> },
 };
 
 function emptyConfig(type: QuestionType, count = 0, marks = 1) {
@@ -192,7 +194,7 @@ function ThemeConfigModal({
   );
 }
 
-export function ThemePanel() {
+export function ThemePanel({ disabled = false }: { disabled?: boolean }) {
   const { dispatch } = usePaper();
   const [expanded, setExpanded] = useState(true);
   const [themes, setThemes] = useState<PaperTheme[]>(() => loadThemes());
@@ -219,7 +221,7 @@ export function ThemePanel() {
   }
 
   return (
-    <div className="sp-sidebar-card">
+    <div className={`sp-sidebar-card${disabled ? ' sp-sidebar-disabled' : ''}`}>
       <button
         type="button"
         className="sp-sidebar-title"
@@ -230,7 +232,7 @@ export function ThemePanel() {
           border: "none",
           cursor: "pointer",
         }}
-        onClick={() => setExpanded((s) => !s)}
+        onClick={() => !disabled && setExpanded((s) => !s)}
       >
         <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
           <Layers size={15} color="#9333EA" /> Themes (One-Click Paper)

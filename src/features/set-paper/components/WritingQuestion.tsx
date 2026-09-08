@@ -10,15 +10,26 @@ interface CardProps {
   canMoveDown?: boolean;
 }
 
-export function WritingLines({ count, sampleText }: { count: number; sampleText?: string }) {
+export function WritingLines({ count, fragments = 1, sampleText }: { count: number; fragments?: number; sampleText?: string }) {
+  const fragmentCount = Math.max(1, fragments);
+
   return (
     <div className="sp-lines-box">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="sp-writing-line">
-          <div className="sp-line-top" />
-          <div className="sp-line-mid" />
-          <div className="sp-line-bottom" />
-          {i === 0 && sampleText && <div className="sp-line-sample">{sampleText}</div>}
+        <div
+          key={i}
+          className="sp-writing-line"
+          style={{ gridTemplateColumns: `repeat(${fragmentCount}, minmax(0, 1fr))` }}
+        >
+          {Array.from({ length: fragmentCount }).map((_, fragmentIndex) => (
+            <div key={fragmentIndex} className="sp-line-fragment">
+              <div className="sp-line-top" />
+              <div className="sp-line-mid1" />
+              <div className="sp-line-mid2" />
+              <div className="sp-line-bottom" />
+              {i === 0 && fragmentIndex === 0 && sampleText && <div className="sp-line-sample">{sampleText}</div>}
+            </div>
+          ))}
         </div>
       ))}
     </div>
@@ -39,6 +50,7 @@ export function WritingQuestion({
   }
 
   const lines = question.lines || 4;
+  const fragments = question.fragments || 1;
 
   return (
     <div className="sp-question-card">
@@ -91,29 +103,53 @@ export function WritingQuestion({
           className="sp-input"
           style={{ background: '#fff3e6', color: '#c43a22' }}
         />
-        <div className="sp-line-control">
-          <span className="sp-field-label" style={{ margin: 0 }}>
-            Number of lines:
-          </span>
-          <button
-            type="button"
-            className="sp-line-step sp-theme-step"
-            onClick={() => update({ lines: Math.max(1, lines - 1) })}
-            aria-label="Fewer lines"
-          >
-            <span className="sp-step-sym">−</span>
-          </button>
-          <span className="sp-line-count">{lines}</span>
-          <button
-            type="button"
-            className="sp-line-step sp-theme-step"
-            onClick={() => update({ lines: Math.min(10, lines + 1) })}
-            aria-label="More lines"
-          >
-            <span className="sp-step-sym">+</span>
-          </button>
+        <div className='sp-control'>
+          <div className="sp-line-control">
+            <span className="sp-field-label" style={{ margin: 0 }}>
+              Number of lines:
+            </span>
+            <button
+              type="button"
+              className="sp-line-step sp-theme-step"
+              onClick={() => update({ lines: Math.max(1, lines - 1) })}
+              aria-label="Fewer lines"
+            >
+              <span className="sp-step-sym">−</span>
+            </button>
+            <span className="sp-line-count">{lines}</span>
+            <button
+              type="button"
+              className="sp-line-step sp-theme-step"
+              onClick={() => update({ lines: Math.min(10, lines + 1) })}
+              aria-label="More lines"
+            >
+              <span className="sp-step-sym">+</span>
+            </button>
+          </div>
+          <div className="sp-line-control">
+            <span className="sp-field-label" style={{ margin: 0 }}>
+              Number of fragments:
+            </span>
+            <button
+              type="button"
+              className="sp-line-step sp-theme-step"
+              onClick={() => update({ fragments: Math.max(0, fragments - 1) })}
+              aria-label="Fewer fragments"
+            >
+              <span className="sp-step-sym">−</span>
+            </button>
+            <span className="sp-line-count">{fragments}</span>
+            <button
+              type="button"
+              className="sp-line-step sp-theme-step"
+              onClick={() => update({ fragments: Math.min(5, fragments + 1) })}
+              aria-label="More fragments"
+            >
+              <span className="sp-step-sym">+</span>
+            </button>
+          </div>
         </div>
-        <WritingLines count={lines} sampleText={question.sampleText} />
+        <WritingLines count={lines} fragments={fragments} sampleText={question.sampleText} />
       </div>
     </div>
   );

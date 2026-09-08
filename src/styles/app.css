@@ -792,8 +792,15 @@ body.sp-theme-light {
   background: rgba(65, 157, 158, 0.16);
   color: #317c7d;
 }
+.sp-q-type.violet {
+  background: rgba(139, 92, 246, 0.16);
+  color: #6d28d9;
+}
 .sp-q-number-mcq {
   background: linear-gradient(135deg, #c43a22, #ff7a52);
+}
+.sp-q-number-true-false {
+  background: linear-gradient(135deg, #6d28d9, #a855f7);
 }
 
 .sp-q-actions {
@@ -1263,6 +1270,41 @@ body.sp-theme-light {
 .sp-image-option-body .sp-match-label {
   width: 100%;
 }
+.sp-image-option-work,
+.sp-image-mcq-work {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.75rem;
+}
+.sp-image-option-work .sp-match-img-wrap {
+  flex: 0 0 38%;
+}
+.sp-image-writing-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.55rem;
+}
+.sp-image-writing-lines span {
+  display: block;
+  width: 100%;
+  height: 2px;
+}
+.sp-image-writing-line-top,
+.sp-image-writing-line-bottom {
+  background: #ce1e07;
+}
+.sp-image-writing-line-mid {
+  background: #35c0f3;
+}
+.sp-option-writing-toggle {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.7rem;
+}
 
 /* Image-MCQ print preview */
 .sp-image-mcq-preview {
@@ -1272,6 +1314,9 @@ body.sp-theme-light {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
+}
+.sp-image-mcq-option {
+  min-width: 0;
 }
 @media (min-width: 640px) {
   .sp-image-mcq-grid {
@@ -1290,10 +1335,21 @@ body.sp-theme-light {
   background: #fff4e0;
 }
 .sp-image-mcq-card img {
-  width: 100%;
+  width: 110%;
   height: 84px;
   object-fit: contain;
   border-radius: 8px;
+}
+.sp-image-mcq-option > .sp-image-writing-lines {
+  flex: none;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+.sp-image-mcq-preview-label {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  text-align: center;
 }
 .sp-image-mcq-placeholder {
   width: 100%;
@@ -1324,10 +1380,10 @@ body.sp-theme-light {
   justify-content: center;
   box-shadow: 0 1px 4px rgba(196, 58, 34, 0.3);
 }
-.sp-image-mcq-label {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #1e293b;
+.sp-image-mcq-answer-line {
+  width: 100%;
+  height: 1.2rem;
+  border-bottom: 2px solid #c43a22;
 }
 
 /* Fill in the Blanks */
@@ -1335,11 +1391,61 @@ body.sp-theme-light {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+  margin-top: 0.5rem;
+}
+.sp-fill-blank-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.sp-fill-blank-text {
+  flex: 1;
+  font-size: 1rem;
+  color: #334155;
+  line-height: 1.9;
 }
 .sp-fill-blank-line {
   width: 100%;
   border-bottom: 2px solid #64748b;
   height: 0;
+}
+
+/* True / False */
+.sp-tf-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+}
+.sp-tf-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sp-tf-statement {
+  flex: 1;
+  font-size: 1rem;
+  color: #334155;
+}
+.sp-tf-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+}
+.sp-tf-circle {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #94a3b8;
+  background: #fff;
+}
+.sp-q-text-heading {
+  font-weight: 700;
 }
 
 /* Picture Labeling */
@@ -1455,29 +1561,42 @@ body.sp-theme-light {
 .sp-writing-line {
   position: relative;
   height: 52px;
+  display: grid;
+  gap: 40px;
+}
+.sp-line-fragment {
+  position: relative;
+  height: 52px;
 }
 .sp-line-top,
 .sp-line-bottom {
   position: absolute;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   height: 2px;
-  background: #cf6a2c;
+  background: #ce1e07;
 }
 .sp-line-top {
-  top: 0;
+  top: 6px;
 }
 .sp-line-bottom {
-  bottom: 0;
+  bottom: 6px;
 }
-.sp-line-mid {
+.sp-line-mid1 {
   position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background-image: repeating-linear-gradient(90deg, #e8a268 0, #e8a268 6px, transparent 6px, transparent 12px);
+  top: 35%;
+  inset-inline: 0;
+  height: 1.5px;
+  background: #35c0f3;
 }
+
+.sp-line-mid2 {
+  position: absolute;
+  top: 65%;
+  inset-inline: 0;
+  height: 1.5px;
+  background: #35c0f3;
+}
+
 .sp-line-sample {
   position: absolute;
   top: 2px;
@@ -1490,6 +1609,15 @@ body.sp-theme-light {
   display: flex;
   align-items: center;
   letter-spacing: 4px;
+}
+
+.sp-control {
+  display: flex;
+  direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2px;
 }
 
 .sp-line-control {
@@ -1709,6 +1837,27 @@ body.sp-theme-light {
   color: #8f240b;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
+.sp-tab-export {
+  background: #fff;
+  color: #8f240b;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.sp-tab-export:hover:not(:disabled) {
+  background: #fde3d3;
+  color: #8f240b;
+}
+.sp-tab-export:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.sp-spin {
+  animation: sp-spin 0.9s linear infinite;
+}
+@keyframes sp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .sp-sidebar-right .sp-tabs {
   display: flex;
@@ -1866,6 +2015,9 @@ body.sp-theme-light {
 .sp-w40 {
   width: 160px;
 }
+.sp-w16 {
+  width: 64px;
+}
 .sp-w20 {
   width: 80px;
 }
@@ -1917,14 +2069,14 @@ body.sp-theme-light {
   border-collapse: collapse;
 }
 .sp-match-table th {
-  text-align: left;
+  text-align: center;
   font-size: 0.72rem;
   font-weight: 800;
   color: #475569;
   padding-bottom: 0.25rem;
 }
 .sp-match-cell {
-  padding: 0.4rem;
+  padding: 30px;
 }
 .sp-match-box {
   display: flex;
@@ -1940,7 +2092,7 @@ body.sp-theme-light {
   background: #ffe8dc;
 }
 .sp-match-box img {
-  height: 48px;
+  height: 148px;
   object-fit: contain;
 }
 .sp-answer-key {
@@ -2294,6 +2446,11 @@ body.sp-theme-light {
   color: #475569;
   margin-bottom: 5px;
 }
+.sp-sidebar-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
 
 .sp-sidebar-row {
   display: flex; flex-wrap: wrap;
@@ -2340,6 +2497,11 @@ body.sp-theme-light {
   background: #f0fdf4;
   color: #166534;
   border: 2px solid #86efac;
+}
+.sp-toast-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 2px solid #fca5a5;
 }
 @keyframes sp-toast-in {
   from {

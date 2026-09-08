@@ -1,4 +1,4 @@
-export type QuestionType = 'normal' | 'match' | 'writing' | 'mcq' | 'image-mcq' | 'fill-blank' | 'label';
+export type QuestionType = 'normal' | 'match' | 'writing' | 'mcq' | 'image-mcq' | 'fill-blank' | 'label' | 'true-false';
 
 export interface MatchItem {
   id: string;
@@ -10,6 +10,7 @@ export interface McqOption {
   id: string;
   label: string;
   image?: string | null;
+  writingLines?: boolean;
 }
 
 export interface LabelMarker {
@@ -27,12 +28,14 @@ export interface Question {
   leftItems?: MatchItem[];
   rightItems?: MatchItem[];
   lines?: number;
+  fragments?: number;
   sampleText?: string;
   options?: McqOption[];
   image?: string | null;
   blankCount?: number;
   partCount?: number;
   labelMarkers?: LabelMarker[];
+  items?: string[];
 }
 
 export interface PaperHeader {
@@ -77,4 +80,5 @@ export const QUESTION_TYPES: Record<string, QuestionType> = {
   IMAGE_MCQ: 'image-mcq',
   FILL_BLANK: 'fill-blank',
   LABEL: 'label',
+  TRUE_FALSE: 'true-false',
 };

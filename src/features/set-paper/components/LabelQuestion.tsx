@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Trash2, Star, ChevronUp, ChevronDown, Image as ImageIcon, X, Move } from 'lucide-react';
-import { usePaper } from '../context/PaperContext';
+import { MAX_IMAGE_SIZE, usePaper } from '../context/PaperContext';
 import type { LabelMarker, Question } from '../types';
 
 interface CardProps {
@@ -159,7 +159,7 @@ export function LabelQuestion({
   canMoveUp,
   canMoveDown,
 }: CardProps) {
-  const { dispatch } = usePaper();
+  const { dispatch, showToast } = usePaper();
 
   function update(data: Partial<Question>) {
     dispatch({ type: 'UPDATE_QUESTION', payload: { id: question.id, data } });
@@ -171,6 +171,11 @@ export function LabelQuestion({
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_IMAGE_SIZE) {
+      showToast('Image is too large. Please choose an image under 5 MB.');
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => update({ image: String(ev.target?.result) });
     reader.readAsDataURL(file);

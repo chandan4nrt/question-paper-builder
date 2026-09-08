@@ -10,7 +10,18 @@ interface CardProps {
   canMoveDown?: boolean;
 }
 
-const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function getOptionLetter(index: number) {
+  let value = index + 1;
+  let letters = '';
+  while (value > 0) {
+    value -= 1;
+    letters = String.fromCharCode(65 + (value % 26)) + letters;
+    value = Math.floor(value / 26);
+  }
+  return letters || OPTION_LETTERS[0];
+}
 
 export function McqQuestion({
   question,
@@ -99,12 +110,12 @@ export function McqQuestion({
           <div className="sp-mcq-grid">
             {options.map((opt: McqOption, index: number) => (
               <div key={opt.id} className="sp-mcq-option">
-                <span className="sp-match-letter sp-mcq-letter">{OPTION_LETTERS[index] ?? index + 1}</span>
+                <span className="sp-match-letter sp-mcq-letter">{getOptionLetter(index)}</span>
                 <input
                   className="sp-match-label"
                   value={opt.label}
                   onChange={(e) => updateOption(opt.id, e.target.value)}
-                  placeholder={`Option ${OPTION_LETTERS[index] ?? index + 1}`}
+                  placeholder={`Option ${getOptionLetter(index)}`}
                 />
                 <div className="sp-reorder">
                   <button type="button" onClick={() => moveOption(index, -1)} disabled={index === 0} title="Move up">

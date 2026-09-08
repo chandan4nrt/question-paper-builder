@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Trash2, Star, X, Shuffle, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react';
-import { usePaper } from '../context/PaperContext';
+import { MAX_IMAGE_SIZE, usePaper } from '../context/PaperContext';
 import { shuffleArray } from '../helpers';
 import type { MatchItem, Question } from '../types';
 
@@ -19,7 +19,7 @@ export function MatchQuestion({
   canMoveUp,
   canMoveDown,
 }: CardProps) {
-  const { dispatch } = usePaper();
+  const { dispatch, showToast } = usePaper();
   const [shuffled, setShuffled] = useState(false);
 
   const leftItems = question.leftItems ?? [];
@@ -67,6 +67,11 @@ export function MatchQuestion({
   function handleImageUpload(id: string, e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_IMAGE_SIZE) {
+      showToast('Image is too large. Please choose an image under 5 MB.');
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => updateLeftItem(id, 'image', String(ev.target?.result));
     reader.readAsDataURL(file);

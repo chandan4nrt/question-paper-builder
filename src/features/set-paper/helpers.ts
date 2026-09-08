@@ -115,27 +115,78 @@ export async function exportToPDF(elementId: string, filename = "question-paper.
   );
 
   /*
-   * Render the complete paper.
-   */
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    allowTaint: false,
-    backgroundColor: "#FFFFFF",
-    logging: false,
-
-    width: element.scrollWidth,
-    height: element.scrollHeight,
-
-    windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
-  });
-
-  /*
    * A4 dimensions
    */
   const A4_WIDTH = 210;
   const A4_HEIGHT = 297;
+
+  /*
+   * Work in CSS pixels (element space).
+   */
+  const contentWidth = element.scrollWidth;
+  const contentHeight = element.scrollHeight;
+
+  /*
+   * How many CSS px wide one mm is, then
+   * how tall one A4 page is in CSS px.
+   */
+  const pxPerMm = contentWidth / A4_WIDTH;
+  const pageHeightCss = A4_HEIGHT * pxPerMm;
+
+  /*
+   * Find every complete question.
+   */
+  const questionElements = Array.from(element.querySelectorAll<HTMLElement>(".pdf-question-block"));
+
+  const elementRect = element.getBoundingClientRect();
+
+  const questions = questionElements.map((question) => {
+    const rect = question.getBoundingClientRect();
+    const top = rect.top - elementRect.top;
+    const bottom = rect.bottom - elementRect.top;
+    return { top, bottom, height: bottom - top };
+  });
+
+  /*
+   * Build page boundaries in CSS px.
+   *
+   * Split at question boundaries so questions are never cut in half,
+   * but never let a page exceed one A4 page (very tall questions are
+   * split across pages).
+   */
+  const pages: Array<{ start: number; end: number }> = [];
+
+  let pageStart = 0;
+  const MIN_PAGE_GAP = 4;
+
+  while (pageStart < contentHeight - 1) {
+    let pageEnd = Math.min(pageStart + pageHeightCss, contentHeight);
+
+    /*
+     * Question crosses the page bottom - move the ENTIRE question
+     * to the next page when it can fit on one page.
+     */
+    const crossing = questions.find(
+      (q) => q.top < pageEnd - 0.5 && q.bottom > pageEnd + 0.5,
+    );
+
+    if (crossing && crossing.height <= pageHeightCss && crossing.top > pageStart + MIN_PAGE_GAP) {
+      pageEnd = crossing.top;
+    }
+
+    pages.push({ start: pageStart, end: pageEnd });
+
+    if (pageEnd - pageStart <= MIN_PAGE_GAP) {
+      break;
+    }
+
+    pageStart = pageEnd;
+  }
+
+  /*
+   * Remove very small/empty pages.
+   */
+  const validPages = pages.filter((page) => page.end - page.start > MIN_PAGE_GAP);
 
   const pdf = new jsPDF({
     orientation: "portrait",
@@ -145,155 +196,57 @@ export async function exportToPDF(elementId: string, filename = "question-paper.
   });
 
   /*
-   * Canvas width -> A4 width
-   *
-   * Example:
-   * canvas = 1587px wide
-   * A4     = 210mm wide
+   * Render each A4 page on its own small canvas. Rendering one page at
+   * a time avoids the browser's maximum canvas size, so the entire paper
+   * (any number of pages) is always captured.
    */
-  const pxPerMm = canvas.width / A4_WIDTH;
+  const SCALE = 2;
 
-  /*
-   * How many canvas pixels fit vertically
-   * inside one A4 page.
-   */
-  const pageHeightPx = A4_HEIGHT * pxPerMm;
+  for (let index = 0; index < validPages.length; index += 1) {
+    const page = validPages[index];
 
-  /*
-   * Find every complete question.
-   */
-  const questionElements = Array.from(element.querySelectorAll<HTMLElement>(".pdf-question-block"));
-
-  const elementRect = element.getBoundingClientRect();
-
-  /*
-   * Convert browser positions into canvas positions.
-   */
-  const questions = questionElements.map((question) => {
-    const rect = question.getBoundingClientRect();
-
-    const scaleX = canvas.width / element.scrollWidth;
-
-    const top = (rect.top - elementRect.top) * scaleX;
-
-    const bottom = (rect.bottom - elementRect.top) * scaleX;
-
-    return {
-      top,
-      bottom,
-      height: bottom - top,
-    };
-  });
-
-  /*
-   * Build page boundaries.
-   */
-  const pages: Array<{
-    start: number;
-    end: number;
-  }> = [];
-
-  let pageStart = 0;
-  let pageEnd = pageHeightPx;
-
-  for (const question of questions) {
-    /*
-     * Question crosses the current page.
-     */
-    if (question.top < pageEnd && question.bottom > pageEnd) {
-      /*
-       * If the question can fit on one page,
-       * move the ENTIRE question to the next page.
-       */
-      if (question.height <= pageHeightPx) {
-        pages.push({
-          start: pageStart,
-          end: question.top,
-        });
-
-        pageStart = question.top;
-        pageEnd = pageStart + pageHeightPx;
-      }
-    }
-  }
-
-  /*
-   * Add final page.
-   */
-  pages.push({
-    start: pageStart,
-    end: canvas.height,
-  });
-
-  /*
-   * Remove very small/empty pages.
-   */
-  const validPages = pages.filter((page) => page.end - page.start > 20);
-
-  /*
-   * Create PDF pages.
-   */
-  validPages.forEach((page, index) => {
     if (index > 0) {
       pdf.addPage("a4", "portrait");
     }
 
+    /*
+     * Use the page's actual height (not a full A4 height) so a page that
+     * ends early to keep a question intact does not bleed into the next
+     * page's content.
+     */
     const pageHeight = page.end - page.start;
 
-    const pageCanvas = document.createElement("canvas");
+    const canvas = await html2canvas(element, {
+      scale: SCALE,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: "#FFFFFF",
+      logging: false,
 
-    pageCanvas.width = canvas.width;
-    pageCanvas.height = Math.ceil(pageHeight);
+      width: contentWidth,
+      height: pageHeight,
 
-    const ctx = pageCanvas.getContext("2d");
+      windowWidth: contentWidth,
+      windowHeight: contentHeight,
 
-    if (!ctx) {
-      throw new Error("Could not create canvas context");
-    }
+      scrollX: 0,
+      scrollY: 0,
 
-    /*
-     * White page background.
-     */
-    ctx.fillStyle = "#FFFFFF";
+      x: 0,
+      y: page.start,
+    });
 
-    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-
-    /*
-     * Copy only this page from the
-     * complete canvas.
-     */
-    ctx.drawImage(
-      canvas,
-
-      // SOURCE
-      0,
-      page.start,
-      canvas.width,
-      pageHeight,
-
-      // DESTINATION
-      0,
-      0,
-      canvas.width,
-      pageHeight,
-    );
-
-    const imgData = pageCanvas.toDataURL("image/jpeg", 0.95);
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
 
     /*
-     * Convert canvas height to mm.
+     * Map the page canvas onto A4 at its natural scale.
      */
     const imageHeight = pageHeight / pxPerMm;
 
-    /*
-     * A4 width = exactly 210mm.
-     */
     pdf.addImage(imgData, "JPEG", 0, 0, A4_WIDTH, imageHeight, undefined, "FAST");
-  });
+  }
 
   console.log("PDF pages:", validPages.length);
-
-  console.log("Canvas:", canvas.width, "x", canvas.height);
 
   pdf.save(filename);
 

@@ -1,4 +1,4 @@
-import { Plus, AlignLeft, Shuffle, PenLine, ListChecks, CircleDot, Underline, Image } from 'lucide-react';
+import { Plus, AlignLeft, Shuffle, PenLine, ListChecks, CircleDot, Underline, Image, CheckCircle2 } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 import { QUESTION_TYPES, type QuestionType } from '../types';
 
@@ -58,17 +58,25 @@ const TYPE_CONFIG: {
     colorClass: 'violet',
     desc: 'Label the diagram',
   },
+  {
+    type: QUESTION_TYPES.TRUE_FALSE,
+    label: 'True / False',
+    icon: <CheckCircle2 size={18} />,
+    colorClass: 'green',
+    desc: 'Answer True or False',
+  },
 ];
 
-export function AddQuestionBar() {
+export function AddQuestionBar({ disabled = false }: { disabled?: boolean }) {
   const { dispatch } = usePaper();
 
   function addQuestion(type: QuestionType) {
+    if (disabled) return;
     dispatch({ type: 'ADD_QUESTION', payload: { type } });
   }
 
   return (
-    <div className="sp-sidebar-card">
+    <div className={`sp-sidebar-card${disabled ? ' sp-sidebar-disabled' : ''}`}>
       <div className="sp-sidebar-title">
         <span>Add Question</span>
       </div>
@@ -79,6 +87,8 @@ export function AddQuestionBar() {
             type="button"
             className={`sp-add-btn sp-sidebar-add ${config.colorClass}`}
             onClick={() => addQuestion(config.type)}
+            disabled={disabled}
+            title={disabled ? 'Switch to Editor to add questions' : undefined}
           >
             <span className={`sp-add-icon ${config.colorClass}`}>{config.icon}</span>
             <span className="sp-add-label">

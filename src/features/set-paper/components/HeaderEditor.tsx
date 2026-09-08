@@ -13,7 +13,7 @@ import {
   CalendarDays,
   ClipboardList,
 } from "lucide-react";
-import { usePaper } from "../context/PaperContext";
+import { MAX_IMAGE_SIZE, usePaper } from "../context/PaperContext";
 
 interface HeaderFieldConfig {
   field: keyof import("../types").PaperHeader;
@@ -24,7 +24,7 @@ interface HeaderFieldConfig {
 }
 
 export function HeaderEditor() {
-  const { state, dispatch } = usePaper();
+  const { state, dispatch, showToast } = usePaper();
   const { header } = state;
   const [expanded, setExpanded] = useState(true);
 
@@ -77,6 +77,11 @@ export function HeaderEditor() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
+                    if (file.size > MAX_IMAGE_SIZE) {
+                      showToast("Image is too large. Please choose an image under 5 MB.");
+                      e.target.value = "";
+                      return;
+                    }
                     const reader = new FileReader();
                     reader.onload = () => update("logo", String(reader.result ?? ""));
                     reader.readAsDataURL(file);

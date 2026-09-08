@@ -6,6 +6,7 @@ import { McqQuestion } from './McqQuestion';
 import { ImageMcqQuestion } from './ImageMcqQuestion';
 import { FillBlankQuestion } from './FillBlankQuestion';
 import { LabelQuestion } from './LabelQuestion';
+import { TrueFalseQuestion } from './TrueFalseQuestion';
 
 interface QuestionCardProps {
   question: Question;
@@ -37,6 +38,8 @@ export function QuestionCard({
       return <FillBlankQuestion question={question} {...common} />;
     case QUESTION_TYPES.LABEL:
       return <LabelQuestion question={question} {...common} />;
+    case QUESTION_TYPES.TRUE_FALSE:
+      return <TrueFalseQuestion question={question} {...common} />;
     default:
       return <NormalQuestion question={question} {...common} />;
   }

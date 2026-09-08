@@ -1,5 +1,5 @@
 import { Trash2, Star, Plus, X, ChevronUp, ChevronDown, Image as ImageIcon } from 'lucide-react';
-import { usePaper } from '../context/PaperContext';
+import { MAX_IMAGE_SIZE, usePaper } from '../context/PaperContext';
 import type { McqOption, Question } from '../types';
 
 interface CardProps {
@@ -10,7 +10,18 @@ interface CardProps {
   canMoveDown?: boolean;
 }
 
-const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+const OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function getOptionLetter(index: number) {
+  let value = index + 1;
+  let letters = '';
+  while (value > 0) {
+    value -= 1;
+    letters = String.fromCharCode(65 + (value % 26)) + letters;
+    value = Math.floor(value / 26);
+  }
+  return letters || OPTION_LETTERS[0];
+}
 
 export function ImageMcqQuestion({
   question,
@@ -19,7 +30,7 @@ export function ImageMcqQuestion({
   canMoveUp,
   canMoveDown,
 }: CardProps) {
-  const { dispatch } = usePaper();
+  const { dispatch, showToast } = usePaper();
   const options = question.options ?? [];
 
   function update(data: Partial<Question>) {
@@ -27,10 +38,10 @@ export function ImageMcqQuestion({
   }
 
   function addOption() {
-    update({ options: [...options, { id: `o${Date.now()}`, label: '', image: null }] });
+    update({ options: [...options, { id: `o${Date.now()}`, label: '', image: null, writingLines: false }] });
   }
 
-  function updateOption(id: string, field: keyof McqOption, value: string | null) {
+  function updateOption(id: string, field: keyof McqOption, value: string | boolean | null) {
     update({ options: options.map((o) => (o.id === id ? { ...o, [field]: value } : o)) });
   }
 
@@ -49,6 +60,11 @@ export function ImageMcqQuestion({
   function handleImageUpload(id: string, e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_IMAGE_SIZE) {
+      showToast('Image is too large. Please choose an image under 5 MB.');
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => updateOption(id, 'image', String(ev.target?.result));
     reader.readAsDataURL(file);
@@ -109,36 +125,55 @@ export function ImageMcqQuestion({
           <div className="sp-mcq-grid">
             {options.map((opt: McqOption, index: number) => (
               <div key={opt.id} className="sp-mcq-option">
-                <span className="sp-match-letter sp-mcq-letter">{OPTION_LETTERS[index] ?? index + 1}</span>
+                <span className="sp-match-letter sp-mcq-letter">{getOptionLetter(index)}</span>
                 <div className="sp-image-option-body">
-                  {opt.image ? (
-                    <div className="sp-match-img-wrap">
-                      <img src={opt.image} alt="option" className="sp-match-img" />
-                      <button
-                        type="button"
-                        className="sp-img-remove"
-                        onClick={() => updateOption(opt.id, 'image', null)}
-                        title="Remove image"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="sp-upload-label">
-                      <ImageIcon size={10} /> Upload
-                      <input
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={(e) => handleImageUpload(opt.id, e)}
-                      />
-                    </label>
-                  )}
+                  <div className="sp-image-option-work">
+                    {opt.image ? (
+                      <>
+                        <div className="sp-match-img-wrap">
+                          <img src={opt.image} alt="option" className="sp-match-img" />
+                          <button
+                            type="button"
+                            className="sp-img-remove"
+                            onClick={() => updateOption(opt.id, 'image', null)}
+                            title="Remove image"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <label className="sp-upload-label">
+                        <ImageIcon size={10} /> Upload
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => handleImageUpload(opt.id, e)}
+                        />
+                      </label>
+                    )}
+                    {opt.writingLines && (
+                      <div className="sp-image-writing-lines" aria-hidden="true">
+                        <span className="sp-image-writing-line-top" />
+                        <span className="sp-image-writing-line-mid" />
+                        <span className="sp-image-writing-line-mid" />
+                        <span className="sp-image-writing-line-bottom" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="sp-mcq-add sp-option-writing-toggle"
+                    onClick={() => updateOption(opt.id, 'writingLines', !opt.writingLines)}
+                  >
+                    {opt.writingLines ? 'Remove writing lines' : 'Add writing lines'}
+                  </button>
                   <input
                     className="sp-match-label"
                     value={opt.label}
                     onChange={(e) => updateOption(opt.id, 'label', e.target.value)}
-                    placeholder={`Option ${OPTION_LETTERS[index] ?? index + 1}`}
+                    placeholder={`Option ${getOptionLetter(index)}`}
                   />
                 </div>
                 <div className="sp-reorder">

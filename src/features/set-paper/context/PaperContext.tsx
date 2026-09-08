@@ -3,6 +3,7 @@ import {
   useContext,
   useReducer,
   useEffect,
+  useState,
   type ReactNode,
   type Dispatch,
 } from 'react';
@@ -13,9 +14,11 @@ const PaperContext = createContext<{
   dispatch: Dispatch<PaperAction>;
   totalMarks: number;
   QUESTION_TYPES: typeof QUESTION_TYPES;
+  showToast: (message: string) => void;
 } | null>(null);
 
 const DRAFT_KEY = 'playschool-paper-draft';
+export const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function today(): string {
   return new Date().toISOString().split('T')[0];
@@ -108,7 +111,8 @@ function newQuestion(nextId: number, number: number, type: QuestionType): Questi
     ];
   }
   if (type === QUESTION_TYPES.FILL_BLANK) {
-    base.blankCount = 3;
+    base.blankCount = 1;
+    base.items = [''];
   }
   if (type === QUESTION_TYPES.LABEL) {
     base.image = null;
@@ -208,6 +212,12 @@ function loadInitial(): PaperState {
 
 export function PaperProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(paperReducer, undefined, loadInitial);
+  const [toast, setToast] = useState<string | null>(null);
+
+  function showToast(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 4000);
+  }
 
   useEffect(() => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
@@ -224,8 +234,13 @@ export function PaperProvider({ children }: { children: ReactNode }) {
   const totalMarks = state.questions.reduce((sum, q) => sum + Number(q.marks || 0), 0);
 
   return (
-    <PaperContext.Provider value={{ state, dispatch, totalMarks, QUESTION_TYPES }}>
+    <PaperContext.Provider value={{ state, dispatch, totalMarks, QUESTION_TYPES, showToast }}>
       {children}
+      {toast && (
+        <div className="sp-toast sp-toast-error" role="alert">
+          {toast}
+        </div>
+      )}
     </PaperContext.Provider>
   );
 }

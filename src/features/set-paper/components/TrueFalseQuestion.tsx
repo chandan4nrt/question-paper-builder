@@ -1,4 +1,4 @@
-import { Trash2, Star, ChevronUp, ChevronDown, Plus, X } from 'lucide-react';
+import { Trash2, Star, Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 import type { Question } from '../types';
 
@@ -10,7 +10,7 @@ interface CardProps {
   canMoveDown?: boolean;
 }
 
-export function FillBlankQuestion({
+export function TrueFalseQuestion({
   question,
   onMoveUp,
   onMoveDown,
@@ -19,14 +19,12 @@ export function FillBlankQuestion({
 }: CardProps) {
   const { dispatch } = usePaper();
 
-  // Fallback to single text if items array doesn't exist yet
-  const items = question.items || (question.text ? [question.text] : ['']);
+  const items = question.items || [''];
 
   function update(data: Partial<Question>) {
     dispatch({ type: 'UPDATE_QUESTION', payload: { id: question.id, data } });
   }
 
-  // Sub-question handlers
   const handleItemChange = (index: number, value: string) => {
     const updatedItems = [...items];
     updatedItems[index] = value;
@@ -38,7 +36,7 @@ export function FillBlankQuestion({
   };
 
   const handleRemoveItem = (index: number) => {
-    if (items.length <= 1) return; // Keep at least one sub-question
+    if (items.length <= 1) return;
     const updatedItems = items.filter((_, i) => i !== index);
     update({ items: updatedItems });
   };
@@ -50,28 +48,15 @@ export function FillBlankQuestion({
           <button type="button" onClick={onMoveUp} disabled={!canMoveUp} title="Move up">
             <ChevronUp size={14} />
           </button>
-
           <button type="button" onClick={onMoveDown} disabled={!canMoveDown} title="Move down">
             <ChevronDown size={14} />
           </button>
         </div>
-
-        {/* Fill in the Blanks Header */}
-        <div
-          className="sp-q-number"
-          style={{
-            background: 'linear-gradient(135deg, #347a58, #63ad82)',
-          }}
-        >
-          {question.number}
-        </div>
-
-        <span className="sp-q-type green">Fill in the Blanks</span>
-
+        <div className="sp-q-number sp-q-number-true-false">{question.number}</div>
+        <span className="sp-q-type violet">True / False</span>
         <div className="sp-q-actions">
           <div className="sp-marks">
             <Star size={12} color="#FFE29A" fill="#FFE29A" />
-
             <input
               type="number"
               min={0}
@@ -79,19 +64,12 @@ export function FillBlankQuestion({
               value={question.marks}
               onChange={(e) => update({ marks: Number(e.target.value) })}
             />
-
             <span>pts</span>
           </div>
-
           <button
             type="button"
             className="sp-icon-btn"
-            onClick={() =>
-              dispatch({
-                type: 'DELETE_QUESTION',
-                payload: question.id,
-              })
-            }
+            onClick={() => dispatch({ type: 'DELETE_QUESTION', payload: question.id })}
             title="Delete question"
           >
             <Trash2 size={16} />
@@ -99,7 +77,6 @@ export function FillBlankQuestion({
         </div>
       </div>
 
-      {/* Sub-Questions List */}
       <div
         className="sp-q-body"
         style={{
@@ -111,6 +88,7 @@ export function FillBlankQuestion({
         {items.map((item, index) => (
           <div
             key={index}
+            className="sp-tf-row"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -131,11 +109,38 @@ export function FillBlankQuestion({
             <textarea
               value={item}
               onChange={(e) => handleItemChange(index, e.target.value)}
-              placeholder='Use ___ in your sentence, e.g. "The sun rises in the ___."'
+              placeholder='Write a statement, e.g. "The sun rises in the east."'
               rows={1}
               className="sp-textarea"
               style={{ flex: 1, resize: 'vertical' }}
             />
+
+            <span className="sp-tf-options" style={{ display: 'inline-flex', gap: '0.75rem', alignItems: 'center' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: '#347a58',
+                }}
+              >
+                <span className="sp-tf-circle" /> True
+              </span>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: '#a83d68',
+                }}
+              >
+                <span className="sp-tf-circle" /> False
+              </span>
+            </span>
 
             {items.length > 1 && (
               <button
@@ -161,14 +166,14 @@ export function FillBlankQuestion({
             alignSelf: 'flex-start',
             fontSize: '0.875rem',
             fontWeight: 500,
-            color: '#347a58',
+            color: '#a83d68',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             padding: '0.25rem 0',
           }}
         >
-          <Plus size={16} /> Add Blank Question
+          <Plus size={16} /> Add True/False Statement
         </button>
       </div>
     </div>

@@ -4,7 +4,18 @@ import { WritingLines } from "./WritingQuestion";
 import { LabelPreview } from "./LabelQuestion";
 import { QUESTION_TYPES, type Question } from "../types";
 
-const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+const OPTION_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+function getOptionLetter(index: number) {
+  let value = index + 1;
+  let letters = "";
+  while (value > 0) {
+    value -= 1;
+    letters = String.fromCharCode(65 + (value % 26)) + letters;
+    value = Math.floor(value / 26);
+  }
+  return letters || OPTION_LETTERS[0];
+}
 
 function McqPreview({ question }: { question: Question }) {
   const options = question.options ?? [];
@@ -16,8 +27,8 @@ function McqPreview({ question }: { question: Question }) {
       <div className="sp-mcq-grid">
         {options.map((opt, i) => (
           <div key={opt.id} className="sp-mcq-preview-row">
-            <span className="sp-match-letter sp-mcq-letter">{OPTION_LETTERS[i] ?? i + 1}</span>
-            <span className="sp-mcq-answer-dot" />
+            <span className="sp-match-letter sp-mcq-letter">{getOptionLetter(i)}</span>
+            {/* <span className="sp-mcq-answer-dot" /> */}
             <span className="sp-mcq-preview-label">{opt.label || <em style={{ color: "#a3a3a3" }}>Option...</em>}</span>
           </div>
         ))}
@@ -35,19 +46,79 @@ function ImageMcqPreview({ question }: { question: Question }) {
       )}
       <div className="sp-image-mcq-grid">
         {options.map((opt, i) => (
-          <div key={opt.id} className="sp-image-mcq-card">
-            <span className="sp-image-mcq-circle">{OPTION_LETTERS[i] ?? i + 1}</span>
-            {opt.image ? (
-              <img src={opt.image} alt={opt.label || "option"} />
-            ) : (
-              <div className="sp-image-mcq-placeholder">
-                {opt.label || <em style={{ color: "#cbd5e1" }}>Option</em>}
+          <div key={opt.id} className="sp-image-mcq-option">
+            <div className="sp-image-mcq-card">
+              <span className="sp-image-mcq-circle">{getOptionLetter(i)}</span>
+              {opt.image ? (
+                <img src={opt.image} alt={opt.label || "option"} />
+              ) : (
+                <div className="sp-image-mcq-placeholder">
+                  {opt.label || <em style={{ color: "#cbd5e1" }}>Option</em>}
+                </div>
+              )}
+            </div>
+            {opt.writingLines && (
+              <div className="sp-image-writing-lines" aria-hidden="true">
+                <span className="sp-image-writing-line-top" />
+                <span className="sp-image-writing-line-mid" />
+                <span className="sp-image-writing-line-mid" />
+                <span className="sp-image-writing-line-bottom" />
               </div>
             )}
-            {opt.image && opt.label && <span className="sp-image-mcq-label">{opt.label}</span>}
+            {!opt.writingLines && (
+              <span className="sp-match-label sp-image-mcq-preview-label">
+                {opt.label || <em>Option</em>}
+              </span>
+            )}
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function FillBlankPreview({ question }: { question: Question }) {
+  const items = question.items && question.items.length > 0 ? question.items : [""];
+
+  return (
+    <div className="sp-fill-blank-preview">
+      {items.map((item, index) => {
+        const parts = item.split("___");
+        return (
+          <div key={index} className="sp-fill-blank-row">
+            <span className="sp-match-letter">{index + 1}.</span>
+            <span className="sp-fill-blank-text">
+              {parts.map((part, i) => (
+                <span key={i}>
+                  {part}
+                  {i < parts.length - 1 && <span className="sp-blank-line sp-w16" />}
+                </span>
+              ))}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TrueFalsePreview({ question }: { question: Question }) {
+  const items = question.items && question.items.length > 0 ? question.items : [""];
+
+  return (
+    <div className="sp-tf-preview">
+      {items.map((item, index) => (
+        <div key={index} className="sp-tf-row">
+          <span className="sp-match-letter">{index + 1}.</span>
+          <span className="sp-tf-statement">{item || <em style={{ color: "#a3a3a3" }}>Statement...</em>}</span>
+          <span className="sp-tf-choice">
+            <span className="sp-tf-circle" /> True
+          </span>
+          <span className="sp-tf-choice">
+            <span className="sp-tf-circle" /> False
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -82,7 +153,7 @@ function MatchPreview({ question }: { question: Question }) {
                   )}
                 </td>
                 <td className="sp-match-cell" style={{ textAlign: "center", color: "#cbd5e1" }}>
-                  —
+                  {/* — */}
                 </td>
                 <td className="sp-match-cell">
                   {r && (
@@ -97,7 +168,7 @@ function MatchPreview({ question }: { question: Question }) {
           })}
         </tbody>
       </table>
-      <div className="sp-answer-key">
+      {/* <div className="sp-answer-key">
         <div
           style={{
             fontSize: "0.72rem",
@@ -115,7 +186,7 @@ function MatchPreview({ question }: { question: Question }) {
             <span className="sp-blank-line sp-w24" />
           </div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 }
@@ -194,7 +265,14 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
               <span className="sp-q-no">Q{question.number}.</span>
 
               <span className="sp-q-text">
-                {question.text || <em style={{ color: "#a3a3a3" }}>Question text...</em>}
+                {question.text ||
+                  (question.type === QUESTION_TYPES.TRUE_FALSE ? (
+                    <span className="sp-q-text-heading">State whether True or False</span>
+                  ) : question.type === QUESTION_TYPES.FILL_BLANK ? (
+                    <span className="sp-q-text-heading">Fill in the blanks</span>
+                  ) : (
+                    <em style={{ color: "#a3a3a3" }}>Question text...</em>
+                  ))}
               </span>
 
               <span className="sp-q-marks">
@@ -203,6 +281,10 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
             </div>
 
             {question.type === QUESTION_TYPES.MATCH && <MatchPreview question={question} />}
+
+            {question.type === QUESTION_TYPES.FILL_BLANK && <FillBlankPreview question={question} />}
+
+            {question.type === QUESTION_TYPES.TRUE_FALSE && <TrueFalsePreview question={question} />}
 
             {question.type === QUESTION_TYPES.MCQ && <McqPreview question={question} />}
 
@@ -217,7 +299,7 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
             )}
 
             {question.type === QUESTION_TYPES.WRITING && (
-              <WritingLines count={question.lines || 4} sampleText={question.sampleText} />
+              <WritingLines count={question.lines || 4} fragments={question.fragments || 0} sampleText={question.sampleText} />
             )}
 
             {question.type === QUESTION_TYPES.NORMAL && (
@@ -239,7 +321,7 @@ export function PrintPreview({ totalMarks }: { totalMarks: number }) {
         </div>
         <div className="sp-footer-central">
           {/* <div style={{ fontSize: '1.4rem', marginBottom: '0.2rem' }}>🌟</div> */}
-          <div>Chak De!! India</div>
+          <div>All the best !!</div>
         </div>
         <div className="sp-footer-block" style={{ textAlign: "right" }}>
           <div className="lbl">Marks Obtained:</div>
