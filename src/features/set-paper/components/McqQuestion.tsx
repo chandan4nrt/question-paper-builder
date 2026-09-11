@@ -1,4 +1,4 @@
-import { Trash2, Star, Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, Star, Plus, X, ChevronUp, ChevronDown, Check } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 import type { McqOption, Question } from '../types';
 
@@ -57,6 +57,10 @@ export function McqQuestion({
     update({ options: next });
   }
 
+  function setCorrectOption(id: string) {
+    update({ correctOptionId: id });
+  }
+
   return (
     <div className="sp-question-card">
       <div className="sp-q-head">
@@ -110,6 +114,14 @@ export function McqQuestion({
           <div className="sp-mcq-grid">
             {options.map((opt: McqOption, index: number) => (
               <div key={opt.id} className="sp-mcq-option">
+                <button
+                  type="button"
+                  className={`sp-correct-answer-btn${question.correctOptionId === opt.id ? ' active' : ''}`}
+                  onClick={() => setCorrectOption(opt.id)}
+                  title="Mark as correct answer"
+                >
+                  <Check size={14} />
+                </button>
                 <span className="sp-match-letter sp-mcq-letter">{getOptionLetter(index)}</span>
                 <input
                   className="sp-match-label"

@@ -29,7 +29,7 @@ export function StaffLayout() {
             <span className="app-logo"><Book size={20} /></span> Question Bank
           </span>
           <nav className="app-nav">
-            {/* <NavLink
+            <NavLink
               to="/staff/question-bank"
               className={({ isActive }) => (isActive ? 'active' : '')}
             >
@@ -40,7 +40,7 @@ export function StaffLayout() {
               className={({ isActive }) => (isActive ? 'active' : '')}
             >
               Exams
-            </NavLink> */}
+            </NavLink>
             <NavLink
               to="/staff/paper-builder"
               className={({ isActive }) => (isActive ? 'active' : '')}

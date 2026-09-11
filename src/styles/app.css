@@ -1850,6 +1850,19 @@ body.sp-theme-light {
   opacity: 0.7;
   cursor: not-allowed;
 }
+.sp-tab-save {
+  background: #fff;
+  color: #1d7a3d;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.sp-tab-save:hover:not(:disabled) {
+  background: #e3f6e9;
+  color: #1d7a3d;
+}
+.sp-tab-save:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 .sp-spin {
   animation: sp-spin 0.9s linear infinite;
 }
@@ -2534,4 +2547,108 @@ body.sp-theme-light {
     break-inside: avoid;
     page-break-inside: avoid;
   }
+}
+
+.sp-answer-section {
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed #d7dde6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.sp-answer-inline {
+  margin-top: 0;
+  padding-top: 0.4rem;
+  border-top: none;
+}
+.sp-answer-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+.sp-answer-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  background: #fff;
+  color: #334155;
+}
+.sp-answer-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+.sp-answer-pair {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sp-answer-pair-left {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  min-width: 2.5rem;
+}
+.sp-answer-select {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  background: #fff;
+  color: #334155;
+}
+.sp-answer-tf {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+.sp-answer-tf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1.5px solid #cbd5e1;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+}
+.sp-answer-tf-btn.true.active {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #166534;
+}
+.sp-answer-tf-btn.false.active {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+.sp-correct-answer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+  background: #fff;
+  color: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sp-correct-answer-btn:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+.sp-correct-answer-btn.active {
+  background: #22c55e;
+  border-color: #16a34a;
+  color: #fff;
 }

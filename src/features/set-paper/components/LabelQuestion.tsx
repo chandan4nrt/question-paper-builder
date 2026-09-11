@@ -177,7 +177,8 @@ export function LabelQuestion({
       return;
     }
     const reader = new FileReader();
-    reader.onload = (ev) => update({ image: String(ev.target?.result) });
+    reader.onload = (ev) =>
+      update({ image: String(ev.target?.result), imageName: file.name });
     reader.readAsDataURL(file);
   }
 
@@ -203,6 +204,12 @@ export function LabelQuestion({
   function moveMarker(id: string, x: number, y: number) {
     const next = markers.map((m) => (m.id === id ? { ...m, x, y } : m));
     update({ labelMarkers: next, partCount: markers.length });
+  }
+
+  function handleAnswerChange(index: number, value: string) {
+    const answers = [...(question.answers ?? [])];
+    answers[index] = value;
+    update({ answers });
   }
 
   return (
@@ -262,7 +269,7 @@ export function LabelQuestion({
                 type="button"
                 className="sp-icon-btn"
                 style={{ alignSelf: 'flex-end' }}
-                onClick={() => update({ image: null })}
+                onClick={() => update({ image: null, imageName: null })}
                 title="Remove diagram"
               >
                 <X size={14} /> Remove picture
@@ -294,16 +301,33 @@ export function LabelQuestion({
             <span className="sp-step-sym">−</span>
           </button>
           <span className="sp-line-count">{partCount}</span>
-          <button
-            type="button"
-            className="sp-line-step sp-theme-step"
-            onClick={() => setCount(partCount + 1)}
-            aria-label="More labels"
-          >
-            <span className="sp-step-sym">+</span>
-          </button>
+<button
+              type="button"
+              className="sp-line-step sp-theme-step"
+              onClick={() => setCount(partCount + 1)}
+              aria-label="More labels"
+            >
+              <span className="sp-step-sym">+</span>
+            </button>
+          </div>
         </div>
-      </div>
+
+        {markers.length > 0 && (
+          <div className="sp-answer-section">
+            <span className="sp-answer-label">Label answers</span>
+            {markers.map((m, i) => (
+              <div key={m.id} className="sp-answer-pair">
+                <span className="sp-answer-pair-left">{i + 1}.</span>
+                <input
+                  className="sp-answer-input"
+                  value={question.answers?.[i] ?? ''}
+                  onChange={(e) => handleAnswerChange(i, e.target.value)}
+                  placeholder={`Label ${i + 1}`}
+                />
+              </div>
+            ))}
+          </div>
+        )}
     </div>
   );
 }

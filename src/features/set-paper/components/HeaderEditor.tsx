@@ -59,7 +59,7 @@ export function HeaderEditor() {
             <span className="sp-logo-actions">
               Upload School Logo
               {header.logo && (
-                <button type="button" className="sp-icon-btn" onClick={() => update("logo", null)} title="Remove logo">
+                <button type="button" className="sp-icon-btn" onClick={() => { update("logo", null); update("logoName", null); }} title="Remove logo">
                   <X size={14} />
                 </button>
               )}
@@ -83,7 +83,10 @@ export function HeaderEditor() {
                       return;
                     }
                     const reader = new FileReader();
-                    reader.onload = () => update("logo", String(reader.result ?? ""));
+                    reader.onload = () => {
+                      update("logo", String(reader.result ?? ""));
+                      update("logoName", file.name);
+                    };
                     reader.readAsDataURL(file);
                   }}
                 />

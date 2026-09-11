@@ -4,12 +4,14 @@ export interface MatchItem {
   id: string;
   label: string;
   image?: string | null;
+  imageName?: string | null;
 }
 
 export interface McqOption {
   id: string;
   label: string;
   image?: string | null;
+  imageName?: string | null;
   writingLines?: boolean;
 }
 
@@ -32,10 +34,15 @@ export interface Question {
   sampleText?: string;
   options?: McqOption[];
   image?: string | null;
+  imageName?: string | null;
   blankCount?: number;
   partCount?: number;
   labelMarkers?: LabelMarker[];
   items?: string[];
+  correctOptionId?: string;
+  correctAnswer?: string[];
+  answers?: string[];
+  matchPairs?: Record<string, string>;
 }
 
 export interface PaperHeader {
@@ -50,6 +57,7 @@ export interface PaperHeader {
   teacherName: string;
   instructions: string;
   logo?: string | null;
+  logoName?: string | null;
 }
 
 export interface PaperState {
@@ -82,3 +90,57 @@ export const QUESTION_TYPES: Record<string, QuestionType> = {
   LABEL: 'label',
   TRUE_FALSE: 'true-false',
 };
+
+export interface SetPaperPayload {
+  template: Record<string, unknown>;
+  paperId: string;
+  subject: string;
+  classLevel: string;
+  classSection: string;
+  totalMarks: number;
+  durationInMin: number;
+  examTerm: string;
+  academicYear: string;
+  numberOfSectionsInPpr: number;
+}
+
+export interface SetPaperResponse {
+  paperId: string;
+  message: string;
+}
+
+export interface SavedPaper {
+  backendId: number;
+  paperId: string;
+  subject: string;
+  classLevel: string;
+  examTerm: string;
+  academicYear: string;
+  totalMarks: number;
+  durationInMin: number;
+  savedAt: string;
+}
+
+export interface PaperBackendResponse {
+  id: number;
+  template: {
+    title: string;
+    sectionId: number | null;
+    questionCount: string;
+    questions: unknown[];
+    images?: Record<string, string>;
+    logo?: string;
+    logoName?: string;
+  };
+  paperId: string;
+  subject: string;
+  classLevel: string;
+  classSection: string;
+  totalMarks: number;
+  durationInMin: number;
+  examTerm: string;
+  academicYear: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}

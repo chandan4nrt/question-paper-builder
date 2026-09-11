@@ -70,6 +70,15 @@ export function NormalQuestion({
           rows={3}
           className="sp-textarea"
         />
+        <div className="sp-answer-section">
+          <span className="sp-answer-label">Right answer (optional)</span>
+          <input
+            className="sp-answer-input"
+            value={question.answers?.[0] ?? ''}
+            onChange={(e) => update({ answers: [e.target.value] })}
+            placeholder="Correct answer..."
+          />
+        </div>
       </div>
     </div>
   );

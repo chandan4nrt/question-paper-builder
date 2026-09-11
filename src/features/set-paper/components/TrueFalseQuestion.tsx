@@ -41,6 +41,12 @@ export function TrueFalseQuestion({
     update({ items: updatedItems });
   };
 
+  const handleAnswerChange = (index: number, value: string) => {
+    const answers = [...(question.answers ?? [])];
+    answers[index] = value;
+    update({ answers });
+  };
+
   return (
     <div className="sp-question-card">
       <div className="sp-q-head">
@@ -115,30 +121,24 @@ export function TrueFalseQuestion({
               style={{ flex: 1, resize: 'vertical' }}
             />
 
-            <span className="sp-tf-options" style={{ display: 'inline-flex', gap: '0.75rem', alignItems: 'center' }}>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  color: '#347a58',
-                }}
-              >
-                <span className="sp-tf-circle" /> True
-              </span>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  color: '#a83d68',
-                }}
-              >
-                <span className="sp-tf-circle" /> False
+            <span className="sp-tf-options" style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span className="sp-answer-tf">
+                <button
+                  type="button"
+                  className={`sp-answer-tf-btn true${question.answers?.[index] === 'true' ? ' active' : ''}`}
+                  onClick={() => handleAnswerChange(index, 'true')}
+                  title="Mark as True"
+                >
+                  ✓ True
+                </button>
+                <button
+                  type="button"
+                  className={`sp-answer-tf-btn false${question.answers?.[index] === 'false' ? ' active' : ''}`}
+                  onClick={() => handleAnswerChange(index, 'false')}
+                  title="Mark as False"
+                >
+                  ✗ False
+                </button>
               </span>
             </span>
 

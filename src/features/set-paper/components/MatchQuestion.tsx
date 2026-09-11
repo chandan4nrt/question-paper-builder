@@ -73,7 +73,14 @@ export function MatchQuestion({
       return;
     }
     const reader = new FileReader();
-    reader.onload = (ev) => updateLeftItem(id, 'image', String(ev.target?.result));
+    reader.onload = (ev) => {
+      const image = String(ev.target?.result);
+      update({
+        leftItems: leftItems.map((item) =>
+          item.id === id ? { ...item, image, imageName: file.name } : item,
+        ),
+      });
+    };
     reader.readAsDataURL(file);
   }
 
@@ -162,7 +169,13 @@ export function MatchQuestion({
                           <button
                             type="button"
                             className="sp-img-remove"
-                            onClick={() => updateLeftItem(left.id, 'image', null)}
+                            onClick={() =>
+                              update({
+                                leftItems: leftItems.map((item) =>
+                                  item.id === left.id ? { ...item, image: null, imageName: null } : item,
+                                ),
+                              })
+                            }
                           >
                             <X size={10} />
                           </button>
@@ -250,6 +263,29 @@ export function MatchQuestion({
             <span>Add item to Column B</span>
           </button>
         </div>
+      </div>
+
+      <div className="sp-answer-section">
+        <span className="sp-answer-label">Mark the right matches</span>
+        {leftItems.map((item, index) => (
+          <div key={item.id} className="sp-answer-pair">
+            <span className="sp-answer-pair-left">{String.fromCharCode(65 + index)}</span>
+            <select
+              className="sp-answer-select"
+              value={question.matchPairs?.[item.id] ?? ''}
+              onChange={(e) =>
+                update({ matchPairs: { ...(question.matchPairs ?? {}), [item.id]: e.target.value } })
+              }
+            >
+              <option value="">— select match —</option>
+              {rightItems.map((right, ri) => (
+                <option key={right.id} value={right.id}>
+                  {right.label || `Right ${ri + 1}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
       </div>
     </div>
   );

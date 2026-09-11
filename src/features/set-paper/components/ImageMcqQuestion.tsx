@@ -1,4 +1,4 @@
-import { Trash2, Star, Plus, X, ChevronUp, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Star, Plus, X, ChevronUp, ChevronDown, Image as ImageIcon, Check } from 'lucide-react';
 import { MAX_IMAGE_SIZE, usePaper } from '../context/PaperContext';
 import type { McqOption, Question } from '../types';
 
@@ -57,6 +57,20 @@ export function ImageMcqQuestion({
     update({ options: next });
   }
 
+  const imageOptions = options.filter((o) => o.image);
+
+  function getWriteAnswer(optionId: string) {
+    const idx = imageOptions.findIndex((o) => o.id === optionId);
+    return idx >= 0 ? (question.answers?.[idx] ?? '') : '';
+  }
+
+  function setWriteAnswer(optionId: string, value: string) {
+    const idx = imageOptions.findIndex((o) => o.id === optionId);
+    const answers = [...(question.answers ?? [])];
+    if (idx >= 0) answers[idx] = value;
+    update({ answers });
+  }
+
   function handleImageUpload(id: string, e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -66,7 +80,14 @@ export function ImageMcqQuestion({
       return;
     }
     const reader = new FileReader();
-    reader.onload = (ev) => updateOption(id, 'image', String(ev.target?.result));
+    reader.onload = (ev) => {
+      const image = String(ev.target?.result);
+      update({
+        options: options.map((o) =>
+          o.id === id ? { ...o, image, imageName: file.name } : o,
+        ),
+      });
+    };
     reader.readAsDataURL(file);
   }
 
@@ -135,7 +156,13 @@ export function ImageMcqQuestion({
                           <button
                             type="button"
                             className="sp-img-remove"
-                            onClick={() => updateOption(opt.id, 'image', null)}
+                            onClick={() =>
+                              update({
+                                options: options.map((o) =>
+                                  o.id === opt.id ? { ...o, image: null, imageName: null } : o,
+                                ),
+                              })
+                            }
                             title="Remove image"
                           >
                             <X size={10} />
@@ -159,6 +186,30 @@ export function ImageMcqQuestion({
                         <span className="sp-image-writing-line-mid" />
                         <span className="sp-image-writing-line-mid" />
                         <span className="sp-image-writing-line-bottom" />
+                      </div>
+                    )}
+                    {opt.image && (
+                      <div className="sp-answer-section sp-answer-inline">
+                        <div className="sp-answer-pair">
+                          {opt.writingLines ? (
+                            <input
+                              className="sp-answer-input"
+                              value={getWriteAnswer(opt.id)}
+                              onChange={(e) => setWriteAnswer(opt.id, e.target.value)}
+                              placeholder="Right name for this picture..."
+                              style={{ flex: 1 }}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className={`sp-correct-answer-btn${question.correctOptionId === opt.id ? ' active' : ''}`}
+                              onClick={() => update({ correctOptionId: opt.id })}
+                              title="Mark as correct picture"
+                            >
+                              <Check size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

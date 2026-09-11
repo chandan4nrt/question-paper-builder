@@ -1,11 +1,18 @@
-import { useState } from "react";
-import { Pencil, Printer, Download, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { Pencil, Printer, Download, Loader2, Upload } from "lucide-react";
 import { PaperProvider, usePaper } from "../context/PaperContext";
 import { EditorPage } from "./EditorPage";
 import { PreviewPage } from "./PreviewPage";
 import { AddQuestionBar } from "../components/AddQuestionBar";
 import { ThemePanel } from "../components/ThemePanel";
 import { exportToPDF } from "../helpers";
+import { useSetPaper, useGetPaper } from "../hooks/useQuestionPapers";
+import { extractErrorMessage } from "../../../services/api";
+import { buildSetPaperFormData } from "../serializePaper";
+import { deserializePaper } from "../deserializePaper";
+import { savePaperToList } from "./savedPapers";
+import type { PaperBackendResponse } from "../types";
 
 function waitForPrintArea(): Promise<void> {
   return new Promise((resolve) => {
@@ -21,21 +28,36 @@ function waitForPrintArea(): Promise<void> {
 }
 
 export function SetPaperPage() {
+  const { id } = useParams<{ id: string }>();
   return (
     <PaperProvider>
-      <PaperBuilder />
+      <PaperBuilder paperId={id && id !== "new" ? Number(id) : null} />
     </PaperProvider>
   );
 }
 
-function PaperBuilder() {
-  const { state } = usePaper();
+function PaperBuilder({ paperId }: { paperId: number | null }) {
+  const { state, dispatch } = usePaper();
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
   const [exporting, setExporting] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const setPaperMutation = useSetPaper();
+  const paperQuery = useGetPaper(paperId);
+  const [loaded, setLoaded] = useState(false);
 
-  function openPreview() {
-    setActiveTab("preview");
+  useEffect(() => {
+    if (paperQuery.data && !loaded) {
+      const deserialized = deserializePaper(paperQuery.data);
+      dispatch({ type: "LOAD_DRAFT", payload: deserialized });
+      setLoaded(true);
+    }
+  }, [paperQuery.data, loaded, dispatch]);
+
+  function flashToast(message: string) {
+    setToastMessage(message);
+    setShowToast(true);
+    window.setTimeout(() => setShowToast(false), 4000);
   }
 
   async function handleGeneratePDF() {
@@ -44,11 +66,44 @@ function PaperBuilder() {
     setExporting(true);
     try {
       await exportToPDF("print-area", `${state.header.schoolName || "question-paper"}.pdf`);
-      setShowToast(true);
-      window.setTimeout(() => setShowToast(false), 4000);
+      flashToast("🎉 Congrats! Question paper generated successfully.");
     } finally {
       setExporting(false);
     }
+  }
+
+  function handleSetPaper() {
+    const { formData, payload } = buildSetPaperFormData(state);
+    console.log("Payload items:", payload.template.questions);
+    setPaperMutation.mutate(formData, {
+      onSuccess: (response) => {
+        const backendRes = response as unknown as PaperBackendResponse;
+        if (backendRes.id) {
+          savePaperToList(backendRes);
+        }
+        flashToast(`✅ Paper saved successfully (${response.paperId}).`);
+      },
+      onError: (error) => {
+        flashToast(`❌ Failed to save paper: ${extractErrorMessage(error)}`);
+      },
+    });
+  }
+
+  if (paperQuery.isLoading) {
+    return (
+      <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+        <Loader2 size={24} className="sp-spin" style={{ color: "#64748b" }} />
+        <span style={{ marginLeft: "0.5rem", color: "#64748b" }}>Loading paper...</span>
+      </div>
+    );
+  }
+
+  if (paperQuery.isError) {
+    return (
+      <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+        <p style={{ color: "#ef4444" }}>Failed to load paper. Please check the ID and try again.</p>
+      </div>
+    );
   }
 
   return (
@@ -69,8 +124,18 @@ function PaperBuilder() {
           >
             <Printer size={15} /> Preview
           </button>
-          <button type="button" className="sp-tab" onClick={openPreview}>
-            <Printer size={15} /> Print Preview
+          <button
+            type="button"
+            className="sp-tab sp-tab-save"
+            onClick={handleSetPaper}
+            disabled={setPaperMutation.isPending}
+          >
+            {setPaperMutation.isPending ? (
+              <Loader2 size={15} className="sp-spin" />
+            ) : (
+              <Upload size={15} />
+            )}
+            {setPaperMutation.isPending ? "Saving..." : "Save Paper"}
           </button>
           <button
             type="button"
@@ -99,7 +164,7 @@ function PaperBuilder() {
 
       {showToast && (
         <div className="sp-toast sp-toast-success" role="status">
-          🎉 Congrats! Question paper generated successfully.
+          {toastMessage}
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { Trash2, Star, ChevronUp, ChevronDown, Plus, X } from 'lucide-react';
+import { Fragment } from 'react';
 import { usePaper } from '../context/PaperContext';
 import type { Question } from '../types';
 
@@ -41,6 +42,12 @@ export function FillBlankQuestion({
     if (items.length <= 1) return; // Keep at least one sub-question
     const updatedItems = items.filter((_, i) => i !== index);
     update({ items: updatedItems });
+  };
+
+  const handleAnswerChange = (index: number, value: string) => {
+    const answers = [...(question.answers ?? [])];
+    answers[index] = value;
+    update({ answers });
   };
 
   return (
@@ -109,46 +116,55 @@ export function FillBlankQuestion({
         }}
       >
         {items.map((item, index) => (
-          <div
-            key={index}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
-          >
-            <span
+          <Fragment key={index}>
+            <div
               style={{
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                color: '#4b5563',
-                minWidth: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
               }}
             >
-              {index + 1}.
-            </span>
-
-            <textarea
-              value={item}
-              onChange={(e) => handleItemChange(index, e.target.value)}
-              placeholder='Use ___ in your sentence, e.g. "The sun rises in the ___."'
-              rows={1}
-              className="sp-textarea"
-              style={{ flex: 1, resize: 'vertical' }}
-            />
-
-            {items.length > 1 && (
-              <button
-                type="button"
-                className="sp-icon-btn"
-                onClick={() => handleRemoveItem(index)}
-                title="Remove item"
-                style={{ color: '#ef4444' }}
+              <span
+                style={{
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  color: '#4b5563',
+                  minWidth: '1.25rem',
+                }}
               >
-                <X size={16} />
-              </button>
-            )}
-          </div>
+                {index + 1}.
+              </span>
+
+              <textarea
+                value={item}
+                onChange={(e) => handleItemChange(index, e.target.value)}
+                placeholder='Use ___ in your sentence, e.g. "The sun rises in the ___."'
+                rows={1}
+                className="sp-textarea"
+                style={{ flex: 1, resize: 'vertical' }}
+              />
+
+              {items.length > 1 && (
+                <button
+                  type="button"
+                  className="sp-icon-btn"
+                  onClick={() => handleRemoveItem(index)}
+                  title="Remove item"
+                  style={{ color: '#ef4444' }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            <div className="sp-answer-section sp-answer-inline" style={{ marginTop: 0, paddingTop: 0, border: 'none', paddingLeft: '1.75rem' }}>
+              <input
+                className="sp-answer-input"
+                value={question.answers?.[index] ?? ''}
+                onChange={(e) => handleAnswerChange(index, e.target.value)}
+                placeholder="Answer..."
+              />
+            </div>
+          </Fragment>
         ))}
 
         <button

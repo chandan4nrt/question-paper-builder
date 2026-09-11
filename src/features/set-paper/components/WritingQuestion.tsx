@@ -150,6 +150,15 @@ export function WritingQuestion({
           </div>
         </div>
         <WritingLines count={lines} fragments={fragments} sampleText={question.sampleText} />
+        <div className="sp-answer-section">
+          <span className="sp-answer-label">Right answer (optional)</span>
+          <input
+            className="sp-answer-input"
+            value={question.answers?.[0] ?? ''}
+            onChange={(e) => update({ answers: [e.target.value] })}
+            placeholder="Expected word(s) to write..."
+          />
+        </div>
       </div>
     </div>
   );
