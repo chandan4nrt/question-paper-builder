@@ -1,36 +1,17 @@
-import type { PaperBackendResponse, PaperState, Question } from './types';
-
-interface BackendQuestion {
-  type: string;
-  questionId: number;
-  totalMarks: number;
-  questionTitle: string;
-  subQuestions?: {
-    subQuestionId: number;
-    subQuestion: string;
-    options: string[];
-    answer: string[];
-  }[];
-  images?: Record<string, string>;
-  picture?: string;
-  pictures?: string[];
-  letters?: string[];
-  lines?: number;
-  fragments?: number;
-  sampleText?: string;
-  labelMarkers?: { id: string; x: number; y: number }[];
-  answers?: string[];
-  matchPairs?: Record<string, string>;
-  mode?: string;
-}
+import type { PaperBackendResponse, PaperState, Question, BackendQuestion } from './types';
 
 export function deserializePaper(res: PaperBackendResponse): PaperState {
   const template = res.template;
+  const urlMap = template.urls ?? {};
   const questions: Question[] = [];
   let maxId = 0;
 
-  for (const raw of (template.questions ?? []) as BackendQuestion[]) {
-    const q = deserializeQuestion(raw);
+  const rawQuestions = (template.sections?.length
+    ? template.sections.flatMap((s) => s.questions ?? [])
+    : (template.questions ?? [])) as BackendQuestion[];
+
+  for (const raw of rawQuestions) {
+    const q = deserializeQuestion(raw, urlMap);
     questions.push(q);
     if (q.id > maxId) maxId = q.id;
   }
@@ -47,8 +28,8 @@ export function deserializePaper(res: PaperBackendResponse): PaperState {
       duration: `${res.durationInMin ?? 30} Minutes`,
       teacherName: '',
       instructions: '',
-      logo: null,
-      logoName: null,
+      logo: urlMap.LOGO ?? null,
+      logoName: template.images?.LOGO ?? null,
     },
     questions,
     theme: 'colorful',
@@ -56,8 +37,12 @@ export function deserializePaper(res: PaperBackendResponse): PaperState {
   };
 }
 
-function deserializeQuestion(raw: BackendQuestion): Question {
-  const id = raw.questionId;
+function resolveImageUrl(urlMap: Record<string, string>, key?: string): string | null {
+  return key ? (urlMap[key] ?? null) : null;
+}
+
+function deserializeQuestion(raw: BackendQuestion, urlMap: Record<string, string>): Question {
+  const id = raw.questionId ?? 0;
   const base: Question = {
     id,
     number: id,
@@ -77,8 +62,8 @@ function deserializeQuestion(raw: BackendQuestion): Question {
       base.leftItems = (raw.pictures ?? []).map((key, i) => ({
         id: `l${i}`,
         label: '',
-        image: raw.images?.[key] ?? null,
-        imageName: null,
+        image: resolveImageUrl(urlMap, key),
+        imageName: raw.images?.[key] ?? null,
       }));
       base.rightItems = (raw.letters ?? []).map((label, i) => ({
         id: `r${i}`,
@@ -105,8 +90,8 @@ function deserializeQuestion(raw: BackendQuestion): Question {
       base.options = pics.map((key, i) => ({
         id: `o${i}`,
         label: '',
-        image: raw.images?.[key] ?? null,
-        imageName: null,
+        image: resolveImageUrl(urlMap, key),
+        imageName: raw.images?.[key] ?? null,
         writingLines: raw.mode === 'write',
       }));
       if (raw.mode === 'circle' && raw.answers?.[0]) {
@@ -118,7 +103,7 @@ function deserializeQuestion(raw: BackendQuestion): Question {
     }
     case 'fill-in-the-blank': {
       base.type = 'fill-blank';
-      base.items = (raw.subQuestions ?? []).map((sq) => sq.subQuestion);
+      base.items = (raw.subQuestions ?? []).map((sq) => sq.subQuestion ?? '');
       base.answers = (raw.subQuestions ?? []).map((sq) => sq.answer?.[0] ?? '');
       base.blankCount = base.items.length;
       break;
@@ -126,8 +111,8 @@ function deserializeQuestion(raw: BackendQuestion): Question {
     case 'label-picture': {
       base.type = 'label';
       const firstPic = raw.pictures?.[0];
-      base.image = firstPic ? (raw.images?.[firstPic] ?? null) : null;
-      base.imageName = null;
+      base.image = resolveImageUrl(urlMap, firstPic);
+      base.imageName = firstPic ? (raw.images?.[firstPic] ?? null) : null;
       base.labelMarkers = (raw.labelMarkers ?? []).map((m) => ({
         id: m.id,
         x: m.x,
@@ -147,7 +132,7 @@ function deserializeQuestion(raw: BackendQuestion): Question {
     }
     case 'true-false': {
       base.type = 'true-false';
-      base.items = (raw.subQuestions ?? []).map((sq) => sq.subQuestion);
+      base.items = (raw.subQuestions ?? []).map((sq) => sq.subQuestion ?? '');
       base.answers = (raw.subQuestions ?? []).map((sq) => sq.answer?.[0] ?? '');
       break;
     }

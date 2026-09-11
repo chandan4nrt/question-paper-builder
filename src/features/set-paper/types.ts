@@ -109,38 +109,63 @@ export interface SetPaperResponse {
   message: string;
 }
 
-export interface SavedPaper {
-  backendId: number;
-  paperId: string;
-  subject: string;
-  classLevel: string;
-  examTerm: string;
-  academicYear: string;
-  totalMarks: number;
-  durationInMin: number;
-  savedAt: string;
+export interface BackendSubQuestion {
+  subQuestionId?: number;
+  subQuestion?: string;
+  options?: string[];
+  answer?: string[];
+  items?: string[];
+}
+
+export interface BackendQuestion {
+  type?: string;
+  questionId?: number;
+  questionTitle?: string;
+  totalMarks?: number;
+  letters?: string[];
+  pictures?: string[];
+  images?: Record<string, string>;
+  picture?: string;
+  lines?: number;
+  fragments?: number;
+  sampleText?: string;
+  labelMarkers?: { id: string; x: number; y: number }[];
+  matchPairs?: Record<string, string>;
+  mode?: 'write' | 'circle';
+  answers?: string[];
+  subQuestions?: BackendSubQuestion[];
+}
+
+export interface BackendSection {
+  title?: string;
+  sectionId?: string | number | null;
+  questionCount?: string | number;
+  questions?: BackendQuestion[];
 }
 
 export interface PaperBackendResponse {
   id: number;
   template: {
-    title: string;
-    sectionId: number | null;
-    questionCount: string;
-    questions: unknown[];
+    title?: string;
+    sectionId?: string | number | null;
+    questionCount?: string | number;
+    questions?: BackendQuestion[];
+    sections?: BackendSection[];
     images?: Record<string, string>;
+    urls?: Record<string, string>;
     logo?: string;
     logoName?: string;
   };
   paperId: string;
   subject: string;
   classLevel: string;
-  classSection: string;
+  classSection: string | null;
   totalMarks: number;
   durationInMin: number;
   examTerm: string;
   academicYear: string;
-  active: boolean;
+  numberOfSectionsInPpr?: number | null;
+  active?: boolean;
   createdAt: string;
   updatedAt: string | null;
 }

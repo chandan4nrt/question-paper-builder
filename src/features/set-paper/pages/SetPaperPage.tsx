@@ -7,12 +7,10 @@ import { PreviewPage } from "./PreviewPage";
 import { AddQuestionBar } from "../components/AddQuestionBar";
 import { ThemePanel } from "../components/ThemePanel";
 import { exportToPDF } from "../helpers";
-import { useSetPaper, useGetPaper } from "../hooks/useQuestionPapers";
+import { useSetPaper, useListPapers } from "../hooks/useQuestionPapers";
 import { extractErrorMessage } from "../../../services/api";
 import { buildSetPaperFormData } from "../serializePaper";
 import { deserializePaper } from "../deserializePaper";
-import { savePaperToList } from "./savedPapers";
-import type { PaperBackendResponse } from "../types";
 
 function waitForPrintArea(): Promise<void> {
   return new Promise((resolve) => {
@@ -31,28 +29,32 @@ export function SetPaperPage() {
   const { id } = useParams<{ id: string }>();
   return (
     <PaperProvider>
-      <PaperBuilder paperId={id && id !== "new" ? Number(id) : null} />
+      <PaperBuilder paperId={id && id !== "new" ? id : null} />
     </PaperProvider>
   );
 }
 
-function PaperBuilder({ paperId }: { paperId: number | null }) {
+function PaperBuilder({ paperId }: { paperId: string | null }) {
   const { state, dispatch } = usePaper();
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
   const [exporting, setExporting] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const setPaperMutation = useSetPaper();
-  const paperQuery = useGetPaper(paperId);
+  const papersQuery = useListPapers();
   const [loaded, setLoaded] = useState(false);
 
+  const loadedPaper = paperId
+    ? papersQuery.data?.find((p) => p.paperId === paperId)
+    : undefined;
+
   useEffect(() => {
-    if (paperQuery.data && !loaded) {
-      const deserialized = deserializePaper(paperQuery.data);
+    if (loadedPaper && !loaded) {
+      const deserialized = deserializePaper(loadedPaper);
       dispatch({ type: "LOAD_DRAFT", payload: deserialized });
       setLoaded(true);
     }
-  }, [paperQuery.data, loaded, dispatch]);
+  }, [loadedPaper, loaded, dispatch]);
 
   function flashToast(message: string) {
     setToastMessage(message);
@@ -77,10 +79,6 @@ function PaperBuilder({ paperId }: { paperId: number | null }) {
     console.log("Payload items:", payload.template.questions);
     setPaperMutation.mutate(formData, {
       onSuccess: (response) => {
-        const backendRes = response as unknown as PaperBackendResponse;
-        if (backendRes.id) {
-          savePaperToList(backendRes);
-        }
         flashToast(`✅ Paper saved successfully (${response.paperId}).`);
       },
       onError: (error) => {
@@ -89,7 +87,7 @@ function PaperBuilder({ paperId }: { paperId: number | null }) {
     });
   }
 
-  if (paperQuery.isLoading) {
+  if (paperId && papersQuery.isLoading) {
     return (
       <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
         <Loader2 size={24} className="sp-spin" style={{ color: "#64748b" }} />
@@ -98,10 +96,18 @@ function PaperBuilder({ paperId }: { paperId: number | null }) {
     );
   }
 
-  if (paperQuery.isError) {
+  if (paperId && papersQuery.isError) {
     return (
       <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-        <p style={{ color: "#ef4444" }}>Failed to load paper. Please check the ID and try again.</p>
+        <p style={{ color: "#ef4444" }}>Failed to load papers. Please try again.</p>
+      </div>
+    );
+  }
+
+  if (paperId && papersQuery.isSuccess && !loadedPaper) {
+    return (
+      <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+        <p style={{ color: "#ef4444" }}>Paper not found. Please check the ID and try again.</p>
       </div>
     );
   }

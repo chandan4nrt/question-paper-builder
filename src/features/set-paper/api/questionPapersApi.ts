@@ -8,7 +8,11 @@ export async function setPaper(formData: FormData): Promise<SetPaperResponse> {
   return data;
 }
 
-export async function getPaper(id: number): Promise<PaperBackendResponse> {
-  const { data } = await api.get<PaperBackendResponse>(`${BASE}/${id}`);
+export async function listPapers(): Promise<PaperBackendResponse[]> {
+  const { data } = await api.get<PaperBackendResponse[]>(BASE);
   return data;
+}
+
+export async function deletePaper(paperId: string): Promise<void> {
+  await api.delete(`${BASE}/${paperId}`);
 }

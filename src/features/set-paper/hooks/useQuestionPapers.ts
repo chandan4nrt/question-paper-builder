@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '../api/questionPapersApi';
 
 export function useSetPaper() {
@@ -7,10 +7,19 @@ export function useSetPaper() {
   });
 }
 
-export function useGetPaper(id: number | null) {
+export function useListPapers() {
   return useQuery({
-    queryKey: ['question-paper', id],
-    queryFn: () => api.getPaper(id!),
-    enabled: id !== null && id > 0,
+    queryKey: ['question-papers'],
+    queryFn: () => api.listPapers(),
+  });
+}
+
+export function useDeletePaper() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (paperId: string) => api.deletePaper(paperId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['question-papers'] });
+    },
   });
 }
