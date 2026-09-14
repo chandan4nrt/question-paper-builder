@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Pencil, Printer, Download, Loader2, Upload } from "lucide-react";
 import { PaperProvider, usePaper } from "../context/PaperContext";
 import { EditorPage } from "./EditorPage";
@@ -7,7 +7,7 @@ import { PreviewPage } from "./PreviewPage";
 import { AddQuestionBar } from "../components/AddQuestionBar";
 import { ThemePanel } from "../components/ThemePanel";
 import { exportToPDF } from "../helpers";
-import { useSetPaper, useListPapers } from "../hooks/useQuestionPapers";
+import { useSetPaper, useUpdatePaper, useListPapers } from "../hooks/useQuestionPapers";
 import { extractErrorMessage } from "../../../services/api";
 import { buildSetPaperFormData } from "../serializePaper";
 import { deserializePaper } from "../deserializePaper";
@@ -27,8 +27,9 @@ function waitForPrintArea() {
 
 export function SetPaperPage() {
   const { id } = useParams();
+  const key = id || "new";
   return (
-    <PaperProvider>
+    <PaperProvider key={key}>
       <PaperBuilder paperId={id && id !== "new" ? id : null} />
     </PaperProvider>
   );
@@ -36,13 +37,17 @@ export function SetPaperPage() {
 
 function PaperBuilder({ paperId }) {
   const { state, dispatch } = usePaper();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("editor");
   const [exporting, setExporting] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const setPaperMutation = useSetPaper();
+  const updatePaperMutation = useUpdatePaper();
   const papersQuery = useListPapers();
   const [loaded, setLoaded] = useState(false);
+
+  const saveMutation = paperId ? updatePaperMutation : setPaperMutation;
 
   const loadedPaper = paperId
     ? papersQuery.data?.find((p) => p.paperId === paperId)
@@ -55,6 +60,12 @@ function PaperBuilder({ paperId }) {
       setLoaded(true);
     }
   }, [loadedPaper, loaded, dispatch]);
+
+  useEffect(() => {
+    if (paperId || loaded) return;
+    dispatch({ type: "RESET" });
+    setLoaded(true);
+  }, [paperId, loaded, dispatch]);
 
   function flashToast(message) {
     setToastMessage(message);
@@ -75,16 +86,20 @@ function PaperBuilder({ paperId }) {
   }
 
   function handleSetPaper() {
-    const { formData, payload } = buildSetPaperFormData(state);
+    const { formData, payload } = buildSetPaperFormData(state, paperId, loadedPaper);
     console.log("Payload items:", payload.template.questions);
-    setPaperMutation.mutate(formData, {
-      onSuccess: (response) => {
-        flashToast(`✅ Paper saved successfully (${response.paperId}).`);
-      },
-      onError: (error) => {
-        flashToast(`❌ Failed to save paper: ${extractErrorMessage(error)}`);
-      },
-    });
+    const onSuccess = (response) => {
+      flashToast(`✅ Paper saved successfully (${response?.paperId ?? paperId}).`);
+      if (!paperId) navigate("/staff/paper-builder");
+    };
+    const onError = (error) => {
+      flashToast(`❌ Failed to save paper: ${extractErrorMessage(error)}`);
+    };
+    if (paperId) {
+      updatePaperMutation.mutate({ paperId, formData }, { onSuccess, onError });
+    } else {
+      setPaperMutation.mutate(formData, { onSuccess, onError });
+    }
   }
 
   if (paperId && papersQuery.isLoading) {
@@ -134,20 +149,20 @@ function PaperBuilder({ paperId }) {
             type="button"
             className="sp-tab sp-tab-save"
             onClick={handleSetPaper}
-            disabled={setPaperMutation.isPending}
+            disabled={activeTab !== "preview" || saveMutation.isPending}
           >
-            {setPaperMutation.isPending ? (
+            {saveMutation.isPending ? (
               <Loader2 size={15} className="sp-spin" />
             ) : (
               <Upload size={15} />
             )}
-            {setPaperMutation.isPending ? "Saving..." : "Save Paper"}
+            {saveMutation.isPending ? "Saving..." : "Save Paper"}
           </button>
           <button
             type="button"
             className="sp-tab sp-tab-export"
             onClick={handleGeneratePDF}
-            disabled={exporting}
+            disabled={activeTab !== "preview" || exporting}
           >
             {exporting ? <Loader2 size={15} className="sp-spin" /> : <Download size={15} />}
             {exporting ? "Generating..." : "Generate PDF"}

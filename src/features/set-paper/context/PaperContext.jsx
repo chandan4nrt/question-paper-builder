@@ -12,6 +12,10 @@ const PaperContext = createContext(null);
 const DRAFT_KEY = 'playschool-paper-draft';
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
+export function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
 function today() {
   return new Date().toISOString().split('T')[0];
 }

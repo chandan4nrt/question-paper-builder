@@ -12,6 +12,11 @@ export async function listPapers() {
   return data;
 }
 
+export async function updatePaper(paperId, formData) {
+  const { data } = await api.put(BASE, formData);
+  return data;
+}
+
 export async function deletePaper(paperId) {
   await api.delete(`${BASE}/${paperId}`);
 }

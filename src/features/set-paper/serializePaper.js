@@ -7,17 +7,22 @@ function parseDurationToMinutes(duration) {
 }
 
 function dataURLToBlob(dataUrl) {
+  if (typeof dataUrl !== 'string' || !/^data:/i.test(dataUrl)) return null;
   const commaIndex = dataUrl.indexOf(',');
-  const meta = commaIndex >= 0 ? dataUrl.slice(0, commaIndex) : '';
-  const body = commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl;
+  const meta = dataUrl.slice(0, commaIndex);
+  const body = dataUrl.slice(commaIndex + 1);
   const mimeMatch = /data:([^;]+)/.exec(meta);
   const mime = mimeMatch?.[1] ?? 'application/octet-stream';
-  const binary = atob(body);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
+  try {
+    const binary = atob(body);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: mime });
+  } catch {
+    return null;
   }
-  return new Blob([bytes], { type: mime });
 }
 
 function createUniqueName(used, base, fallback) {
@@ -43,7 +48,7 @@ function nextImageKey(counter) {
   return `IMG_${String(counter.current).padStart(3, '0')}`;
 }
 
-export function buildSetPaperFormData(state) {
+export function buildSetPaperFormData(state, paperId, existingPaper) {
   const images = [];
   const usedNames = new Set();
   const mappedQuestions = [];
@@ -237,7 +242,7 @@ export function buildSetPaperFormData(state) {
       questionCount: String(mappedQuestions.length),
       questions: mappedQuestions,
     },
-    paperId: `paper-${Date.now()}`,
+    paperId: paperId || `paper-${Date.now()}`,
     subject: state.header.subject,
     classLevel: state.header.className,
     classSection: '',
@@ -248,6 +253,14 @@ export function buildSetPaperFormData(state) {
     numberOfSectionsInPpr: includedSections.size,
   };
 
+  if (existingPaper) {
+    if (existingPaper.id != null) payload.id = existingPaper.id;
+    if (existingPaper.createdAt) payload.createdAt = existingPaper.createdAt;
+    if (existingPaper.updatedAt) payload.updatedAt = existingPaper.updatedAt;
+    const urls = existingPaper.template?.urls ?? state.urls ?? {};
+    if (Object.keys(urls).length > 0) payload.template.urls = urls;
+  }
+
   if (state.header.logo) {
     const logoFileName = createUniqueName(usedNames, state.header.logoName, 'logo.png');
     payload.logo = logoFileName;
@@ -257,9 +270,15 @@ export function buildSetPaperFormData(state) {
   }
 
   const formData = new FormData();
-  formData.append('metadata', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+  if (existingPaper) {
+    formData.append('dto', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+    formData.append('paperId', payload.paperId);
+  } else {
+    formData.append('metadata', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+  }
   for (const image of images) {
-    formData.append('files', dataURLToBlob(image.base64), image.fileName);
+    const blob = dataURLToBlob(image.base64);
+    if (blob) formData.append('files', blob, image.fileName);
   }
   return { formData, payload };
 }

@@ -1864,6 +1864,11 @@ body.sp-theme-light {
   opacity: 0.7;
   cursor: not-allowed;
 }
+.app-header .sp-tab.active {
+  background: linear-gradient(135deg, #b43861, #f35e8f);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(180, 56, 97, 0.35);
+}
 .sp-spin {
   animation: sp-spin 0.9s linear infinite;
 }

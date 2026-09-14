@@ -1,7 +1,10 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { clearToken } from '../services/api';
 import { getStoredProfile } from '../features/auth/hooks/useAuth';
+import { clearDraft } from '../features/set-paper/context/PaperContext';
 import { Book } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 
 export function StaffLayout() {
   const navigate = useNavigate();
@@ -25,11 +28,11 @@ export function StaffLayout() {
     <div className="app-shell">
       <header className="app-header">
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span className="app-brand">
+          {/* <span className="app-brand">
             <span className="app-logo"><Book size={20} /></span> Question Bank
-          </span>
+          </span> */}
           <nav className="app-nav">
-            <NavLink
+            {/* <NavLink
               to="/staff/question-bank"
               className={({ isActive }) => (isActive ? 'active' : '')}
             >
@@ -40,7 +43,7 @@ export function StaffLayout() {
               className={({ isActive }) => (isActive ? 'active' : '')}
             >
               Exams
-            </NavLink>
+            </NavLink> */}
             <NavLink
               to="/staff/paper-builder"
               className={({ isActive }) => (isActive ? 'active' : '')}
@@ -50,18 +53,34 @@ export function StaffLayout() {
           </nav>
         </div>
         <div className="app-header-right">
-          {profile && (
-            <div className="user-chip">
-              <span className="user-avatar">{initials}</span>
-              <span>
-                <strong>{profile.fullName}</strong>
-                <div className="user-role">{profile.role}</div>
-              </span>
-            </div>
-          )}
-          <button className="btn-ghost" onClick={handleLogout}>
-            Log out
-          </button>
+              <NavLink to="/staff/paper-builder" end>
+                {({ isActive }) => (
+                  <span className={`sp-tab ${isActive ? 'active' : ''}`}>
+                    <FileText size={15} /> My Papers
+                  </span>
+                )}
+              </NavLink>  
+            <NavLink to="/staff/paper-builder/new" onClick={() => clearDraft()}>
+              {({ isActive }) => (
+                <span className={`sp-tab sp-tab-save ${isActive ? 'active' : ''}`}>
+                  <Pencil size={15} />New Paper
+                </span>
+              )}
+            </NavLink>  
+          <div>
+            {profile && (
+              <div className="user-chip">
+                <span className="user-avatar">{initials}</span>
+                <span>
+                  <strong>{profile.fullName}</strong>
+                  <div className="user-role">{profile.role}</div>
+                </span>
+              </div>
+            )}
+            <button className="btn-ghost" onClick={handleLogout}>
+              Log out
+            </button>
+          </div>          
         </div>
       </header>
       <main className="app-main">

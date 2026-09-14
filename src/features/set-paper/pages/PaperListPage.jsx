@@ -13,7 +13,7 @@ export function PaperListPage() {
 
   return (
     <div className="sp-app page">
-      <div className="page-header">
+      {/* <div className="page-header">
         <div className="sp-tabs">
           <span className="sp-tab active">
             <FileText size={15} /> My Papers
@@ -26,9 +26,12 @@ export function PaperListPage() {
         >
           <Pencil size={15} /> New Paper
         </button>
-      </div>
+      </div> */}
 
       <div style={{ padding: '1.5rem', maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '0.75rem' }}>
+          Latest updated / created papers appear on top.
+        </div>
         {papersQuery.isLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '3rem 1rem', color: '#64748b' }}>
             <Loader2 size={20} className="sp-spin" /> Loading papers...

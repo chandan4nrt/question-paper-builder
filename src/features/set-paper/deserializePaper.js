@@ -32,6 +32,7 @@ export function deserializePaper(res) {
     questions,
     theme: 'colorful',
     nextId: maxId + 1,
+    urls: template.urls ?? {},
   };
 }
 
