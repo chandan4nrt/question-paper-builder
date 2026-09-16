@@ -158,10 +158,11 @@ export function LabelQuestion({
       e.target.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) =>
-      update({ image: String(ev.target?.result), imageName: file.name });
-    reader.readAsDataURL(file);
+    update({
+      image: URL.createObjectURL(file),
+      imageName: file.name,
+      imageBlob: file,
+    });
   }
 
   function setCount(next) {
@@ -251,7 +252,7 @@ export function LabelQuestion({
                 type="button"
                 className="sp-icon-btn"
                 style={{ alignSelf: 'flex-end' }}
-                onClick={() => update({ image: null, imageName: null })}
+                onClick={() => update({ image: null, imageName: null, imageBlob: null })}
                 title="Remove diagram"
               >
                 <X size={14} /> Remove picture

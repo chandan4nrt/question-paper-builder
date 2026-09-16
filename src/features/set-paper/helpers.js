@@ -87,6 +87,49 @@ export function fireConfetti() {
   }, 250);
 }
 
+/*
+ * Decode a blob: <img> into an equivalent <canvas>. html2canvas 1.4.1 cannot
+ * capture blob: images when useCORS is enabled, but it renders <canvas>
+ * elements natively.
+ */
+async function canvasFromImageElement(img) {
+  const src = img.getAttribute("src") || img.src;
+  if (!src || !src.startsWith("blob:")) return null;
+  if (!img.complete || !img.naturalWidth) return null;
+
+  const draw = (source) => {
+    const output = document.createElement("canvas");
+    output.width = img.naturalWidth;
+    output.height = img.naturalHeight;
+    const context = output.getContext("2d");
+    context.drawImage(source, 0, 0);
+    const rect = img.getBoundingClientRect();
+    if (rect.width) output.style.width = `${rect.width}px`;
+    if (rect.height) output.style.height = `${rect.height}px`;
+    return output;
+  };
+
+  try {
+    const blob = await fetch(src).then((res) => res.blob());
+    if (typeof createImageBitmap === "function") {
+      const bitmap = await createImageBitmap(blob);
+      const canvas = draw(bitmap);
+      bitmap.close?.();
+      return canvas;
+    }
+    const bitmapLike = await new Promise((resolve, reject) => {
+      const temporary = new Image();
+      temporary.onload = () => resolve(temporary);
+      temporary.onerror = () => reject(new Error("image decode failed"));
+      temporary.src = URL.createObjectURL(blob);
+    });
+    const canvas = draw(bitmapLike);
+    return canvas;
+  } catch {
+    return null;
+  }
+}
+
 export async function exportToPDF(elementId, filename = "question-paper.pdf") {
   const element = document.getElementById(elementId);
 
@@ -113,6 +156,18 @@ export async function exportToPDF(elementId, filename = "question-paper.pdf") {
       });
     }),
   );
+
+  /*
+   * Temporarily replace blob: images with canvas copies so html2canvas can
+   * rasterize them, then restore the original <img> elements afterwards.
+   */
+  const restored = [];
+  for (const img of images) {
+    const canvas = await canvasFromImageElement(img);
+    if (!canvas) continue;
+    img.replaceWith(canvas);
+    restored.push({ canvas, img });
+  }
 
   /*
    * A4 dimensions
@@ -202,48 +257,53 @@ export async function exportToPDF(elementId, filename = "question-paper.pdf") {
    */
   const SCALE = 2;
 
-  for (let index = 0; index < validPages.length; index += 1) {
-    const page = validPages[index];
+  try {
+    for (let index = 0; index < validPages.length; index += 1) {
+      const page = validPages[index];
 
-    if (index > 0) {
-      pdf.addPage("a4", "portrait");
+      if (index > 0) {
+        pdf.addPage("a4", "portrait");
+      }
+
+      /*
+       * Use the page's actual height (not a full A4 height) so a page that
+       * ends early to keep a question intact does not bleed into the next
+       * page's content.
+       */
+      const pageHeight = page.end - page.start;
+
+      const canvas = await html2canvas(element, {
+        scale: SCALE,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: "#FFFFFF",
+        logging: false,
+
+        width: contentWidth,
+        height: pageHeight,
+
+        windowWidth: contentWidth,
+        windowHeight: contentHeight,
+
+        scrollX: 0,
+        scrollY: 0,
+
+        x: 0,
+        y: page.start,
+      });
+
+      /*
+       * Map the page canvas onto A4 at its natural scale.
+       * jsPDF accepts the canvas directly (it encodes internally).
+       */
+      const imageHeight = pageHeight / pxPerMm;
+
+      pdf.addImage(canvas, "JPEG", 0, 0, A4_WIDTH, imageHeight, undefined, "FAST");
     }
-
-    /*
-     * Use the page's actual height (not a full A4 height) so a page that
-     * ends early to keep a question intact does not bleed into the next
-     * page's content.
-     */
-    const pageHeight = page.end - page.start;
-
-    const canvas = await html2canvas(element, {
-      scale: SCALE,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: "#FFFFFF",
-      logging: false,
-
-      width: contentWidth,
-      height: pageHeight,
-
-      windowWidth: contentWidth,
-      windowHeight: contentHeight,
-
-      scrollX: 0,
-      scrollY: 0,
-
-      x: 0,
-      y: page.start,
-    });
-
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
-
-    /*
-     * Map the page canvas onto A4 at its natural scale.
-     */
-    const imageHeight = pageHeight / pxPerMm;
-
-    pdf.addImage(imgData, "JPEG", 0, 0, A4_WIDTH, imageHeight, undefined, "FAST");
+  } finally {
+    for (const { canvas, img } of restored) {
+      canvas.replaceWith(img);
+    }
   }
 
   console.log("PDF pages:", validPages.length);

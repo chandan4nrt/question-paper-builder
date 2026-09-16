@@ -3,6 +3,7 @@ import {
   useContext,
   useReducer,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import { QUESTION_TYPES } from '../types';
@@ -14,6 +15,56 @@ export const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 export function clearDraft() {
   localStorage.removeItem(DRAFT_KEY);
+}
+
+function stripImagesForDraft(state) {
+  const header = { ...state.header };
+  delete header.logo;
+  delete header.logoName;
+  delete header.logoBlob;
+
+  const questions = (state.questions ?? []).map((q) => {
+    const copy = { ...q };
+    delete copy.image;
+    delete copy.imageName;
+    delete copy.imageBlob;
+    if (Array.isArray(copy.leftItems)) {
+      copy.leftItems = copy.leftItems.map((item) => {
+        const it = { ...item };
+        delete it.image;
+        delete it.imageName;
+        delete it.imageBlob;
+        return it;
+      });
+    }
+    if (Array.isArray(copy.options)) {
+      copy.options = copy.options.map((opt) => {
+        const o = { ...opt };
+        delete o.image;
+        delete o.imageName;
+        delete o.imageBlob;
+        return o;
+      });
+    }
+    return copy;
+  });
+
+  return { ...state, header, questions };
+}
+
+function collectImageUrls(state) {
+  const urls = [];
+  if (typeof state?.header?.logo === 'string') urls.push(state.header.logo);
+  for (const q of state?.questions ?? []) {
+    if (typeof q.image === 'string') urls.push(q.image);
+    for (const item of q.leftItems ?? []) {
+      if (typeof item.image === 'string') urls.push(item.image);
+    }
+    for (const opt of q.options ?? []) {
+      if (typeof opt.image === 'string') urls.push(opt.image);
+    }
+  }
+  return urls;
 }
 
 function today() {
@@ -48,7 +99,7 @@ const initialState = {
     className: 'Nursery',
     subject: 'English',
     exam: 'Mid-Term',
-    academicYear: '2025-2026',
+    academicYear: '2026-2027',
     date: today(),
     totalMarks: 0,
     duration: '30 Minutes',
@@ -189,7 +240,7 @@ function loadInitial() {
     const saved = localStorage.getItem(DRAFT_KEY);
     if (!saved) return initialState;
     const parsed = JSON.parse(saved);
-    return { ...initialState, ...parsed };
+    return { ...initialState, ...stripImagesForDraft(parsed) };
   } catch {
     return initialState;
   }
@@ -198,6 +249,7 @@ function loadInitial() {
 export function PaperProvider({ children }) {
   const [state, dispatch] = useReducer(paperReducer, undefined, loadInitial);
   const [toast, setToast] = useState(null);
+  const previousImageUrls = useRef([]);
 
   function showToast(message) {
     setToast(message);
@@ -205,7 +257,23 @@ export function PaperProvider({ children }) {
   }
 
   useEffect(() => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
+    const previous = new Set(previousImageUrls.current);
+    const current = collectImageUrls(state);
+    const currentSet = new Set(current);
+    for (const url of previous) {
+      if (url.startsWith('blob:') && !currentSet.has(url)) {
+        URL.revokeObjectURL(url);
+      }
+    }
+    previousImageUrls.current = current;
+  }, [state]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(stripImagesForDraft(state)));
+    } catch {
+      // Draft is a convenience only; a quota error must not break editing.
+    }
   }, [state]);
 
   useEffect(() => {

@@ -6,25 +6,6 @@ function parseDurationToMinutes(duration) {
   return Number.isFinite(mins) && mins > 0 ? mins : 30;
 }
 
-function dataURLToBlob(dataUrl) {
-  if (typeof dataUrl !== 'string' || !/^data:/i.test(dataUrl)) return null;
-  const commaIndex = dataUrl.indexOf(',');
-  const meta = dataUrl.slice(0, commaIndex);
-  const body = dataUrl.slice(commaIndex + 1);
-  const mimeMatch = /data:([^;]+)/.exec(meta);
-  const mime = mimeMatch?.[1] ?? 'application/octet-stream';
-  try {
-    const binary = atob(body);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return new Blob([bytes], { type: mime });
-  } catch {
-    return null;
-  }
-}
-
 function createUniqueName(used, base, fallback) {
   const fallbackClean = fallback.replace(/[\\/:*?"<>|]/g, '-').trim() || 'image.png';
   const clean = (base || fallbackClean)
@@ -75,7 +56,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           if (item.image) {
             const imgKey = nextImageKey(imageKeyCounter);
             const fileName = createUniqueName(usedNames, item.imageName, `${item.id}.jpg`);
-            images.push({ fileName, base64: item.image });
+            if (item.imageBlob) images.push({ fileName, blob: item.imageBlob });
             imageMap[imgKey] = fileName;
             pictures.push(imgKey);
           }
@@ -134,7 +115,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           if (option.image) {
             const imgKey = nextImageKey(imageKeyCounter);
             const fileName = createUniqueName(usedNames, option.imageName, `${option.id}.jpg`);
-            images.push({ fileName, base64: option.image });
+            if (option.imageBlob) images.push({ fileName, blob: option.imageBlob });
             imageMap[imgKey] = fileName;
             pictures.push(imgKey);
           }
@@ -186,7 +167,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
         if (q.image) {
           const imgKey = nextImageKey(imageKeyCounter);
           const fileName = createUniqueName(usedNames, q.imageName, `${q.id}.jpg`);
-          images.push({ fileName, base64: q.image });
+          if (q.imageBlob) images.push({ fileName, blob: q.imageBlob });
           labelImageMap[imgKey] = fileName;
           labelPicture = imgKey;
         }
@@ -266,7 +247,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     payload.logo = logoFileName;
     payload.logoName = state.header.logoName || logoFileName;
     payload.template.images = { ...(payload.template.images ?? {}), LOGO: logoFileName };
-    images.push({ fileName: logoFileName, base64: state.header.logo });
+    if (state.header.logoBlob) images.push({ fileName: logoFileName, blob: state.header.logoBlob });
   }
 
   const formData = new FormData();
@@ -277,8 +258,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     formData.append('metadata', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
   }
   for (const image of images) {
-    const blob = dataURLToBlob(image.base64);
-    if (blob) formData.append('files', blob, image.fileName);
+    if (image.blob) formData.append('files', image.blob, image.fileName);
   }
   return { formData, payload };
 }

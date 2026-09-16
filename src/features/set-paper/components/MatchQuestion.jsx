@@ -63,16 +63,13 @@ export function MatchQuestion({
       e.target.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const image = String(ev.target?.result);
-      update({
-        leftItems: leftItems.map((item) =>
-          item.id === id ? { ...item, image, imageName: file.name } : item,
-        ),
-      });
-    };
-    reader.readAsDataURL(file);
+    update({
+      leftItems: leftItems.map((item) =>
+        item.id === id
+          ? { ...item, image: URL.createObjectURL(file), imageName: file.name, imageBlob: file }
+          : item,
+      ),
+    });
   }
 
   function handleShuffle() {
@@ -163,7 +160,9 @@ export function MatchQuestion({
                             onClick={() =>
                               update({
                                 leftItems: leftItems.map((item) =>
-                                  item.id === left.id ? { ...item, image: null, imageName: null } : item,
+                                  item.id === left.id
+                                    ? { ...item, image: null, imageName: null, imageBlob: null }
+                                    : item,
                                 ),
                               })
                             }

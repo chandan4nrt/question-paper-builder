@@ -70,16 +70,11 @@ export function ImageMcqQuestion({
       e.target.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const image = String(ev.target?.result);
-      update({
-        options: options.map((o) =>
-          o.id === id ? { ...o, image, imageName: file.name } : o,
-        ),
-      });
-    };
-    reader.readAsDataURL(file);
+    update({
+      options: options.map((o) =>
+        o.id === id ? { ...o, image: URL.createObjectURL(file), imageName: file.name, imageBlob: file } : o,
+      ),
+    });
   }
 
   return (
@@ -150,7 +145,9 @@ export function ImageMcqQuestion({
                             onClick={() =>
                               update({
                                 options: options.map((o) =>
-                                  o.id === opt.id ? { ...o, image: null, imageName: null } : o,
+                                  o.id === opt.id
+                                    ? { ...o, image: null, imageName: null, imageBlob: null }
+                                    : o,
                                 ),
                               })
                             }

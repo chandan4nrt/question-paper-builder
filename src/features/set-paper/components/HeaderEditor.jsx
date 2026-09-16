@@ -51,7 +51,17 @@ export function HeaderEditor() {
             <span className="sp-logo-actions">
               Upload School Logo
               {header.logo && (
-                <button type="button" className="sp-icon-btn" onClick={() => { update("logo", null); update("logoName", null); }} title="Remove logo">
+                <button
+                  type="button"
+                  className="sp-icon-btn"
+                  onClick={() =>
+                    dispatch({
+                      type: "SET_HEADER",
+                      payload: { logo: null, logoName: null, logoBlob: null },
+                    })
+                  }
+                  title="Remove logo"
+                >
                   <X size={14} />
                 </button>
               )}
@@ -74,12 +84,14 @@ export function HeaderEditor() {
                       e.target.value = "";
                       return;
                     }
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      update("logo", String(reader.result ?? ""));
-                      update("logoName", file.name);
-                    };
-                    reader.readAsDataURL(file);
+                    dispatch({
+                      type: "SET_HEADER",
+                      payload: {
+                        logo: URL.createObjectURL(file),
+                        logoName: file.name,
+                        logoBlob: file,
+                      },
+                    });
                   }}
                 />
               </span>
