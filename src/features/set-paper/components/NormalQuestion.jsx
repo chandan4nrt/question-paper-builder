@@ -1,4 +1,4 @@
-import { Trash2, GripVertical, Star, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 
 export function NormalQuestion({
@@ -32,7 +32,6 @@ export function NormalQuestion({
         </span>
         <div className="sp-q-actions">
           <div className="sp-marks">
-            <Star size={12} color="#FFE29A" fill="#FFE29A" />
             <input
               type="number"
               min={0}

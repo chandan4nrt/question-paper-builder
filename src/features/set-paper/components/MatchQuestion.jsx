@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Star, X, Shuffle, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, X, Shuffle, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react';
 import { MAX_IMAGE_SIZE, usePaper } from '../context/PaperContext';
 import { shuffleArray } from '../helpers';
 
@@ -95,7 +95,6 @@ export function MatchQuestion({
         <span className="sp-q-type green">Match the Following</span>
         <div className="sp-q-actions">
           <div className="sp-marks">
-            <Star size={12} color="#FFE29A" fill="#FFE29A" />
             <input
               type="number"
               min={0}

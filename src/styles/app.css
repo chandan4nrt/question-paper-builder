@@ -819,7 +819,7 @@ body.sp-theme-light {
   padding: 0.25rem 0.5rem;
 }
 .sp-marks input {
-  width: 44px;
+  width: 64px;
   text-align: center;
   font-size: 0.85rem;
   font-weight: 800;
@@ -2542,6 +2542,75 @@ body.sp-theme-light {
   padding: 10mm;
   background: #ffffff;
   box-sizing: border-box;
+}
+
+/* Answer key stage: rendered off-screen, captured into the PDF */
+.sp-answer-key-stage {
+  position: fixed;
+  top: 0;
+  left: -12000px;
+  z-index: -1;
+}
+.sp-ak-paper {
+  font-family: "Nunito", "Segoe UI", sans-serif;
+  color: #16202c;
+}
+.sp-ak-head {
+  text-align: center;
+  border-bottom: 3px solid #f5a623;
+  padding-bottom: 0.6rem;
+  margin-bottom: 1rem;
+}
+.sp-ak-title {
+  font-family: "Fredoka One", cursive;
+  font-size: 1.4rem;
+  color: #a62913;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sp-ak-meta {
+  font-size: 0.8rem;
+  color: #8f240b;
+  margin-top: 0.2rem;
+}
+.sp-ak-block {
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.35rem;
+  border: 1px dashed #e8c18e;
+  border-radius: 6px;
+  background: #fffdf9;
+}
+.sp-ak-qrow {
+  display: flex;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.sp-ak-qno {
+  color: #c43a22;
+  flex-shrink: 0;
+}
+.sp-ak-qtext {
+  color: #1e293b;
+}
+.sp-ak-answers {
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.sp-ak-answer {
+  font-size: 0.82rem;
+  color: #b85f25;
+}
+.sp-ak-answer-no {
+  margin-right: 0.3rem;
+  color: #8f240b;
+}
+.sp-ak-empty,
+.sp-ak-note {
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .pdf-question-block {

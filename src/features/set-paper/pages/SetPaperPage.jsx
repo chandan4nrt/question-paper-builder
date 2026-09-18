@@ -39,7 +39,7 @@ function PaperBuilder({ paperId }) {
   const { state, dispatch } = usePaper();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("editor");
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const setPaperMutation = useSetPaper();
@@ -73,15 +73,23 @@ function PaperBuilder({ paperId }) {
     window.setTimeout(() => setShowToast(false), 4000);
   }
 
-  async function handleGeneratePDF() {
+  async function handleGeneratePDF(withAnswerKey = false) {
     setActiveTab("preview");
     await waitForPrintArea();
-    setExporting(true);
+    setExporting(withAnswerKey ? "answer-key" : "plain");
     try {
-      await exportToPDF("print-area", `${state.header.schoolName || "question-paper"}.pdf`);
-      flashToast("🎉 Congrats! Question paper generated successfully.");
+      const baseName = state.header.schoolName || "question-paper";
+      await exportToPDF(
+        withAnswerKey ? ["print-area", "answer-key-area"] : "print-area",
+        withAnswerKey ? `${baseName}-answer-key.pdf` : `${baseName}.pdf`,
+      );
+      flashToast(
+        withAnswerKey
+          ? "🎉 Question paper with answer key generated successfully."
+          : "🎉 Congrats! Question paper generated successfully.",
+      );
     } finally {
-      setExporting(false);
+      setExporting(null);
     }
   }
 
@@ -161,11 +169,20 @@ function PaperBuilder({ paperId }) {
           <button
             type="button"
             className="sp-tab sp-tab-export"
-            onClick={handleGeneratePDF}
-            disabled={activeTab !== "preview" || exporting}
+            onClick={() => handleGeneratePDF(false)}
+            disabled={activeTab !== "preview" || exporting !== null}
           >
-            {exporting ? <Loader2 size={15} className="sp-spin" /> : <Download size={15} />}
-            {exporting ? "Generating..." : "Generate PDF"}
+            {exporting === "plain" ? <Loader2 size={15} className="sp-spin" /> : <Download size={15} />}
+            {exporting === "plain" ? "Generating..." : "Generate PDF"}
+          </button>
+          <button
+            type="button"
+            className="sp-tab sp-tab-export"
+            onClick={() => handleGeneratePDF(true)}
+            disabled={activeTab !== "preview" || exporting !== null}
+          >
+            {exporting === "answer-key" ? <Loader2 size={15} className="sp-spin" /> : <Download size={15} />}
+            {exporting === "answer-key" ? "Generating..." : "PDF with Answer Key"}
           </button>
         </div>
       </div>

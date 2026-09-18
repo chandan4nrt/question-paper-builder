@@ -1,4 +1,4 @@
-import { Trash2, Star, Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 
 export function TrueFalseQuestion({
@@ -53,7 +53,6 @@ export function TrueFalseQuestion({
         <span className="sp-q-type violet">True / False</span>
         <div className="sp-q-actions">
           <div className="sp-marks">
-            <Star size={12} color="#FFE29A" fill="#FFE29A" />
             <input
               type="number"
               min={0}

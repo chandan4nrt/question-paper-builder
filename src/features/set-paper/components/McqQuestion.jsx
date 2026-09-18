@@ -1,4 +1,4 @@
-import { Trash2, Star, Plus, X, ChevronUp, ChevronDown, Check } from 'lucide-react';
+import { Trash2, Plus, X, ChevronUp, ChevronDown, Check } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 
 const OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -67,7 +67,6 @@ export function McqQuestion({
         <span className="sp-q-type yellow">MCQ</span>
         <div className="sp-q-actions">
           <div className="sp-marks">
-            <Star size={12} color="#FFE29A" fill="#FFE29A" />
             <input
               type="number"
               min={0}

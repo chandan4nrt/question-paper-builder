@@ -130,51 +130,15 @@ async function canvasFromImageElement(img) {
   }
 }
 
-export async function exportToPDF(elementId, filename = "question-paper.pdf") {
-  const element = document.getElementById(elementId);
+const A4_WIDTH = 210;
+const A4_HEIGHT = 297;
+const MIN_PAGE_GAP = 4;
 
-  if (!element) {
-    console.error(`Element with id "${elementId}" not found`);
-    return;
-  }
-
-  // Wait for fonts
-  await document.fonts.ready;
-
-  // Wait for images
-  const images = Array.from(element.querySelectorAll("img"));
-
-  await Promise.all(
-    images.map((img) => {
-      if (img.complete) {
-        return Promise.resolve();
-      }
-
-      return new Promise((resolve) => {
-        img.onload = () => resolve();
-        img.onerror = () => resolve();
-      });
-    }),
-  );
-
-  /*
-   * Temporarily replace blob: images with canvas copies so html2canvas can
-   * rasterize them, then restore the original <img> elements afterwards.
-   */
-  const restored = [];
-  for (const img of images) {
-    const canvas = await canvasFromImageElement(img);
-    if (!canvas) continue;
-    img.replaceWith(canvas);
-    restored.push({ canvas, img });
-  }
-
-  /*
-   * A4 dimensions
-   */
-  const A4_WIDTH = 210;
-  const A4_HEIGHT = 297;
-
+/*
+ * Convert one print root into A4 page fragments, splitting at question
+ * boundaries so questions are never cut in half.
+ */
+function buildPageFragments(element) {
   /*
    * Work in CSS pixels (element space).
    */
@@ -186,7 +150,16 @@ export async function exportToPDF(elementId, filename = "question-paper.pdf") {
    * how tall one A4 page is in CSS px.
    */
   const pxPerMm = contentWidth / A4_WIDTH;
-  const pageHeightCss = A4_HEIGHT * pxPerMm;
+
+  /*
+   * The print-area element carries its own vertical padding, which supplies
+   * the top/bottom margins on its first page. Reserve the same amount on
+   * every page so later pages are not flush against the page edge.
+   */
+  const computedStyle = getComputedStyle(element);
+  const topMarginPx = parseFloat(computedStyle.paddingTop) || 0;
+  const bottomMarginPx = parseFloat(computedStyle.paddingBottom) || 0;
+  const pageHeightCss = (A4_HEIGHT * pxPerMm) - topMarginPx - bottomMarginPx;
 
   /*
    * Find every complete question.
@@ -204,15 +177,10 @@ export async function exportToPDF(elementId, filename = "question-paper.pdf") {
 
   /*
    * Build page boundaries in CSS px.
-   *
-   * Split at question boundaries so questions are never cut in half,
-   * but never let a page exceed one A4 page (very tall questions are
-   * split across pages).
    */
   const pages = [];
 
   let pageStart = 0;
-  const MIN_PAGE_GAP = 4;
 
   while (pageStart < contentHeight - 1) {
     let pageEnd = Math.min(pageStart + pageHeightCss, contentHeight);
@@ -243,6 +211,55 @@ export async function exportToPDF(elementId, filename = "question-paper.pdf") {
    */
   const validPages = pages.filter((page) => page.end - page.start > MIN_PAGE_GAP);
 
+  return { element, contentWidth, contentHeight, pxPerMm, topMarginPx, validPages };
+}
+
+/*
+ * Render one or more print roots ("print-area", "answer-key-area", ...) into
+ * a single A4 PDF. Accepts either an element id or an array of element ids.
+ */
+export async function exportToPDF(elementIds, filename = "question-paper.pdf") {
+  const ids = Array.isArray(elementIds) ? elementIds : [elementIds];
+  const roots = ids.map((id) => document.getElementById(id)).filter(Boolean);
+
+  if (roots.length === 0) {
+    console.error(`exportToPDF: none of these elements found: ${ids.join(", ")}`);
+    return;
+  }
+
+  // Wait for fonts
+  await document.fonts.ready;
+
+  // Wait for images across all roots
+  const images = roots.flatMap((root) => Array.from(root.querySelectorAll("img")));
+
+  await Promise.all(
+    images.map((img) => {
+      if (img.complete) {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve) => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+      });
+    }),
+  );
+
+  /*
+   * Temporarily replace blob: images with canvas copies so html2canvas can
+   * rasterize them, then restore the original <img> elements afterwards.
+   */
+  const restored = [];
+  for (const img of images) {
+    const canvas = await canvasFromImageElement(img);
+    if (!canvas) continue;
+    img.replaceWith(canvas);
+    restored.push({ canvas, img });
+  }
+
+  const sections = roots.map(buildPageFragments);
+
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -256,49 +273,61 @@ export async function exportToPDF(elementId, filename = "question-paper.pdf") {
    * (any number of pages) is always captured.
    */
   const SCALE = 2;
+  let renderedPages = 0;
 
   try {
-    for (let index = 0; index < validPages.length; index += 1) {
-      const page = validPages[index];
+    for (const section of sections) {
+      let isFirstPageOfSection = true;
+      for (const page of section.validPages) {
+        if (renderedPages > 0) {
+          pdf.addPage("a4", "portrait");
+        }
+        renderedPages += 1;
 
-      if (index > 0) {
-        pdf.addPage("a4", "portrait");
+        /*
+         * Use the page's actual height (not a full A4 height) so a page that
+         * ends early to keep a question intact does not bleed into the next
+         * page's content.
+         */
+        const pageHeight = page.end - page.start;
+
+        const canvas = await html2canvas(section.element, {
+          scale: SCALE,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#FFFFFF",
+          logging: false,
+
+          width: section.contentWidth,
+          height: pageHeight,
+
+          windowWidth: section.contentWidth,
+          windowHeight: section.contentHeight,
+
+          scrollX: 0,
+          scrollY: 0,
+
+          x: 0,
+          y: page.start,
+        });
+
+        /*
+         * Map the page canvas onto A4 at its natural scale.
+         * jsPDF accepts the canvas directly (it encodes internally).
+         */
+        const imageHeight = pageHeight / section.pxPerMm;
+
+        /*
+         * The first page already has a margin thanks to the print-area's own
+         * padding; later pages are cropped from the element, so push them down
+         * by the same top padding to keep margins consistent.
+         */
+        const topMarginMm = section.topMarginPx / section.pxPerMm;
+        const drawY = isFirstPageOfSection ? 0 : topMarginMm;
+
+        pdf.addImage(canvas, "JPEG", 0, drawY, A4_WIDTH, imageHeight, undefined, "FAST");
+        isFirstPageOfSection = false;
       }
-
-      /*
-       * Use the page's actual height (not a full A4 height) so a page that
-       * ends early to keep a question intact does not bleed into the next
-       * page's content.
-       */
-      const pageHeight = page.end - page.start;
-
-      const canvas = await html2canvas(element, {
-        scale: SCALE,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: "#FFFFFF",
-        logging: false,
-
-        width: contentWidth,
-        height: pageHeight,
-
-        windowWidth: contentWidth,
-        windowHeight: contentHeight,
-
-        scrollX: 0,
-        scrollY: 0,
-
-        x: 0,
-        y: page.start,
-      });
-
-      /*
-       * Map the page canvas onto A4 at its natural scale.
-       * jsPDF accepts the canvas directly (it encodes internally).
-       */
-      const imageHeight = pageHeight / pxPerMm;
-
-      pdf.addImage(canvas, "JPEG", 0, 0, A4_WIDTH, imageHeight, undefined, "FAST");
     }
   } finally {
     for (const { canvas, img } of restored) {
@@ -306,7 +335,7 @@ export async function exportToPDF(elementId, filename = "question-paper.pdf") {
     }
   }
 
-  console.log("PDF pages:", validPages.length);
+  console.log("PDF pages:", renderedPages);
 
   pdf.save(filename);
 

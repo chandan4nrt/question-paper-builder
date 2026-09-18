@@ -180,9 +180,14 @@ function paperReducer(state, action) {
     case 'UPDATE_QUESTION':
       return {
         ...state,
-        questions: state.questions.map((q) =>
-          q.id === action.payload.id ? { ...q, ...action.payload.data } : q,
-        ),
+        questions: state.questions.map((q) => {
+          if (q.id !== action.payload.id) return q;
+          const data = { ...action.payload.data };
+          if (data.marks != null) {
+            data.marks = Math.max(0, Math.min(100, Number(data.marks) || 0));
+          }
+          return { ...q, ...data };
+        }),
       };
 
     case 'DELETE_QUESTION': {
@@ -209,7 +214,7 @@ function paperReducer(state, action) {
         if (cfg.count <= 0) return;
         for (let i = 0; i < cfg.count; i++) {
           const q = newQuestion(id, number, cfg.type);
-          q.marks = cfg.marks;
+          q.marks = Math.max(0, Math.min(100, Number(cfg.marks) || 0));
           questions.push(q);
           id += 1;
           number += 1;

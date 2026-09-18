@@ -1,4 +1,4 @@
-import { Trash2, Star, Plus, X, ChevronUp, ChevronDown, Image as ImageIcon, Check } from 'lucide-react';
+import { Trash2, Plus, X, ChevronUp, ChevronDown, Image as ImageIcon, Check } from 'lucide-react';
 import { MAX_IMAGE_SIZE, usePaper } from '../context/PaperContext';
 
 const OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -94,7 +94,6 @@ export function ImageMcqQuestion({
         <span className="sp-q-type teal">Circle It</span>
         <div className="sp-q-actions">
           <div className="sp-marks">
-            <Star size={12} color="#FFE29A" fill="#FFE29A" />
             <input
               type="number"
               min={0}

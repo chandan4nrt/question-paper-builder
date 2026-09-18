@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trash2, Star, ChevronUp, ChevronDown, Image as ImageIcon, X, Move } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Image as ImageIcon, X, Move } from 'lucide-react';
 import { MAX_IMAGE_SIZE, usePaper } from '../context/PaperContext';
 
 const DEFAULT_SPOTS = [
@@ -212,7 +212,6 @@ export function LabelQuestion({
         <span className="sp-q-type pink">Picture Labeling</span>
         <div className="sp-q-actions">
           <div className="sp-marks">
-            <Star size={12} color="#FFE29A" fill="#FFE29A" />
             <input
               type="number"
               min={0}

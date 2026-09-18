@@ -1,4 +1,4 @@
-import { Trash2, Star, ChevronUp, ChevronDown, Plus, X } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Plus, X } from 'lucide-react';
 import { Fragment } from 'react';
 import { usePaper } from '../context/PaperContext';
 
@@ -67,9 +67,7 @@ export function FillBlankQuestion({
         <span className="sp-q-type green">Fill in the Blanks</span>
 
         <div className="sp-q-actions">
-          <div className="sp-marks">
-            <Star size={12} color="#FFE29A" fill="#FFE29A" />
-
+<div className="sp-marks">
             <input
               type="number"
               min={0}

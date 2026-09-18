@@ -1,4 +1,4 @@
-import { Trash2, Star, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 
 export function WritingLines({ count, fragments = 1, sampleText }) {
@@ -60,7 +60,6 @@ export function WritingQuestion({
         <span className="sp-q-type pink">Writing Practice</span>
         <div className="sp-q-actions">
           <div className="sp-marks">
-            <Star size={12} color="#FFE29A" fill="#FFE29A" />
             <input
               type="number"
               min={0}
