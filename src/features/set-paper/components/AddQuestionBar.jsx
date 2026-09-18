@@ -1,6 +1,9 @@
-import { Plus, AlignLeft, Shuffle, PenLine, ListChecks, CircleDot, Underline, Image, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, AlignLeft, Shuffle, PenLine, ListChecks, CircleDot, Underline, Image, CheckCircle2, Sparkles } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 import { QUESTION_TYPES } from '../types';
+import { hasAiGeneration } from '../aiGeneration';
+import { AiGenerateModal } from './AiGenerateModal';
 
 const TYPE_CONFIG = [
   {
@@ -63,11 +66,23 @@ const TYPE_CONFIG = [
 
 export function AddQuestionBar({ disabled = false }) {
   const { dispatch } = usePaper();
+  const [generateType, setGenerateType] = useState(null);
 
   function addQuestion(type) {
     if (disabled) return;
     dispatch({ type: 'ADD_QUESTION', payload: { type } });
   }
+
+  function handleTypeClick(config) {
+    if (disabled) return;
+    if (hasAiGeneration(config.type)) {
+      setGenerateType(config);
+    } else {
+      addQuestion(config.type);
+    }
+  }
+
+  const generateConfig = generateType && hasAiGeneration(generateType.type) ? generateType : null;
 
   return (
     <div className={`sp-sidebar-card${disabled ? ' sp-sidebar-disabled' : ''}`}>
@@ -75,24 +90,38 @@ export function AddQuestionBar({ disabled = false }) {
         <span>Add Question</span>
       </div>
       <div className="sp-sidebar-row">
-        {TYPE_CONFIG.map((config) => (
-          <button
-            key={config.type}
-            type="button"
-            className={`sp-add-btn sp-sidebar-add ${config.colorClass}`}
-            onClick={() => addQuestion(config.type)}
-            disabled={disabled}
-            title={disabled ? 'Switch to Editor to add questions' : undefined}
-          >
-            <span className={`sp-add-icon ${config.colorClass}`}>{config.icon}</span>
-            <span className="sp-add-label">
-              <b>{config.label}</b>
-              <span>{config.desc}</span>
-            </span>
-            <Plus size={15} style={{ opacity: 0.6, marginLeft: 'auto' }} />
-          </button>
-        ))}
+        {TYPE_CONFIG.map((config) => {
+          const ai = hasAiGeneration(config.type);
+          return (
+            <button
+              key={config.type}
+              type="button"
+              className={`sp-add-btn sp-sidebar-add ${config.colorClass}`}
+              onClick={() => handleTypeClick(config)}
+              disabled={disabled}
+              title={disabled ? 'Switch to Editor to add questions' : undefined}
+            >
+              <span className={`sp-add-icon ${config.colorClass}`}>{config.icon}</span>
+              <span className="sp-add-label">
+                <b>{config.label}</b>
+                <span>
+                  {config.desc}
+                  {ai && <em className="sp-ai-badge"> Generate with AI</em>}
+                </span>
+              </span>
+              {ai ? (
+                <Sparkles size={15} style={{ opacity: 0.7, marginLeft: 'auto' }} />
+              ) : (
+                <Plus size={15} style={{ opacity: 0.6, marginLeft: 'auto' }} />
+              )}
+            </button>
+          );
+        })}
       </div>
+
+      {generateConfig && (
+        <AiGenerateModal type={generateConfig.type} typeConfig={generateConfig} onClose={() => setGenerateType(null)} />
+      )}
     </div>
   );
 }

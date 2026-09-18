@@ -177,6 +177,20 @@ function paperReducer(state, action) {
       };
     }
 
+    case 'ADD_GENERATED_QUESTIONS': {
+      const incoming = action.payload.questions ?? [];
+      if (incoming.length === 0) return state;
+      let nextId = state.nextId;
+      const added = incoming.map((q) => {
+        const base = newQuestion(nextId, 0, q.type ?? QUESTION_TYPES.NORMAL);
+        const merged = { ...base, ...q, id: nextId, number: 0 };
+        nextId += 1;
+        return merged;
+      });
+      const renumbered = [...state.questions, ...added].map((q, i) => ({ ...q, number: i + 1 }));
+      return { ...state, questions: renumbered, nextId };
+    }
+
     case 'UPDATE_QUESTION':
       return {
         ...state,

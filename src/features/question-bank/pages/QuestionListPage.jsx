@@ -1,32 +1,149 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuestionList, useDuplicateQuestion } from '../hooks/useQuestions';
-import { StatusBadge, UsageBadge } from '../components/Badges';
+import { Pencil, ArrowUp, ArrowDown, FolderPlus, X } from 'lucide-react';
+import { useListPapers } from '../../set-paper/hooks/useQuestionPapers';
+import { deserializeQuestion } from '../../set-paper/deserializePaper';
+import { AddToPaperModal } from '../components/AddToPaperModal';
 
-const QUESTION_TYPES = [
-  'MCQ',
-  'MULTIPLE_SELECT',
-  'TRUE_FALSE',
-  'FILL_IN_THE_BLANK',
-  'MATCH_THE_FOLLOWING',
-  'ONE_WORD',
-  'SHORT_ANSWER',
-  'LONG_ANSWER',
-  'IMAGE_BASED',
-  'IDENTIFY_AND_NAME',
-  'ARRANGE_IN_ORDER',
-];
-const DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'];
-const LANGUAGES = ['HINDI', 'ENGLISH', 'BILINGUAL'];
-const STATUSES = ['DRAFT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED', 'ARCHIVED'];
+const TYPE_LABELS = {
+  normal: 'Normal',
+  'multiple-choice': 'MCQ',
+  'fill-in-the-blank': 'Fill in the Blanks',
+  'matching-picture': 'Match the Following',
+  'true-false': 'True / False',
+  'color-the-image': 'Image-MCQ',
+  'label-picture': 'Picture Labeling',
+  'writing-practice': 'Writing Practice',
+};
+
+function flattenQuestions(papers) {
+  const rows = [];
+  for (const paper of papers ?? []) {
+    const rawQuestions = paper.template?.sections?.length
+      ? paper.template.sections.flatMap((s) => s.questions ?? [])
+      : (paper.template?.questions ?? []);
+    const urlMap = paper.template?.urls ?? {};
+    for (const raw of rawQuestions) {
+      const subText = raw.subQuestions?.[0]?.subQuestion ?? '';
+      rows.push({
+        key: `${paper.paperId}-${raw.questionId}`,
+        questionText: raw.questionTitle || subText || '(untitled question)',
+        type: raw.type ?? 'normal',
+        marks: Number(raw.totalMarks ?? 0),
+        paperId: paper.paperId,
+        paperTitle: paper.template?.title || `${paper.subject ?? ''} ${paper.classLevel ?? ''}`.trim(),
+        subject: paper.subject ?? '',
+        className: paper.classLevel ?? '',
+        status: paper.status,
+        question: deserializeQuestion(raw, urlMap),
+      });
+    }
+  }
+  return rows;
+}
+
+function uniqueValues(rows, key) {
+  return [...new Set(rows.map((row) => String(row[key] ?? '').trim()).filter(Boolean))].sort();
+}
+
+const SORTABLE = ['questionText', 'className', 'subject', 'type', 'marks'];
 
 export function QuestionListPage() {
-  const [filters, setFilters] = useState({ page: 1, limit: 20 });
-  const { data, isLoading, isError } = useQuestionList(filters);
-  const duplicateMutation = useDuplicateQuestion();
+  const papersQuery = useListPapers();
+  const [search, setSearch] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [marksFilter, setMarksFilter] = useState('');
+  const [sortKey, setSortKey] = useState('className');
+  const [sortDir, setSortDir] = useState('asc');
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set());
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  function updateFilter(key, value) {
-    setFilters((prev) => ({ ...prev, [key]: value || undefined, page: 1 }));
+  const rows = useMemo(() => flattenQuestions(papersQuery.data), [papersQuery.data]);
+
+  const byType = typeFilter ? rows.filter((r) => r.type === typeFilter) : rows;
+  const byClass = classFilter ? byType.filter((r) => r.className === classFilter) : byType;
+  const bySubject = subjectFilter ? byClass.filter((r) => r.subject === subjectFilter) : byClass;
+  const byMarks = marksFilter ? bySubject.filter((r) => Number(r.marks) === Number(marksFilter)) : bySubject;
+
+  const classOptions = uniqueValues(byType, 'className');
+  const subjectOptions = uniqueValues(byClass, 'subject');
+  const marksOptions = uniqueValues(byMarks, 'marks').sort((a, b) => Number(a) - Number(b));
+  const typeOptions = uniqueValues(rows, 'type');
+
+  const filtered = byMarks.filter((row) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      row.questionText.toLowerCase().includes(q) ||
+      row.subject.toLowerCase().includes(q) ||
+      row.className.toLowerCase().includes(q)
+    );
+  });
+
+  const sorted = useMemo(() => {
+    const next = [...filtered];
+    next.sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      let cmp;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        cmp = av - bv;
+      } else {
+        cmp = String(av ?? '').localeCompare(String(bv ?? ''));
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return next;
+  }, [filtered, sortKey, sortDir]);
+
+  const selectedRows = rows.filter((row) => selectedKeys.has(row.key));
+  const allFilteredSelected = filtered.length > 0 && filtered.every((row) => selectedKeys.has(row.key));
+
+  function toggleRow(key) {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filtered.forEach((row) => next.delete(row.key));
+      } else {
+        filtered.forEach((row) => next.add(row.key));
+      }
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedKeys(new Set());
+  }
+
+  function handleSort(key) {
+    if (sortKey === key) {
+      setSortDir((dir) => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  }
+
+  function SortHeader({ label, column }) {
+    return (
+      <th>
+        <button type="button" className="sort-header" onClick={() => handleSort(column)}>
+          {label}
+          {sortKey === column && (sortDir === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />)}
+        </button>
+      </th>
+    );
   }
 
   return (
@@ -34,113 +151,107 @@ export function QuestionListPage() {
       <div className="page-header">
         <div>
           <h1>Question Bank</h1>
-          <p>Browse, filter, and manage question bank items.</p>
+          <p>Questions saved in your question papers.</p>
         </div>
-        <Link to="/staff/question-bank/new">
-          <button>+ New Question</button>
-        </Link>
       </div>
 
       <div className="button-row" style={{ margin: '1rem 0' }}>
-        <input
-          placeholder="Search question text…"
-          onChange={(e) => updateFilter('search', e.target.value)}
-        />
-        <select onChange={(e) => updateFilter('questionType', e.target.value)}>
+        <input placeholder="Search question, subject or class…" onChange={(e) => setSearch(e.target.value)} />
+        <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+          <option value="">All Classes</option>
+          {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}>
+          <option value="">All Subjects</option>
+          {subjectOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
           <option value="">All Types</option>
-          {QUESTION_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
+          {typeOptions.map((o) => <option key={o} value={o}>{TYPE_LABELS[o] ?? o.replace('_', ' ')}</option>)}
         </select>
-        <select onChange={(e) => updateFilter('difficulty', e.target.value)}>
-          <option value="">All Difficulties</option>
-          {DIFFICULTIES.map((d) => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-        <select onChange={(e) => updateFilter('language', e.target.value)}>
-          <option value="">All Languages</option>
-          {LANGUAGES.map((l) => (
-            <option key={l} value={l}>{l}</option>
-          ))}
-        </select>
-        <select onChange={(e) => updateFilter('status', e.target.value)}>
-          <option value="">All Statuses</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>{s.replace('_', ' ')}</option>
-          ))}
+        <select value={marksFilter} onChange={(e) => setMarksFilter(e.target.value)}>
+          <option value="">All Marks</option>
+          {marksOptions.map((o) => <option key={o} value={o}>{o} mark{o === '1' ? '' : 's'}</option>)}
         </select>
       </div>
 
-      {isLoading && <div className="loading"><span className="spinner" /> Loading questions…</div>}
-      {isError && <div className="alert alert-error">Could not load questions.</div>}
+      {selectedKeys.size > 0 && (
+        <div className="selection-bar">
+          <span><strong>{selectedKeys.size}</strong> question{selectedKeys.size === 1 ? '' : 's'} selected</span>
+          <button type="button" className="btn-secondary btn-sm" onClick={() => setShowAddModal(true)}>
+            <FolderPlus size={13} style={{ verticalAlign: 'middle' }} /> Add to Paper
+          </button>
+          <button type="button" className="btn-ghost btn-sm" onClick={clearSelection}>
+            <X size={13} style={{ verticalAlign: 'middle' }} /> Clear
+          </button>
+        </div>
+      )}
 
-      {data && (
-        <>
-          {data.items.length === 0 ? (
-            <div className="empty-state">No questions match your filters.</div>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Question</th>
-                  <th>Class</th>
-                  <th>Subject</th>
-                  <th>Type</th>
-                  <th>Marks</th>
-                  <th>Status</th>
-                  <th>Usage</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((q) => (
-                  <tr key={q.id}>
-                    <td style={{ maxWidth: 300 }}>
-                      <Link to={`/staff/question-bank/${q.id}`}><strong>{q.questionText.slice(0, 80)}</strong></Link>
-                    </td>
-                    <td>{q.className}</td>
-                    <td>{q.subjectName}</td>
-                    <td>{q.questionType.replace('_', ' ')}</td>
-                    <td>{q.marks}</td>
-                    <td><StatusBadge status={q.status} /></td>
-                    <td><UsageBadge usage={q.usage} /></td>
-                    <td>
-                      <div className="row-actions">
-                        <Link to={`/staff/question-bank/${q.id}/edit`}>
-                          <button className="btn-secondary btn-sm">Edit</button>
-                        </Link>
-                        <button className="btn-ghost btn-sm" onClick={() => duplicateMutation.mutate(q.id)}>
-                          Duplicate
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      {papersQuery.isLoading && <div className="loading"><span className="spinner" /> Loading questions…</div>}
+      {papersQuery.isError && <div className="alert alert-error">Could not load question papers.</div>}
 
-          <div className="pagination">
-            <button
-              className="btn-ghost"
-              disabled={(filters.page ?? 1) <= 1}
-              onClick={() => setFilters((p) => ({ ...p, page: (p.page ?? 1) - 1 }))}
-            >
-              Previous
-            </button>
-            <span>
-              Page {data.page} of {data.totalPages} ({data.totalItems} total)
-            </span>
-            <button
-              className="btn-ghost"
-              disabled={data.page >= data.totalPages}
-              onClick={() => setFilters((p) => ({ ...p, page: (p.page ?? 1) + 1 }))}
-            >
-              Next
-            </button>
-          </div>
-        </>
+      {!papersQuery.isLoading && !papersQuery.isError && sorted.length === 0 && (
+        <div className="empty-state">No questions match your filters.</div>
+      )}
+
+      {sorted.length > 0 && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th style={{ width: 36 }}>
+                <input
+                  type="checkbox"
+                  checked={allFilteredSelected}
+                  onChange={toggleAll}
+                  aria-label="Select all filtered questions"
+                />
+              </th>
+              <SortHeader label="Question" column="questionText" />
+              <SortHeader label="Class" column="className" />
+              <SortHeader label="Subject" column="subject" />
+              <SortHeader label="Type" column="type" />
+              <SortHeader label="Marks" column="marks" />
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((row) => (
+              <tr key={row.key} className={selectedKeys.has(row.key) ? 'row-selected' : undefined}>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={selectedKeys.has(row.key)}
+                    onChange={() => toggleRow(row.key)}
+                    aria-label={`Select ${row.questionText.slice(0, 60)}`}
+                  />
+                </td>
+                <td style={{ maxWidth: 340 }}>
+                  <strong>{row.questionText.slice(0, 100)}</strong>
+                  {row.paperTitle && <div className="muted text-sm" style={{ marginTop: '0.15rem' }}>{row.paperTitle}</div>}
+                </td>
+                <td>{row.className}</td>
+                <td>{row.subject}</td>
+                <td>{TYPE_LABELS[row.type] ?? row.type.replace('_', ' ')}</td>
+                <td>{row.marks}</td>
+                <td>
+                  <div className="row-actions">
+                    <Link to={`/staff/paper-builder/${row.paperId}`}>
+                      <button className="btn-secondary btn-sm"><Pencil size={13} style={{ verticalAlign: 'middle' }} /> Open Paper</button>
+                    </Link>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {showAddModal && (
+        <AddToPaperModal
+          rows={selectedRows}
+          papers={papersQuery.data ?? []}
+          onClose={() => setShowAddModal(false)}
+        />
       )}
     </div>
   );

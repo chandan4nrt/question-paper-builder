@@ -5,11 +5,6 @@ import { QuestionListPage } from '../features/question-bank/pages/QuestionListPa
 import { QuestionFormPage } from '../features/question-bank/pages/QuestionFormPage';
 import { QuestionDetailPage } from '../features/question-bank/pages/QuestionDetailPage';
 import { QuestionReviewsPage } from '../features/question-bank/pages/QuestionReviewsPage';
-import { ExamListPage } from '../features/exams/pages/ExamListPage';
-import { ExamFormPage } from '../features/exams/pages/ExamFormPage';
-import { ExamDetailPage } from '../features/exams/pages/ExamDetailPage';
-import { ExamPreviewPage } from '../features/exams/pages/ExamPreviewPage';
-import { ExamAnswerKeyPage } from '../features/exams/pages/ExamAnswerKeyPage';
 import { SetPaperPage } from '../features/set-paper/pages/SetPaperPage';
 import { PaperListPage } from '../features/set-paper/pages/PaperListPage';
 
@@ -25,17 +20,6 @@ export const router = createBrowserRouter([
       { path: 'question-bank/:id', element: <QuestionDetailPage /> },
       { path: 'question-bank/:id/edit', element: <QuestionFormPage mode="edit" /> },
       { path: 'question-bank/:id/reviews', element: <QuestionReviewsPage /> },
-
-      // Exam & Question Paper Management
-      // /staff/exams/:id/blueprint and /staff/exams/:id/questions are folded
-      // into ExamDetailPage rather than split into separate routes — the
-      // blueprint editor and question list are one screen for staff, per
-      // the spec's own "keep the UI simple" goal
-      { path: 'exams', element: <ExamListPage /> },
-      { path: 'exams/new', element: <ExamFormPage /> },
-      { path: 'exams/:id', element: <ExamDetailPage /> },
-      { path: 'exams/:id/preview', element: <ExamPreviewPage /> },
-      { path: 'exams/:id/answer-key', element: <ExamAnswerKeyPage /> },
 
       // Create playschool-style practice papers with the paper-builder editor.
       { path: 'paper-builder', element: <PaperListPage /> },

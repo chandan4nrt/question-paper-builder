@@ -11,6 +11,7 @@ import { useSetPaper, useUpdatePaper, useListPapers } from "../hooks/useQuestion
 import { extractErrorMessage } from "../../../services/api";
 import { buildSetPaperFormData } from "../serializePaper";
 import { deserializePaper } from "../deserializePaper";
+import { consumePendingQuestions } from "../pendingQuestions";
 
 function waitForPrintArea() {
   return new Promise((resolve) => {
@@ -66,6 +67,14 @@ function PaperBuilder({ paperId }) {
     dispatch({ type: "RESET" });
     setLoaded(true);
   }, [paperId, loaded, dispatch]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const pending = consumePendingQuestions();
+    if (pending.length > 0) {
+      dispatch({ type: "ADD_GENERATED_QUESTIONS", payload: { questions: pending } });
+    }
+  }, [loaded, dispatch]);
 
   function flashToast(message) {
     setToastMessage(message);

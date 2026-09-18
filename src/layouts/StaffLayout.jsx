@@ -37,12 +37,6 @@ export function StaffLayout() {
               className={({ isActive }) => (isActive ? 'active' : '')}
             >
               Questions
-            </NavLink>
-            <NavLink
-              to="/staff/exams"
-              className={({ isActive }) => (isActive ? 'active' : '')}
-            >
-              Exams
             </NavLink> */}
             <NavLink
               to="/staff/paper-builder"

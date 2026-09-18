@@ -40,7 +40,7 @@ function resolveImageUrl(urlMap, key) {
   return key ? (urlMap[key] ?? null) : null;
 }
 
-function deserializeQuestion(raw, urlMap) {
+export function deserializeQuestion(raw, urlMap) {
   const id = raw.questionId ?? 0;
   const base = {
     id,
