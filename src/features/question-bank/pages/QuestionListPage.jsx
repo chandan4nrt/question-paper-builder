@@ -147,7 +147,7 @@ export function QuestionListPage() {
   }
 
   return (
-    <div className="page">
+    <div className={`page qb-page${selectedKeys.size > 0 ? ' qb-has-selection' : ''}`}>
       <div className="page-header">
         <div>
           <h1>Question Bank</h1>
@@ -155,7 +155,7 @@ export function QuestionListPage() {
         </div>
       </div>
 
-      <div className="button-row" style={{ margin: '1rem 0' }}>
+      <div className="button-row qb-filter-bar">
         <input placeholder="Search question, subject or class…" onChange={(e) => setSearch(e.target.value)} />
         <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
           <option value="">All Classes</option>
@@ -176,7 +176,7 @@ export function QuestionListPage() {
       </div>
 
       {selectedKeys.size > 0 && (
-        <div className="selection-bar">
+        <div className="selection-bar qb-selection-bar-sticky">
           <span><strong>{selectedKeys.size}</strong> question{selectedKeys.size === 1 ? '' : 's'} selected</span>
           <button type="button" className="btn-secondary btn-sm" onClick={() => setShowAddModal(true)}>
             <FolderPlus size={13} style={{ verticalAlign: 'middle' }} /> Add to Paper
@@ -195,7 +195,7 @@ export function QuestionListPage() {
       )}
 
       {sorted.length > 0 && (
-        <table className="data-table">
+        <table className="data-table qb-table">
           <thead>
             <tr>
               <th style={{ width: 36 }}>

@@ -45,6 +45,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
+          solution: q.solution ?? '',
           subQuestions: [{ subQuestionId: 1, subQuestion: q.text, options: [], answer: q.answers ?? [] }],
         });
         break;
@@ -67,6 +68,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
+          solution: q.solution ?? '',
           letters: (q.rightItems ?? []).map((item) => item.label),
           images: imageMap,
           pictures,
@@ -81,6 +83,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
+          solution: q.solution ?? '',
           lines: q.lines,
           fragments: q.fragments,
           sampleText: q.sampleText,
@@ -96,6 +99,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
+          solution: q.solution ?? '',
           subQuestions: [
             {
               subQuestionId: 1,
@@ -136,6 +140,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
             questionId: questionCounter,
             totalMarks: Number(q.marks || 0) * pictures.length,
             questionTitle: q.text,
+            solution: q.solution ?? '',
             images: imageMap,
             pictures,
             answers,
@@ -151,6 +156,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
+          solution: q.solution ?? '',
           subQuestions: items.map((item, index) => ({
             subQuestionId: index + 1,
             subQuestion: item,
@@ -176,6 +182,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
+          solution: q.solution ?? '',
           pictures: labelPicture ? [labelPicture] : [],
           images: labelImageMap,
           picture: labelPicture,
@@ -192,6 +199,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
+          solution: q.solution ?? '',
           subQuestions: items.map((item, index) => ({
             subQuestionId: index + 1,
             subQuestion: item,

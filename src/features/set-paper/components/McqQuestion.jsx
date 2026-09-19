@@ -1,5 +1,6 @@
 import { Trash2, Plus, X, ChevronUp, ChevronDown, Check } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
+import { SolutionField } from './SolutionField';
 
 const OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -144,6 +145,8 @@ export function McqQuestion({
           </button>
           </div>
         </div>
+
+        <SolutionField value={question.solution} onChange={(solution) => update({ solution })} />
       </div>
     </div>
   );

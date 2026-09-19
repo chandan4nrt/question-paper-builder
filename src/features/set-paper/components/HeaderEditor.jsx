@@ -25,7 +25,7 @@ export function HeaderEditor() {
     { field: "className", label: "Class / Grade", icon: <BookOpen size={15} />, placeholder: "Nursery" },
     { field: "subject", label: "Subject", icon: <BookOpen size={15} />, placeholder: "English" },
     { field: "exam", label: "Exam", icon: <NotebookPen size={15} />, placeholder: "Mid-Term" },
-    { field: "academicYear", label: "Academic Year", icon: <CalendarDays size={15} />, placeholder: "2025-2026" },
+    { field: "academicYear", label: "Academic Year", icon: <CalendarDays size={15} />, placeholder: "2026-2027" },
     { field: "teacherName", label: "Teacher's Name", icon: <User size={15} />, placeholder: "Mr. Chandan" },
     { field: "duration", label: "Duration", icon: <Clock size={15} />, placeholder: "30 Minutes" },
     { field: "date", label: "Date", icon: <Calendar size={15} />, placeholder: "", type: "date" },

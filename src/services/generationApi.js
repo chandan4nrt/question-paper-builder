@@ -17,7 +17,8 @@ export function generateQuestions(endpoint, payload) {
 
 export function extractGenerationError(error) {
   if (axios.isAxiosError(error)) {
-    return error.response?.data?.message ?? error.message;
+    const data = error.response?.data;
+    return data?.message ?? data?.detail ?? error.message;
   }
   return 'Something went wrong while generating questions.';
 }

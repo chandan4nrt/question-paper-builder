@@ -28,16 +28,8 @@ export function StaffLayout() {
     <div className="app-shell">
       <header className="app-header">
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          {/* <span className="app-brand">
-            <span className="app-logo"><Book size={20} /></span> Question Bank
-          </span> */}
-          <nav className="app-nav">
-            {/* <NavLink
-              to="/staff/question-bank"
-              className={({ isActive }) => (isActive ? 'active' : '')}
-            >
-              Questions
-            </NavLink> */}
+    
+          <nav className="app-nav">        
             <NavLink
               to="/staff/paper-builder"
               className={({ isActive }) => (isActive ? 'active' : '')}
@@ -47,6 +39,13 @@ export function StaffLayout() {
           </nav>
         </div>
         <div className="app-header-right">
+              <NavLink to="/staff/question-bank">
+                 {({ isActive }) => (
+                  <span className={`sp-tab ${isActive ? 'active' : ''}`}>
+                    <Book size={15} /> Question Bank
+                  </span>
+                )}
+              </NavLink>
               <NavLink to="/staff/paper-builder" end>
                 {({ isActive }) => (
                   <span className={`sp-tab ${isActive ? 'active' : ''}`}>

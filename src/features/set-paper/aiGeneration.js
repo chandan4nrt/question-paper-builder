@@ -14,29 +14,33 @@ export function hasAiGeneration(type) {
   return Boolean(AI_ENDPOINTS[type]);
 }
 
-// Builds the generation payload per the LLM API contract.
+// Builds the multipart/form-data generation payload per the LLM API contract.
+export const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB per file
+
 export function buildGenerationPayload({
   numQuestions = 5,
   topic = '',
-  provider = null,
   gradeLevel = '',
-  difficulty = 'MEDIUM',
+  difficulty = 'medium',
   subject = '',
   text = null,
   extraInstructions = '',
+  images = [],
+  pdf = null,
 } = {}) {
-  return {
-    num_questions: Number(numQuestions) || 5,
-    topic,
-    provider: provider || null,
-    grade_level: gradeLevel,
-    difficulty,
-    subject,
-    text: text || null,
-    extra_instructions: extraInstructions,
-    pdf: null,
-    images: [],
-  };
+  const formData = new FormData();
+  formData.append('num_questions', String(Number(numQuestions) || 5));
+  formData.append('topic', topic);
+  formData.append('grade_level', gradeLevel);
+  formData.append('difficulty', difficulty);
+  formData.append('subject', subject);
+  if (text) formData.append('text', text);
+  formData.append('extra_instructions', extraInstructions);
+  asArray(images).forEach((file) => {
+    if (file) formData.append('images', file);
+  });
+  if (pdf) formData.append('pdf', pdf);
+  return formData;
 }
 
 function asArray(value) {
@@ -80,17 +84,28 @@ function optionLabel(value) {
 
 function extractOptions(item) {
   const raw = firstArray(item, ['options', 'choices', 'choiceList', 'answerOptions', 'mcq_options']);
-  const nested = raw[0] && typeof raw[0] === 'object' && Array.isArray(raw[0].options) ? raw[0].options : null;
-  return (nested ?? raw)
-    .map(optionLabel)
-    .filter(Boolean);
+  if (Array.isArray(raw)) {
+    const nested = raw[0] && typeof raw[0] === 'object' && Array.isArray(raw[0].options) ? raw[0].options : null;
+    const labels = (nested ?? raw).map(optionLabel).filter(Boolean);
+    if (labels.length > 0) return labels;
+  }
+  if (!item || typeof item !== 'object') return [];
+  for (const key of ['options', 'choices', 'choiceList', 'answerOptions', 'mcq_options']) {
+    const value = item[key];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return Object.values(value).map(optionLabel).filter(Boolean);
+    }
+  }
+  return [];
 }
 
 function normalizeLetter(value) {
-  const match = String(value ?? '').trim().match(/^[\(]?([A-Za-z])[\)\.]?\s*$/);
-  if (!match) return -1;
-  const letter = match[1].toUpperCase();
-  return letter.charCodeAt(0) - 65;
+  const text = String(value ?? '').trim();
+  const exact = text.match(/^[\(]?([A-Za-z])[\)\.]?\s*$/);
+  if (exact) return exact[1].toUpperCase().charCodeAt(0) - 65;
+  const prefixed = text.match(/^[\(]?([A-Za-z])[\)\.:]\s/);
+  if (prefixed) return prefixed[1].toUpperCase().charCodeAt(0) - 65;
+  return -1;
 }
 
 function findCorrectIndex(item, options) {
@@ -136,6 +151,19 @@ function extractCorrectAnswer(item) {
   return answer;
 }
 
+function extractSolution(item) {
+  if (typeof item === 'string') return '';
+  if (item && typeof item === 'object' && !Array.isArray(item)) {
+    const solution =
+      firstString(item, ['solution', 'explanation', 'answer_explanation', 'answerExplanation', 'detailed_solution', 'elaboration']) || '';
+    if (solution) return solution;
+    if (item.solution && typeof item.solution === 'object') {
+      return firstString(item.solution, ['text', 'content', 'value', 'explanation']);
+    }
+  }
+  return '';
+}
+
 function parseMcq(item) {
   const text = firstString(item, ['questionText', 'question', 'prompt', 'statement', 'text', 'question_text', 'question_statement']);
   const options = extractOptions(item);
@@ -148,6 +176,7 @@ function parseMcq(item) {
     options: parsedOptions,
     correctOptionId: correctIndex >= 0 ? parsedOptions[correctIndex].id : undefined,
     marks: 1,
+    solution: extractSolution(item),
   };
 }
 
@@ -160,11 +189,11 @@ function splitAnswerFromSentence(sentence) {
 function parseFillBlank(item) {
   if (typeof item === 'string') {
     const { sentence, answer } = splitAnswerFromSentence(item);
-    return { type: QUESTION_TYPES.FILL_BLANK, text: sentence, items: [sentence], answers: answer ? [answer] : [], marks: 1 };
+    return { type: QUESTION_TYPES.FILL_BLANK, text: sentence, items: [sentence], answers: answer ? [answer] : [], marks: 1, solution: '' };
   }
   const sentence = firstString(item, ['sentence', 'question', 'statement', 'question_text', 'questionText', 'text', 'blank', 'question_statement']);
   const answer = extractCorrectAnswer(item);
-  return { type: QUESTION_TYPES.FILL_BLANK, text: sentence, items: [sentence], answers: answer ? [answer] : [], marks: 1 };
+  return { type: QUESTION_TYPES.FILL_BLANK, text: sentence, items: [sentence], answers: answer ? [answer] : [], marks: 1, solution: extractSolution(item) };
 }
 
 function parseMatch(item) {
@@ -208,6 +237,7 @@ function parseMatch(item) {
     rightItems,
     matchPairs,
     marks: 1,
+    solution: extractSolution(item),
   };
 }
 
@@ -215,7 +245,7 @@ function parseQa(item) {
   const text = firstString(item, ['questionText', 'question', 'prompt', 'statement', 'text', 'question_text', 'question_statement']);
   const answer = extractCorrectAnswer(item);
   if (!text) return null;
-  return { type: QUESTION_TYPES.NORMAL, text, answers: answer ? [answer] : [], marks: 1 };
+  return { type: QUESTION_TYPES.NORMAL, text, answers: answer ? [answer] : [], marks: 1, solution: extractSolution(item) };
 }
 
 const PARSERS = {

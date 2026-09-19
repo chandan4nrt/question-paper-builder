@@ -48,6 +48,7 @@ export function deserializeQuestion(raw, urlMap) {
     type: 'normal',
     text: raw.questionTitle ?? '',
     marks: raw.totalMarks ?? 0,
+    solution: raw.solution ?? '',
   };
 
   switch (raw.type) {

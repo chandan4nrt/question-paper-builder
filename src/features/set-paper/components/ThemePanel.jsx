@@ -19,6 +19,7 @@ import {
 import { usePaper } from "../context/PaperContext";
 import { QUESTION_TYPES } from "../types";
 import { loadThemes, saveThemes } from "../helpers";
+import * as themeApi from "../api/themeApi";
 
 const TYPE_ORDER = [
   QUESTION_TYPES.NORMAL,
@@ -123,6 +124,12 @@ function ThemeConfigModal({
         </div>
 
         <div className="sp-theme-config-list">
+          <div className="sp-theme-config-row sp-theme-config-head">
+            
+            <span className="sp-theme-config-label sp-theme-head-space" />
+            <span className="sp-theme-col-label sp-theme-col-questions">No. of questions</span>
+            <span className="sp-theme-col-label sp-theme-col-marks">marks / q</span>
+          </div>
           {configs.map((c, i) => {
             const meta = TYPE_META[c.type] ?? TYPE_META[QUESTION_TYPES.NORMAL];
             return (
@@ -148,7 +155,6 @@ function ThemeConfigModal({
                 >
                   <span className="sp-step-sym">+</span>
                 </button>
-                <span className="sp-theme-marks-label">marks / q</span>
                 <button
                   type="button"
                   className="sp-line-step sp-theme-step"
@@ -191,7 +197,7 @@ function ThemeConfigModal({
 }
 
 export function ThemePanel({ disabled = false }) {
-  const { dispatch } = usePaper();
+  const { dispatch, showToast } = usePaper();
   const [expanded, setExpanded] = useState(true);
   const [themes, setThemes] = useState(() => loadThemes());
   const [modalTheme, setModalTheme] = useState(null);
@@ -199,6 +205,24 @@ export function ThemePanel({ disabled = false }) {
   useEffect(() => {
     saveThemes(themes);
   }, [themes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const remote = await listThemes();
+        if (cancelled) return;
+        if (Array.isArray(remote) && remote.length > 0) {
+          setThemes(remote);
+        }
+      } catch {
+        // Backend theme API unavailable — keep local themes.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function generate(theme) {
     dispatch({ type: "GENERATE_FROM_THEME", payload: theme });
@@ -210,10 +234,25 @@ export function ThemePanel({ disabled = false }) {
       return exists ? prev.map((t) => (t.id === theme.id ? theme : t)) : [...prev, theme];
     });
     setModalTheme(null);
+    saveThemeToBackend(theme);
+  }
+
+  async function saveThemeToBackend(theme) {
+    try {
+      const saved = await themeApi.saveTheme(theme);
+      const themeId = saved?.themeId ?? saved?.id;
+      if (themeId != null && Number(themeId) > 0 && String(themeId) !== String(theme.id)) {
+        setThemes((prev) => prev.map((t) => (t.id === theme.id ? { ...t, themeId, id: themeId } : t)));
+      }
+      showToast?.("✅ Theme saved to server.");
+    } catch {
+      showToast?.(`❌ Failed to save theme to server. Saved locally.`);
+    }
   }
 
   function deleteTheme(id) {
     setThemes((prev) => prev.filter((t) => t.id !== id));
+    themeApi.deleteTheme(id).catch(() => {});
   }
 
   return (

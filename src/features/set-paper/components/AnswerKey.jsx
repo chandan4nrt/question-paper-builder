@@ -109,6 +109,12 @@ export function AnswerKey() {
               ) : (
                 <div className="sp-ak-answer sp-ak-empty">— no answer set —</div>
               )}
+
+              {question.solution ? (
+                <div className="sp-ak-solution">
+                  <strong>Solution:</strong> {question.solution}
+                </div>
+              ) : null}
             </div>
           );
         })}

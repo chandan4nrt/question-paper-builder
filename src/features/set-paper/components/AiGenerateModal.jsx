@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Loader2, X, Plus } from 'lucide-react';
+import { Sparkles, Loader2, X, Plus, ImagePlus, FileText, Trash2, Upload } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 import { generateQuestions, extractGenerationError } from '../../../services/generationApi';
 import {
   AI_ENDPOINTS,
   buildGenerationPayload,
   parseGeneratedQuestions,
+  MAX_FILE_SIZE,
 } from '../aiGeneration';
 
-const DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'];
+const DIFFICULTIES = ['easy', 'medium', 'hard'];
+
+function formatBytes(bytes) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(0)} KB`;
+}
 
 export function AiGenerateModal({ type, typeConfig, onClose }) {
   const { state, dispatch, showToast } = usePaper();
@@ -19,18 +25,43 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
   const [numQuestions, setNumQuestions] = useState(5);
   const [gradeLevel, setGradeLevel] = useState(state.header.className ?? '');
   const [subject, setSubject] = useState(state.header.subject ?? '');
-  const [difficulty, setDifficulty] = useState('MEDIUM');
-  const [provider, setProvider] = useState('');
+  const [difficulty, setDifficulty] = useState('medium');
   const [extraInstructions, setExtraInstructions] = useState('');
+  const [images, setImages] = useState([]);
+  const [pdf, setPdf] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const canGenerate = topic.trim().length > 0 && !isLoading;
+  const canGenerate = (topic.trim().length > 0 || images.length > 0 || Boolean(pdf)) && !isLoading;
 
   function addBlankInstead() {
     dispatch({ type: 'ADD_QUESTION', payload: { type } });
     showToast('Blank question added.');
     onClose();
+  }
+
+  function handleAddImages(fileList) {
+    const files = Array.from(fileList ?? []);
+    if (files.length === 0) return;
+    const oversized = files.filter((file) => file.size > MAX_FILE_SIZE);
+    if (oversized.length > 0) {
+      setError(`Image "${oversized[0].name}" exceeds the 20 MB limit.`);
+      return;
+    }
+    setImages((prev) => [...prev, ...files]);
+  }
+
+  function handleAddPdf(file) {
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      setError(`PDF "${file.name}" exceeds the 20 MB limit.`);
+      return;
+    }
+    if (file.type !== 'application/pdf') {
+      setError('Only PDF files are allowed.');
+      return;
+    }
+    setPdf(file);
   }
 
   async function handleGenerate() {
@@ -40,11 +71,18 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
       const payload = buildGenerationPayload({
         numQuestions,
         topic,
-        provider,
         gradeLevel,
         difficulty,
         subject,
         extraInstructions,
+        images,
+        pdf,
+      });
+      console.log('AI quiz payload:', {
+        endpoint,
+        fields: Object.fromEntries(payload.entries()),
+        files: images.map((f) => ({ name: f.name, size: f.size, type: f.type })),
+        pdf: pdf ? { name: pdf.name, size: pdf.size, type: pdf.type } : null,
       });
       const data = await generateQuestions(endpoint, payload);
       const questions = parseGeneratedQuestions(type, data);
@@ -131,16 +169,6 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
             </label>
 
             <label className="sp-field-label">
-              Provider (optional)
-              <input
-                className="sp-input"
-                value={provider}
-                onChange={(e) => setProvider(e.target.value)}
-                placeholder="e.g. openai"
-              />
-            </label>
-
-            <label className="sp-field-label">
               Additional text / context (optional)
               <textarea
                 className="sp-input"
@@ -150,6 +178,80 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
                 placeholder="Extra instructions for the generator…"
               />
             </label>
+          </div>
+
+          <div className="sp-ai-uploads">
+            <label className="sp-field-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
+              Reference material (optional) — max 20 MB per file
+            </label>
+
+            <div className="sp-ai-upload-row">
+              <label className="sp-ai-upload-btn">
+                <Upload size={15} />
+                <span>Upload image(s)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    handleAddImages(e.target.files);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+              <label className="sp-ai-upload-btn">
+                <Upload size={15} />
+                <span>Upload PDF</span>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => {
+                    handleAddPdf(e.target.files?.[0]);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            </div>
+
+            {images.length > 0 && (
+              <div className="sp-ai-upload-list">
+                {images.map((file, index) => (
+                  <div key={`${file.name}-${index}`} className="sp-ai-upload-item">
+                    <ImagePlus size={14} />
+                    <span className="sp-ai-upload-name" title={file.name}>{file.name}</span>
+                    <span className="sp-ai-upload-size">{formatBytes(file.size)}</span>
+                    <button
+                      type="button"
+                      className="sp-ai-upload-remove"
+                      onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
+                      disabled={isLoading}
+                      aria-label="Remove image"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {pdf && (
+              <div className="sp-ai-upload-list">
+                <div className="sp-ai-upload-item">
+                  <FileText size={14} />
+                  <span className="sp-ai-upload-name" title={pdf.name}>{pdf.name}</span>
+                  <span className="sp-ai-upload-size">{formatBytes(pdf.size)}</span>
+                  <button
+                    type="button"
+                    className="sp-ai-upload-remove"
+                    onClick={() => setPdf(null)}
+                    disabled={isLoading}
+                    aria-label="Remove PDF"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

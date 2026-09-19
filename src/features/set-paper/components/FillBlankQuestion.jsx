@@ -1,6 +1,7 @@
 import { Trash2, ChevronUp, ChevronDown, Plus, X } from 'lucide-react';
 import { Fragment } from 'react';
 import { usePaper } from '../context/PaperContext';
+import { SolutionField } from './SolutionField';
 
 export function FillBlankQuestion({
   question,
@@ -175,6 +176,8 @@ export function FillBlankQuestion({
         >
           <Plus size={16} /> Add Blank Question
         </button>
+
+        <SolutionField value={question.solution} onChange={(solution) => update({ solution })} />
       </div>
     </div>
   );

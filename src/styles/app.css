@@ -420,6 +420,54 @@ table.data-table {
   color: var(--primary);
 }
 
+/* ---------- Question Bank sticky header ---------- */
+
+.qb-page .qb-filter-bar {
+  position: sticky;
+  top: 137px;
+  z-index: 90;
+  background: var(--bg);
+  padding: 0.35rem 0;
+  margin: 0.9rem 0 0.75rem;
+}
+
+.qb-page .qb-selection-bar-sticky {
+  position: sticky;
+  top: 188px;
+  z-index: 85;
+}
+
+.qb-page .qb-table {
+  overflow: visible;
+}
+
+.qb-page .qb-table thead th {
+  position: sticky;
+  top: 188px;
+  z-index: 80;
+  background: #f8fafc;
+}
+
+.qb-page.qb-has-selection .qb-table thead th {
+  top: 254px;
+}
+
+.qb-page .qb-table thead th:first-child {
+  border-top-left-radius: var(--radius);
+}
+
+.qb-page .qb-table thead th:last-child {
+  border-top-right-radius: var(--radius);
+}
+
+.qb-page .qb-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--radius);
+}
+
+.qb-page .qb-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--radius);
+}
+
 .selection-bar {
   display: flex;
   align-items: center;
@@ -2327,13 +2375,39 @@ body.sp-theme-light {
   margin: 0.75rem 0 1rem;
 }
 .sp-theme-config-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 26px 1fr 32px 32px 32px 32px 32px 32px;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.4rem;
   padding: 0.5rem 0.6rem;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   background: #fff;
+}
+.sp-theme-config-head {
+  border: none;
+  background: none;
+  padding: 0 0.6rem 0.1rem;
+}
+.sp-theme-head-space {
+  min-width: 0;
+}
+.sp-theme-col-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.sp-theme-col-questions {
+  grid-column: 3 / 6;
+}
+.sp-theme-col-marks {
+  grid-column: 6 / 9;
+}
+.sp-theme-config-icon {
+  grid-column: 1;
 }
 .sp-theme-step {
   width: 32px;
@@ -2363,15 +2437,14 @@ body.sp-theme-light {
   flex-shrink: 0;
 }
 .sp-theme-config-label {
-  flex: 1;
+  grid-column: 2;
+  min-width: 0;
   font-size: 0.82rem;
   font-weight: 700;
   color: #1e293b;
-}
-.sp-theme-marks-label {
-  font-size: 0.68rem;
-  color: #64748b;
-  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sp-theme-marks-input {
   width: 56px;
@@ -2641,6 +2714,11 @@ body.sp-theme-light {
   margin-right: 0.3rem;
   color: #8f240b;
 }
+.sp-ak-solution {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: #6d28d9;
+}
 .sp-ak-empty,
 .sp-ak-note {
   color: #94a3b8;
@@ -2686,6 +2764,17 @@ body.sp-theme-light {
   font-size: 0.85rem;
   background: #fff;
   color: #334155;
+}
+.sp-solution-section {
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed #d7dde6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.sp-solution-section .sp-answer-label {
+  color: #7c5cd0;
 }
 .sp-answer-input:focus {
   outline: none;
@@ -2807,6 +2896,98 @@ body.sp-theme-light {
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.sp-ai-uploads {
+  margin-top: 1rem;
+}
+
+.sp-ai-upload-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sp-ai-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px dashed var(--border, #cbd5e1);
+  border-radius: 8px;
+  background: var(--surface-2, #f8fafc);
+  color: #64748b;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.sp-ai-upload-btn:hover {
+  border-color: #9333ea;
+  color: #9333ea;
+}
+
+.sp-ai-upload-btn input[type="file"] {
+  display: none;
+}
+
+.sp-ai-upload-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sp-ai-upload-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  background: var(--surface-2, #f8fafc);
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+.sp-ai-upload-item svg {
+  flex-shrink: 0;
+  color: #9333ea;
+}
+
+.sp-ai-upload-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-ai-upload-size {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.sp-ai-upload-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.sp-ai-upload-remove:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.sp-ai-upload-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ---------- Add to Paper Modal ---------- */

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Trash2, X, Shuffle, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react';
 import { MAX_IMAGE_SIZE, usePaper } from '../context/PaperContext';
 import { shuffleArray } from '../helpers';
+import { SolutionField } from './SolutionField';
 
 export function MatchQuestion({
   question,
@@ -276,6 +277,8 @@ export function MatchQuestion({
           </div>
         ))}
       </div>
+
+      <SolutionField value={question.solution} onChange={(solution) => update({ solution })} />
     </div>
   );
 }

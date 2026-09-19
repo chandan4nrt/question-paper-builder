@@ -1,5 +1,6 @@
 import { Trash2, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
+import { SolutionField } from './SolutionField';
 
 export function NormalQuestion({
   question,
@@ -68,6 +69,7 @@ export function NormalQuestion({
             placeholder="Correct answer..."
           />
         </div>
+        <SolutionField value={question.solution} onChange={(solution) => update({ solution })} />
       </div>
     </div>
   );
