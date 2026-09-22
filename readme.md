@@ -1,1 +1,0 @@
-http://192.168.10.37:7777/docs#/ - swagger llm

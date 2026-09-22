@@ -1,4 +1,5 @@
 import { usePaper } from '../context/PaperContext';
+import { MathText } from './MathText';
 import { QUESTION_TYPES } from '../types';
 
 function typeHeading(type) {
@@ -102,7 +103,7 @@ export function AnswerKey() {
                   {answers.map((answer, index) => (
                     <div key={index} className="sp-ak-answer">
                       {answers.length > 1 && <strong className="sp-ak-answer-no">{index + 1}.</strong>}
-                      <span>{answer}</span>
+                      <MathText>{answer}</MathText>
                     </div>
                   ))}
                 </div>
@@ -112,7 +113,7 @@ export function AnswerKey() {
 
               {question.solution ? (
                 <div className="sp-ak-solution">
-                  <strong>Solution:</strong> {question.solution}
+                  <strong>Solution:</strong> <MathText>{question.solution}</MathText>
                 </div>
               ) : null}
             </div>

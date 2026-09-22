@@ -10,47 +10,7 @@ import { QUESTION_TYPES } from '../types';
 
 const PaperContext = createContext(null);
 
-const DRAFT_KEY = 'playschool-paper-draft';
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-
-export function clearDraft() {
-  localStorage.removeItem(DRAFT_KEY);
-}
-
-function stripImagesForDraft(state) {
-  const header = { ...state.header };
-  delete header.logo;
-  delete header.logoName;
-  delete header.logoBlob;
-
-  const questions = (state.questions ?? []).map((q) => {
-    const copy = { ...q };
-    delete copy.image;
-    delete copy.imageName;
-    delete copy.imageBlob;
-    if (Array.isArray(copy.leftItems)) {
-      copy.leftItems = copy.leftItems.map((item) => {
-        const it = { ...item };
-        delete it.image;
-        delete it.imageName;
-        delete it.imageBlob;
-        return it;
-      });
-    }
-    if (Array.isArray(copy.options)) {
-      copy.options = copy.options.map((opt) => {
-        const o = { ...opt };
-        delete o.image;
-        delete o.imageName;
-        delete o.imageBlob;
-        return o;
-      });
-    }
-    return copy;
-  });
-
-  return { ...state, header, questions };
-}
 
 function collectImageUrls(state) {
   const urls = [];
@@ -255,14 +215,7 @@ function paperReducer(state, action) {
 }
 
 function loadInitial() {
-  try {
-    const saved = localStorage.getItem(DRAFT_KEY);
-    if (!saved) return initialState;
-    const parsed = JSON.parse(saved);
-    return { ...initialState, ...stripImagesForDraft(parsed) };
-  } catch {
-    return initialState;
-  }
+  return initialState;
 }
 
 export function PaperProvider({ children }) {
@@ -285,14 +238,6 @@ export function PaperProvider({ children }) {
       }
     }
     previousImageUrls.current = current;
-  }, [state]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(stripImagesForDraft(state)));
-    } catch {
-      // Draft is a convenience only; a quota error must not break editing.
-    }
   }, [state]);
 
   useEffect(() => {

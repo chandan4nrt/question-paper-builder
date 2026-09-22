@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { usePaper } from "../context/PaperContext";
 import { QUESTION_TYPES } from "../types";
-import { loadThemes, saveThemes } from "../helpers";
+import { DEFAULT_THEMES } from "../helpers";
 import * as themeApi from "../api/themeApi";
 
 const TYPE_ORDER = [
@@ -199,24 +199,21 @@ function ThemeConfigModal({
 export function ThemePanel({ disabled = false }) {
   const { dispatch, showToast } = usePaper();
   const [expanded, setExpanded] = useState(true);
-  const [themes, setThemes] = useState(() => loadThemes());
+  const [themes, setThemes] = useState(() => DEFAULT_THEMES);
   const [modalTheme, setModalTheme] = useState(null);
-
-  useEffect(() => {
-    saveThemes(themes);
-  }, [themes]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const remote = await listThemes();
+        const remote = await themeApi.listThemes();
         if (cancelled) return;
         if (Array.isArray(remote) && remote.length > 0) {
           setThemes(remote);
         }
-      } catch {
+      } catch (err) {
         // Backend theme API unavailable — keep local themes.
+        console.warn("Theme API unavailable — using local themes.", err);
       }
     })();
     return () => {

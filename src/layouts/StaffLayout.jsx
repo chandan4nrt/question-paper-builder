@@ -1,7 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { clearToken } from '../services/api';
 import { getStoredProfile } from '../features/auth/hooks/useAuth';
-import { clearDraft } from '../features/set-paper/context/PaperContext';
 import { Book } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { Pencil } from 'lucide-react';
@@ -53,7 +52,7 @@ export function StaffLayout() {
                   </span>
                 )}
               </NavLink>  
-            <NavLink to="/staff/paper-builder/new" onClick={() => clearDraft()}>
+            <NavLink to="/staff/paper-builder/new">
               {({ isActive }) => (
                 <span className={`sp-tab sp-tab-save ${isActive ? 'active' : ''}`}>
                   <Pencil size={15} />New Paper

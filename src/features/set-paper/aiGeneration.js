@@ -10,6 +10,16 @@ export const AI_ENDPOINTS = {
   [QUESTION_TYPES.FILL_BLANK]: '/api/v1/generate/fill-in-the-blanks',
 };
 
+export const NORMAL_VARIANTS = {
+  short: '/api/v1/generate/short-question-answer',
+  long: '/api/v1/generate/long-question-answer',
+};
+
+export const NORMAL_VARIANT_OPTIONS = [
+  { value: 'short', label: 'Short Question' },
+  { value: 'long', label: 'Long Question' },
+];
+
 export function hasAiGeneration(type) {
   return Boolean(AI_ENDPOINTS[type]);
 }
@@ -67,10 +77,18 @@ function firstArray(obj, keys) {
   return [];
 }
 
+function unwrapLatex(value) {
+  if (typeof value !== 'string') return value;
+  const text = value.trim();
+  const full = text.match(/^\$?\\text\{([\s\S]*)\}\$?$/s);
+  if (full) return full[1].trim();
+  return text;
+}
+
 function optionLabel(value) {
-  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'string') return unwrapLatex(value.trim());
   if (value && typeof value === 'object') {
-    return (
+    return unwrapLatex(
       value.label ??
       value.text ??
       value.optionText ??
@@ -80,6 +98,13 @@ function optionLabel(value) {
     );
   }
   return String(value ?? '');
+}
+
+function columnEntryText(entry) {
+  if (entry && typeof entry === 'object') {
+    return unwrapLatex(firstString(entry, ['text', 'value', 'content', 'item', 'label']));
+  }
+  return optionLabel(entry);
 }
 
 function extractOptions(item) {
@@ -198,6 +223,7 @@ function parseFillBlank(item) {
 
 function parseMatch(item) {
   let pairs = [];
+  let answerForced = null;
   const rawPairs = firstArray(item, ['pairs', 'matches', 'matchPairs', 'pairsList', 'matching_pairs']);
   if (rawPairs.length > 0) {
     pairs = rawPairs
@@ -214,21 +240,45 @@ function parseMatch(item) {
       })
       .filter(([left]) => Boolean(left));
   } else {
-    const left = firstArray(item, ['left', 'leftItems', 'columnA', 'colA', 'left_column']).map(optionLabel).filter(Boolean);
-    const right = firstArray(item, ['right', 'rightItems', 'columnB', 'colB', 'right_column']).map(optionLabel).filter(Boolean);
-    if (left.length === 0) return null;
+    const leftRaw = firstArray(item, ['left', 'leftItems', 'columnA', 'colA', 'left_column', 'column_a']);
+    const rightRaw = firstArray(item, ['right', 'rightItems', 'columnB', 'colB', 'right_column', 'column_b']);
+    if (leftRaw.length === 0 && rightRaw.length === 0) return null;
+    const left = leftRaw.map(columnEntryText);
+    const right = rightRaw.map(columnEntryText);
     const count = Math.max(left.length, right.length);
     pairs = Array.from({ length: count }, (_, i) => [left[i] ?? '', right[i] ?? '']);
+    answerForced = { leftRaw, rightRaw, item };
   }
   if (pairs.length === 0) return null;
 
   const leftItems = pairs.map(([label], index) => ({ id: `l${index + 1}`, label, image: null }));
   const rightItems = pairs.map(([, label], index) => ({ id: `r${index + 1}`, label }));
   const matchPairs = {};
-  leftItems.forEach((left, index) => {
-    const right = rightItems[index];
-    if (right && pairs[index]?.[1]) matchPairs[left.id] = right.id;
-  });
+
+  if (answerForced) {
+    const leftLabels = answerForced.leftRaw.map((e) =>
+      e && typeof e === 'object' ? String(e.label ?? '') : columnEntryText(e)
+    );
+    const rightLabels = answerForced.rightRaw.map((e) =>
+      e && typeof e === 'object' ? String(e.label ?? '') : columnEntryText(e)
+    );
+    const answerEntries = firstArray(item, ['answer', 'answers', 'matchAnswers', 'answer_pairs', 'pairings', 'mapping', 'answerList']);
+    answerEntries.forEach((entry) => {
+      if (!entry || typeof entry !== 'object') return;
+      Object.entries(entry).forEach(([key, value]) => {
+        const li = leftLabels.indexOf(String(key).trim());
+        const ri = rightLabels.indexOf(String(value).trim());
+        if (li >= 0 && ri >= 0) matchPairs[`l${li + 1}`] = `r${ri + 1}`;
+      });
+    });
+  }
+
+  if (Object.keys(matchPairs).length === 0) {
+    leftItems.forEach((left, index) => {
+      const right = rightItems[index];
+      if (right && pairs[index]?.[1]) matchPairs[left.id] = right.id;
+    });
+  }
 
   return {
     type: QUESTION_TYPES.MATCH,
@@ -253,6 +303,35 @@ const PARSERS = {
   [QUESTION_TYPES.FILL_BLANK]: parseFillBlank,
   [QUESTION_TYPES.MATCH]: parseMatch,
   [QUESTION_TYPES.NORMAL]: parseQa,
+};
+
+const RESPONSE_QUESTION_TYPES = {
+  normal: QUESTION_TYPES.NORMAL,
+  qa: QUESTION_TYPES.NORMAL,
+  'short-answer': QUESTION_TYPES.NORMAL,
+  'short-answers': QUESTION_TYPES.NORMAL,
+  'short-question': QUESTION_TYPES.NORMAL,
+  'short-question-answer': QUESTION_TYPES.NORMAL,
+  short_question_answers: QUESTION_TYPES.NORMAL,
+  short_questions: QUESTION_TYPES.NORMAL,
+  'long-answer': QUESTION_TYPES.NORMAL,
+  'long-answers': QUESTION_TYPES.NORMAL,
+  'long-question': QUESTION_TYPES.NORMAL,
+  'long-question-answer': QUESTION_TYPES.NORMAL,
+  long_question_answers: QUESTION_TYPES.NORMAL,
+  long_questions: QUESTION_TYPES.NORMAL,
+  match: QUESTION_TYPES.MATCH,
+  matching: QUESTION_TYPES.MATCH,
+  'match-the-following': QUESTION_TYPES.MATCH,
+  match_the_following: QUESTION_TYPES.MATCH,
+  mcq: QUESTION_TYPES.MCQ,
+  'multiple-choice': QUESTION_TYPES.MCQ,
+  multiple_choice: QUESTION_TYPES.MCQ,
+  'fill-in-the-blank': QUESTION_TYPES.FILL_BLANK,
+  'fill-in-the-blanks': QUESTION_TYPES.FILL_BLANK,
+  fill_in_the_blanks: QUESTION_TYPES.FILL_BLANK,
+  fill: QUESTION_TYPES.FILL_BLANK,
+  blank: QUESTION_TYPES.FILL_BLANK,
 };
 
 function fallbackQuestion(item) {
@@ -307,7 +386,15 @@ export function parseGeneratedQuestions(type, data) {
   const list = extractQuestionList(data);
   if (list.length === 0) return [];
 
-  const parser = PARSERS[type];
+  let effectiveType = type;
+  const declared = data && typeof data === 'object' ? data.question_type ?? data.data?.question_type : undefined;
+  if (declared != null) {
+    const key = String(declared).toLowerCase().replace(/_/g, '-');
+    const mapped = RESPONSE_QUESTION_TYPES[key] ?? RESPONSE_QUESTION_TYPES[key.replace(/-/g, '_')];
+    if (mapped) effectiveType = mapped;
+  }
+
+  const parser = PARSERS[effectiveType];
   return list
     .map((item) => (parser ? parser(item) : null) ?? fallbackQuestion(item))
     .filter((q) => q && ((q.text && q.text.trim()) || (q.items && q.items.length)));

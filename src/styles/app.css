@@ -3051,3 +3051,40 @@ body.sp-theme-light {
   width: 100%;
   margin-top: 0.25rem;
 }
+
+/* Math rendering */
+.math-text-block {
+  display: block;
+  text-align: center;
+  margin: 0.35rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.1rem 0;
+}
+.math-text-inline {
+  display: inline-block;
+  padding: 0 0.1rem;
+}
+.math-text .katex-display {
+  margin: 0.25rem 0;
+}
+.sp-math-preview {
+  margin-top: 0.3rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  color: #334155;
+  font-size: 0.85rem;
+  overflow-x: auto;
+}
+.sp-mcq-option-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sp-mcq-option-main .sp-match-label {
+  width: 100%;
+}

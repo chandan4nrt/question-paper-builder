@@ -3,6 +3,7 @@ import { Trash2, X, Shuffle, Image as ImageIcon, ChevronUp, ChevronDown } from '
 import { MAX_IMAGE_SIZE, usePaper } from '../context/PaperContext';
 import { shuffleArray } from '../helpers';
 import { SolutionField } from './SolutionField';
+import { MathPreview } from './MathPreview';
 
 export function MatchQuestion({
   question,
@@ -122,6 +123,7 @@ export function MatchQuestion({
           placeholder="Match the following (e.g. Match the animals to their homes)"
           className="sp-input"
         />
+        <MathPreview value={question.text} />
       </div>
 
       <div className="sp-match-cols">
@@ -187,6 +189,7 @@ export function MatchQuestion({
                         onChange={(e) => updateLeftItem(left.id, 'label', e.target.value)}
                         placeholder="Label..."
                       />
+                      <MathPreview value={left.label} />
                     </div>
                     <button type="button" className="sp-icon-btn" onClick={() => removeLeftItem(left.id)}>
                       <X size={14} />
@@ -210,6 +213,7 @@ export function MatchQuestion({
                         onChange={(e) => updateRightItem(right.id, e.target.value)}
                         placeholder="Label..."
                       />
+                      <MathPreview value={right.label} />
                     </div>
                     <div className="sp-right-controls">
                       <div className="sp-reorder">

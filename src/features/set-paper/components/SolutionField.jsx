@@ -1,3 +1,5 @@
+import { MathPreview } from './MathPreview';
+
 export function SolutionField({ value, onChange, placeholder = 'Explain the correct answer / solution (optional)…' }) {
   return (
     <div className="sp-solution-section">
@@ -9,6 +11,7 @@ export function SolutionField({ value, onChange, placeholder = 'Explain the corr
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
       />
+      <MathPreview value={value} />
     </div>
   );
 }

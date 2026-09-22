@@ -5,10 +5,13 @@ import { usePaper } from '../context/PaperContext';
 import { generateQuestions, extractGenerationError } from '../../../services/generationApi';
 import {
   AI_ENDPOINTS,
+  NORMAL_VARIANTS,
+  NORMAL_VARIANT_OPTIONS,
   buildGenerationPayload,
   parseGeneratedQuestions,
   MAX_FILE_SIZE,
 } from '../aiGeneration';
+import { QUESTION_TYPES } from '../types';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
 
@@ -19,7 +22,9 @@ function formatBytes(bytes) {
 
 export function AiGenerateModal({ type, typeConfig, onClose }) {
   const { state, dispatch, showToast } = usePaper();
-  const endpoint = AI_ENDPOINTS[type];
+  const isNormal = type === QUESTION_TYPES.NORMAL;
+  const [variant, setVariant] = useState('short');
+  const endpoint = isNormal ? NORMAL_VARIANTS[variant] : AI_ENDPOINTS[type];
 
   const [topic, setTopic] = useState('');
   const [numQuestions, setNumQuestions] = useState(5);
@@ -33,6 +38,10 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
   const [error, setError] = useState('');
 
   const canGenerate = (topic.trim().length > 0 || images.length > 0 || Boolean(pdf)) && !isLoading;
+
+  const variantLabel = isNormal
+    ? NORMAL_VARIANT_OPTIONS.find((option) => option.value === variant)?.label ?? 'Question'
+    : typeConfig.label;
 
   function addBlankInstead() {
     dispatch({ type: 'ADD_QUESTION', payload: { type } });
@@ -91,7 +100,7 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
         return;
       }
       dispatch({ type: 'ADD_GENERATED_QUESTIONS', payload: { questions } });
-      showToast(`✨ Added ${questions.length} ${typeConfig.label} question(s) from "${topic.trim()}".`);
+      showToast(`✨ Added ${questions.length} ${variantLabel} question(s) from "${topic.trim()}".`);
       onClose();
     } catch (err) {
       setError(extractGenerationError(err));
@@ -106,7 +115,7 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
         <div className="modal-header">
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span className={`sp-add-icon ${typeConfig.colorClass}`}><Sparkles size={16} /></span>
-            Generate {typeConfig.label} with AI
+            Generate {isNormal ? variantLabel : typeConfig.label} with AI
           </h2>
           <button type="button" className="modal-close" onClick={onClose} disabled={isLoading} aria-label="Close">
             <X size={18} />
@@ -125,6 +134,22 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
               autoFocus
             />
           </label>
+
+          {isNormal && (
+            <label className="sp-field-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
+              Question Type
+              <select
+                className="sp-input"
+                style={{ marginTop: '0.3rem' }}
+                value={variant}
+                onChange={(e) => setVariant(e.target.value)}
+              >
+                {NORMAL_VARIANT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <div className="sp-ai-grid">
             <label className="sp-field-label">

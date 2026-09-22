@@ -15,47 +15,29 @@ export const DEFAULT_THEMES = [
       { type: QUESTION_TYPES.MCQ, count: 1, marks: 2 },
     ],
   },
-  {
-    id: "theme-primary",
-    name: "Primary Assessment",
-    description: "Balanced mix for a quick test",
-    questions: [
-      { type: QUESTION_TYPES.NORMAL, count: 4, marks: 2 },
-      { type: QUESTION_TYPES.MATCH, count: 1, marks: 5 },
-      { type: QUESTION_TYPES.MCQ, count: 3, marks: 1 },
-      { type: QUESTION_TYPES.FILL_BLANK, count: 2, marks: 1 },
-    ],
-  },
-  {
-    id: "theme-science",
-    name: "Science / EVS Paper",
-    description: "Diagrams and labeling focus",
-    questions: [
-      { type: QUESTION_TYPES.NORMAL, count: 3, marks: 2 },
-      { type: QUESTION_TYPES.LABEL, count: 1, marks: 4 },
-      { type: QUESTION_TYPES.FILL_BLANK, count: 2, marks: 1 },
-      { type: QUESTION_TYPES.MATCH, count: 1, marks: 4 },
-    ],
-  },
+  // {
+  //   id: "theme-primary",
+  //   name: "Primary Assessment",
+  //   description: "Balanced mix for a quick test",
+  //   questions: [
+  //     { type: QUESTION_TYPES.NORMAL, count: 4, marks: 2 },
+  //     { type: QUESTION_TYPES.MATCH, count: 1, marks: 5 },
+  //     { type: QUESTION_TYPES.MCQ, count: 3, marks: 1 },
+  //     { type: QUESTION_TYPES.FILL_BLANK, count: 2, marks: 1 },
+  //   ],
+  // },
+  // {
+  //   id: "theme-science",
+  //   name: "Science / EVS Paper",
+  //   description: "Diagrams and labeling focus",
+  //   questions: [
+  //     { type: QUESTION_TYPES.NORMAL, count: 3, marks: 2 },
+  //     { type: QUESTION_TYPES.LABEL, count: 1, marks: 4 },
+  //     { type: QUESTION_TYPES.FILL_BLANK, count: 2, marks: 1 },
+  //     { type: QUESTION_TYPES.MATCH, count: 1, marks: 4 },
+  //   ],
+  // },
 ];
-
-const THEMES_KEY = "playschool-paper-themes";
-
-export function loadThemes() {
-  try {
-    const saved = localStorage.getItem(THEMES_KEY);
-    if (!saved) return DEFAULT_THEMES;
-    const parsed = JSON.parse(saved);
-    if (!Array.isArray(parsed)) return DEFAULT_THEMES;
-    return parsed;
-  } catch {
-    return DEFAULT_THEMES;
-  }
-}
-
-export function saveThemes(themes) {
-  localStorage.setItem(THEMES_KEY, JSON.stringify(themes));
-}
 
 export function formatDate(dateStr) {
   if (!dateStr) return "";

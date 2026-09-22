@@ -1,6 +1,7 @@
 import { Trash2, Plus, X, ChevronUp, ChevronDown, Check } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 import { SolutionField } from './SolutionField';
+import { MathPreview } from './MathPreview';
 
 const OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -96,6 +97,7 @@ export function McqQuestion({
           rows={2}
           className="sp-textarea"
         />
+        <MathPreview value={question.text} />
 
         <div className="sp-mcq-options">
           <div className="sp-mcq-options-title">Options</div>
@@ -114,12 +116,15 @@ export function McqQuestion({
                   <Check size={14} />
                 </button>
                 <span className="sp-match-letter sp-mcq-letter">{getOptionLetter(index)}</span>
-                <input
-                  className="sp-match-label"
-                  value={opt.label}
-                  onChange={(e) => updateOption(opt.id, e.target.value)}
-                  placeholder={`Option ${getOptionLetter(index)}`}
-                />
+                <div className="sp-mcq-option-main">
+                  <input
+                    className="sp-match-label"
+                    value={opt.label}
+                    onChange={(e) => updateOption(opt.id, e.target.value)}
+                    placeholder={`Option ${getOptionLetter(index)}`}
+                  />
+                  <MathPreview value={opt.label} />
+                </div>
                 <div className="sp-reorder">
                   <button type="button" onClick={() => moveOption(index, -1)} disabled={index === 0} title="Move up">
                     <ChevronUp size={14} />

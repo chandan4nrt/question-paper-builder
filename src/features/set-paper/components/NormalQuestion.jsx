@@ -1,6 +1,7 @@
 import { Trash2, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
 import { SolutionField } from './SolutionField';
+import { MathPreview } from './MathPreview';
 
 export function NormalQuestion({
   question,
@@ -60,6 +61,7 @@ export function NormalQuestion({
           rows={3}
           className="sp-textarea"
         />
+        <MathPreview value={question.text} />
         <div className="sp-answer-section">
           <span className="sp-answer-label">Right answer (optional)</span>
           <input

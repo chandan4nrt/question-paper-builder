@@ -2,6 +2,7 @@ import { usePaper } from "../context/PaperContext";
 import { formatDate } from "../helpers";
 import { WritingLines } from "./WritingQuestion";
 import { LabelPreview } from "./LabelQuestion";
+import { MathText } from "./MathText";
 import { QUESTION_TYPES } from "../types";
 
 const OPTION_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -29,7 +30,9 @@ function McqPreview({ question }) {
           <div key={opt.id} className="sp-mcq-preview-row">
             <span className="sp-match-letter sp-mcq-letter">{getOptionLetter(i)}</span>
             {/* <span className="sp-mcq-answer-dot" /> */}
-            <span className="sp-mcq-preview-label">{opt.label || <em style={{ color: "#a3a3a3" }}>Option...</em>}</span>
+            <span className="sp-mcq-preview-label">
+              {opt.label ? <MathText>{opt.label}</MathText> : <em style={{ color: "#a3a3a3" }}>Option...</em>}
+            </span>
           </div>
         ))}
       </div>
@@ -90,7 +93,7 @@ function FillBlankPreview({ question }) {
             <span className="sp-fill-blank-text">
               {parts.map((part, i) => (
                 <span key={i}>
-                  {part}
+                  <MathText>{part}</MathText>
                   {i < parts.length - 1 && <span className="sp-blank-line sp-w16" />}
                 </span>
               ))}
@@ -110,7 +113,9 @@ function TrueFalsePreview({ question }) {
       {items.map((item, index) => (
         <div key={index} className="sp-tf-row">
           <span className="sp-match-letter">{index + 1}.</span>
-          <span className="sp-tf-statement">{item || <em style={{ color: "#a3a3a3" }}>Statement...</em>}</span>
+          <span className="sp-tf-statement">
+            {item ? <MathText>{item}</MathText> : <em style={{ color: "#a3a3a3" }}>Statement...</em>}
+          </span>
           <span className="sp-tf-choice">
             <span className="sp-tf-circle" /> True
           </span>
@@ -148,7 +153,7 @@ function MatchPreview({ question }) {
                   {l && (
                     <div className="sp-match-box">
                       <span className="sp-match-letter">{String.fromCharCode(65 + i)}</span>
-                      {l.image ? <img src={l.image} alt="item" /> : <span>{l.label}</span>}
+                      {l.image ? <img src={l.image} alt="item" /> : <MathText>{l.label}</MathText>}
                     </div>
                   )}
                 </td>
@@ -159,7 +164,7 @@ function MatchPreview({ question }) {
                   {r && (
                     <div className="sp-match-box right">
                       <span className="sp-match-letter">{i + 1}</span>
-                      <span>{r.label}</span>
+                      <MathText>{r.label}</MathText>
                     </div>
                   )}
                 </td>
@@ -265,14 +270,15 @@ export function PrintPreview({ totalMarks }) {
               <span className="sp-q-no">Q{question.number}.</span>
 
               <span className="sp-q-text">
-                {question.text ||
-                  (question.type === QUESTION_TYPES.TRUE_FALSE ? (
-                    <span className="sp-q-text-heading">State whether True or False</span>
-                  ) : question.type === QUESTION_TYPES.FILL_BLANK ? (
-                    <span className="sp-q-text-heading">Fill in the blanks</span>
-                  ) : (
-                    <em style={{ color: "#a3a3a3" }}>Question text...</em>
-                  ))}
+                {question.text ? (
+                  <MathText>{question.text}</MathText>
+                ) : question.type === QUESTION_TYPES.TRUE_FALSE ? (
+                  <span className="sp-q-text-heading">State whether True or False</span>
+                ) : question.type === QUESTION_TYPES.FILL_BLANK ? (
+                  <span className="sp-q-text-heading">Fill in the blanks</span>
+                ) : (
+                  <em style={{ color: "#a3a3a3" }}>Question text...</em>
+                )}
               </span>
 
               <span className="sp-q-marks">
