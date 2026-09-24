@@ -4,6 +4,7 @@ import { getStoredProfile } from '../features/auth/hooks/useAuth';
 import { Book } from 'lucide-react';
 import { FileText } from 'lucide-react';
 import { Pencil } from 'lucide-react';
+import { BrainCircuit } from 'lucide-react';
 
 export function StaffLayout() {
   const navigate = useNavigate();
@@ -34,6 +35,13 @@ export function StaffLayout() {
               className={({ isActive }) => (isActive ? 'active' : '')}
             >
               Paper Builder
+            </NavLink>
+            <NavLink
+              to="/staff/bloom-generator"
+              className={({ isActive }) => (isActive ? 'active' : '')}
+            >
+              <BrainCircuit size={14} style={{ verticalAlign: 'middle', marginRight: '0.25rem' }} />
+              AI Exams
             </NavLink>
           </nav>
         </div>

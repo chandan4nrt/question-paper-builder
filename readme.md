@@ -1,0 +1,9 @@
+Version -3 features
+
+New feature: src/features/bloom-exam/ (reached via the new "AI Exams" nav link → /staff/bloom-generator)
+- Question Generator UI — pages/GeneratorPage.jsx: config form for topic, subject/grade, difficulty, source/domain text, and per-type counts + marks for MCQ / Short Answer / Scenario. Generates through the existing generationApi (/generate/mcq, short-question-answer, long-question-answer) with automatic sample-question fallback when the LLM service is unreachable.
+- Assessment Blueprint Visualizer — components/BlueprintChart.jsx (Recharts stacked bar) + live sliders/presets in the generator. The blueprint (6 Bloom levels summing to 100%) drives an exact distribution algorithm (generation.js:assignBloomLevels, largest-remainder + round-robin), updated before generation with projected counts and marks.
+- Review & Edit Portal — pages/ReviewPage.jsx + components/ReviewQuestionCard.jsx: inline text/options/answer/marks/difficulty editing, color-coded Bloom badgess, explanation accordions, per-question Regenerate (preserves id, marks, level), actual-versus-blueprint distribution chart, publish + copy student link.
+- Student Test & Analytics — /test/:examId StudentTestPage.jsx renders questions dynamically and shows score + per-Bloom-depth breakdown. AnalyticsPage.jsx (staff) adds KPIs, a Recharts earned-vs-available bar chart by cognitive depth, and expandable per-student breadth tables. Exam/submission data persists in localStorage per your choice.
+Routes: /staff/bloom-generator, /review/:examId, /exams, /analytics/:examId, plus public /test/:examId.
+Notes: npm run lint can't run because eslint was never in devDependencies (pre-existing). Recharts v3.10.1 was installed; the main bundle grew (~1.8MB) so you may want code-splitting later.
