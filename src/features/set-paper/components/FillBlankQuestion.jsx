@@ -2,6 +2,7 @@ import { Trash2, ChevronUp, ChevronDown, Plus, X } from 'lucide-react';
 import { Fragment } from 'react';
 import { usePaper } from '../context/PaperContext';
 import { SolutionField } from './SolutionField';
+import { MathPreview } from './MathPreview';
 
 export function FillBlankQuestion({
   question,
@@ -146,6 +147,7 @@ export function FillBlankQuestion({
                 </button>
               )}
             </div>
+            <MathPreview value={item} />
             <div className="sp-answer-section sp-answer-inline" style={{ marginTop: 0, paddingTop: 0, border: 'none', paddingLeft: '1.75rem' }}>
               <input
                 className="sp-answer-input"

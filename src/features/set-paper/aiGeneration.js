@@ -77,32 +77,37 @@ function firstArray(obj, keys) {
   return [];
 }
 
-function unwrapLatex(value) {
-  if (typeof value !== 'string') return value;
-  const text = value.trim();
-  const full = text.match(/^\$?\\text\{([\s\S]*)\}\$?$/s);
-  if (full) return full[1].trim();
-  return text;
-}
-
+// Keeps the raw AI content (Markdown + LaTeX) intact; formatting is left to
+// the Markdown/KaTeX renderer in the UI.
 function optionLabel(value) {
-  if (typeof value === 'string') return unwrapLatex(value.trim());
+  if (typeof value === 'string') return value.trim();
   if (value && typeof value === 'object') {
-    return unwrapLatex(
-      value.label ??
-      value.text ??
-      value.optionText ??
-      value.value ??
-      value.choice ??
-      JSON.stringify(value)
-    );
+    return (
+      String(
+        value.label ??
+        value.text ??
+        value.optionText ??
+        value.value ??
+        value.choice ??
+        JSON.stringify(value)
+      )
+    ).trim();
   }
   return String(value ?? '');
 }
 
+// Comparison-only normalization for answer matching. Display is untouched;
+// this just strips optional `$`/`\text{...}` wrappers so raw labels can be
+// matched against raw answer values.
+function normalizeForMatch(value) {
+  const stripped = String(value ?? '').trim().replace(/^\$\$?/, '').replace(/\$\$?$/, '').trim();
+  const textWrapped = stripped.match(/^\\text\{([\s\S]*)\}$/);
+  return (textWrapped ? textWrapped[1] : stripped).trim().replace(/\s+/g, ' ');
+}
+
 function columnEntryText(entry) {
   if (entry && typeof entry === 'object') {
-    return unwrapLatex(firstString(entry, ['text', 'value', 'content', 'item', 'label']));
+    return firstString(entry, ['text', 'value', 'content', 'item', 'label']);
   }
   return optionLabel(entry);
 }
@@ -157,7 +162,7 @@ function findCorrectIndex(item, options) {
   const byNumber = Number(answerValue);
   if (Number.isInteger(byNumber) && byNumber >= 1 && byNumber <= options.length) return byNumber - 1;
 
-  const byText = options.findIndex((label) => label.toLowerCase() === answerValue.toLowerCase());
+  const byText = options.findIndex((label) => normalizeForMatch(label) === normalizeForMatch(answerValue));
   if (byText >= 0) return byText;
 
   return -1;
@@ -257,17 +262,17 @@ function parseMatch(item) {
 
   if (answerForced) {
     const leftLabels = answerForced.leftRaw.map((e) =>
-      e && typeof e === 'object' ? String(e.label ?? '') : columnEntryText(e)
+      e && typeof e === 'object' ? normalizeForMatch(String(e.label ?? '')) : normalizeForMatch(columnEntryText(e))
     );
     const rightLabels = answerForced.rightRaw.map((e) =>
-      e && typeof e === 'object' ? String(e.label ?? '') : columnEntryText(e)
+      e && typeof e === 'object' ? normalizeForMatch(String(e.label ?? '')) : normalizeForMatch(columnEntryText(e))
     );
     const answerEntries = firstArray(item, ['answer', 'answers', 'matchAnswers', 'answer_pairs', 'pairings', 'mapping', 'answerList']);
     answerEntries.forEach((entry) => {
       if (!entry || typeof entry !== 'object') return;
       Object.entries(entry).forEach(([key, value]) => {
-        const li = leftLabels.indexOf(String(key).trim());
-        const ri = rightLabels.indexOf(String(value).trim());
+        const li = leftLabels.indexOf(normalizeForMatch(String(key)));
+        const ri = rightLabels.indexOf(normalizeForMatch(String(value)));
         if (li >= 0 && ri >= 0) matchPairs[`l${li + 1}`] = `r${ri + 1}`;
       });
     });

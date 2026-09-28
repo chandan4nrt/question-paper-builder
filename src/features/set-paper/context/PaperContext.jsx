@@ -70,6 +70,8 @@ const initialState = {
   questions: [],
   theme: 'colorful',
   nextId: 1,
+  published: false,
+  publishedAt: null,
 };
 
 function newQuestion(nextId, number, type) {
@@ -179,6 +181,16 @@ function paperReducer(state, action) {
 
     case 'SET_THEME':
       return { ...state, theme: action.payload };
+
+    case 'SET_PUBLISHED':
+      return {
+        ...state,
+        published: action.payload === true,
+        publishedAt:
+          action.payload === true
+            ? (state.publishedAt ?? new Date().toISOString())
+            : null,
+      };
 
     case 'GENERATE_FROM_THEME': {
       const questions = [];

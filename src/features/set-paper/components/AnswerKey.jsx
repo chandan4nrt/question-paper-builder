@@ -1,5 +1,5 @@
 import { usePaper } from '../context/PaperContext';
-import { MathText } from './MathText';
+import { MarkdownText } from './MarkdownText';
 import { QUESTION_TYPES } from '../types';
 
 function typeHeading(type) {
@@ -95,7 +95,11 @@ export function AnswerKey() {
               <div className="sp-ak-qrow">
                 <span className="sp-ak-qno">Q{question.number}.</span>
                 <span className="sp-ak-qtext">
-                  {question.text || heading || 'Untitled question'}
+                  {question.text ? (
+                    <MarkdownText>{question.text}</MarkdownText>
+                  ) : (
+                    heading || 'Untitled question'
+                  )}
                 </span>
               </div>
               {answers.length > 0 ? (
@@ -103,7 +107,7 @@ export function AnswerKey() {
                   {answers.map((answer, index) => (
                     <div key={index} className="sp-ak-answer">
                       {answers.length > 1 && <strong className="sp-ak-answer-no">{index + 1}.</strong>}
-                      <MathText>{answer}</MathText>
+                      <MarkdownText>{answer}</MarkdownText>
                     </div>
                   ))}
                 </div>
@@ -113,7 +117,7 @@ export function AnswerKey() {
 
               {question.solution ? (
                 <div className="sp-ak-solution">
-                  <strong>Solution:</strong> <MathText>{question.solution}</MathText>
+                  <strong>Solution:</strong> <MarkdownText>{question.solution}</MarkdownText>
                 </div>
               ) : null}
             </div>

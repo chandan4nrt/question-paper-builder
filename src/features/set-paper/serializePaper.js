@@ -222,6 +222,8 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     state.questions.map((q) => q.number ?? 1),
   );
 
+  const effectivePaperId = paperId || `paper-${Date.now()}`;
+
   const payload = {
     template: {
       title: [state.header.subject, state.header.className, state.header.exam, state.header.academicYear]
@@ -231,7 +233,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
       questionCount: String(mappedQuestions.length),
       questions: mappedQuestions,
     },
-    paperId: paperId || `paper-${Date.now()}`,
+    paperId: effectivePaperId,
     subject: state.header.subject,
     classLevel: state.header.className,
     classSection: '',
@@ -240,6 +242,10 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     examTerm: state.header.exam,
     academicYear: state.header.academicYear,
     numberOfSectionsInPpr: includedSections.size,
+    published: state.published === true,
+    publishedAt: state.published === true ? (state.publishedAt ?? null) : null,
+    publish_link:
+      state.published === true ? `${window.location.origin}/paper/${effectivePaperId}` : null,
   };
 
   if (existingPaper) {

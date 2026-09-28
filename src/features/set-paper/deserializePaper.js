@@ -33,6 +33,8 @@ export function deserializePaper(res) {
     theme: 'colorful',
     nextId: maxId + 1,
     urls: template.urls ?? {},
+    published: res.published === true,
+    publishedAt: res.publishedAt ?? null,
   };
 }
 

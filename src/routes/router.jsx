@@ -12,10 +12,12 @@ import { ReviewPage } from '../features/bloom-exam/pages/ReviewPage';
 import { ExamListPage } from '../features/bloom-exam/pages/ExamListPage';
 import { AnalyticsPage } from '../features/bloom-exam/pages/AnalyticsPage';
 import { StudentTestPage } from '../features/bloom-exam/pages/StudentTestPage';
+import { StudentAnswerPage } from '../features/set-paper/student/pages/StudentAnswerPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/test/:examId', element: <StudentTestPage /> },
+  { path: '/paper/:paperId', element: <StudentAnswerPage /> },
   {
     path: '/staff',
     element: <StaffLayout />,

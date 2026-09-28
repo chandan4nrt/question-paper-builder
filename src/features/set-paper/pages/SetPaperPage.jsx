@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Pencil, Printer, Download, Loader2, Upload } from "lucide-react";
+import { Pencil, Printer, Download, Loader2, Upload, Globe, Lock } from "lucide-react";
 import { PaperProvider, usePaper } from "../context/PaperContext";
 import { EditorPage } from "./EditorPage";
 import { PreviewPage } from "./PreviewPage";
@@ -106,7 +106,13 @@ function PaperBuilder({ paperId }) {
     const { formData, payload } = buildSetPaperFormData(state, paperId, loadedPaper);
     console.log("Payload items:", payload.template.questions);
     const onSuccess = (response) => {
-      flashToast(`✅ Paper saved successfully (${response?.paperId ?? paperId}).`);
+      const savedId = response?.paperId ?? paperId;
+      const link = savedId ? `${window.location.origin}/paper/${savedId}` : null;
+      flashToast(
+        link
+          ? `✅ Paper saved successfully (${savedId}). Student link: ${link}`
+          : `✅ Paper saved successfully (${savedId}).`,
+      );
       if (!paperId) navigate("/staff/paper-builder");
     };
     const onError = (error) => {
@@ -117,6 +123,19 @@ function PaperBuilder({ paperId }) {
     } else {
       setPaperMutation.mutate(formData, { onSuccess, onError });
     }
+  }
+
+  function handleTogglePublished() {
+    const willPublish = !state.published;
+    dispatch({ type: "SET_PUBLISHED", payload: willPublish });
+    if (!paperId) return;
+    const snapshot = {
+      ...state,
+      published: willPublish,
+      publishedAt: willPublish ? (state.publishedAt ?? new Date().toISOString()) : null,
+    };
+    const { formData } = buildSetPaperFormData(snapshot, paperId, loadedPaper);
+    updatePaperMutation.mutate({ paperId, formData });
   }
 
   if (paperId && papersQuery.isLoading) {
@@ -192,6 +211,16 @@ function PaperBuilder({ paperId }) {
           >
             {exporting === "answer-key" ? <Loader2 size={15} className="sp-spin" /> : <Download size={15} />}
             {exporting === "answer-key" ? "Generating..." : "PDF with Answer Key"}
+          </button>
+          <span className="sp-tab-divider" />
+          <button
+            type="button"
+            className={`sp-tab sp-publish-toggle ${state.published ? "on" : ""}`}
+            onClick={handleTogglePublished}
+            title={state.published ? "Students can take this paper. Click to unpublish." : "Students cannot take this paper yet. Click to publish."}
+          >
+            {state.published ? <Globe size={15} /> : <Lock size={15} />}
+            {state.published ? "Published" : "Draft"}
           </button>
         </div>
       </div>

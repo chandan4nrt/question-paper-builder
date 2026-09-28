@@ -4,6 +4,12 @@ const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/
 
 export const api = axios.create({ baseURL });
 
+// Public client for anonymous, student-facing requests: does NOT attach the
+// staff token and does NOT redirect to /login on 401, so students can reach
+// the paper route untouched. The backend must allow these endpoints without
+// authentication.
+export const publicApi = axios.create({ baseURL });
+
 const TOKEN_KEY = 'erp_staff_token';
 
 export function getToken() {

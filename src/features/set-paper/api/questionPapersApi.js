@@ -1,4 +1,4 @@
-import { api } from '../../../services/api';
+import { api, publicApi, getToken } from '../../../services/api';
 
 const BASE = '/question-papers';
 
@@ -9,6 +9,13 @@ export async function setPaper(formData) {
 
 export async function listPapers() {
   const { data } = await api.get(BASE);
+  return data;
+}
+
+export async function listPapersSmart() {
+  const token = getToken();
+  const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  const { data } = await publicApi.get(BASE, config);
   return data;
 }
 

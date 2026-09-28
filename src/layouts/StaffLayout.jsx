@@ -62,7 +62,7 @@ export function StaffLayout() {
               </NavLink>  
             <NavLink to="/staff/paper-builder/new">
               {({ isActive }) => (
-                <span className={`sp-tab sp-tab-save ${isActive ? 'active' : ''}`}>
+                <span className={`sp-tab sp-tab ${isActive ? 'active' : ''}`}>
                   <Pencil size={15} />New Paper
                 </span>
               )}

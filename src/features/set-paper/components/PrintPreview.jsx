@@ -2,7 +2,7 @@ import { usePaper } from "../context/PaperContext";
 import { formatDate } from "../helpers";
 import { WritingLines } from "./WritingQuestion";
 import { LabelPreview } from "./LabelQuestion";
-import { MathText } from "./MathText";
+import { MarkdownText } from "./MarkdownText";
 import { QUESTION_TYPES } from "../types";
 
 const OPTION_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -31,7 +31,7 @@ function McqPreview({ question }) {
             <span className="sp-match-letter sp-mcq-letter">{getOptionLetter(i)}</span>
             {/* <span className="sp-mcq-answer-dot" /> */}
             <span className="sp-mcq-preview-label">
-              {opt.label ? <MathText>{opt.label}</MathText> : <em style={{ color: "#a3a3a3" }}>Option...</em>}
+              {opt.label ? <MarkdownText>{opt.label}</MarkdownText> : <em style={{ color: "#a3a3a3" }}>Option...</em>}
             </span>
           </div>
         ))}
@@ -93,7 +93,7 @@ function FillBlankPreview({ question }) {
             <span className="sp-fill-blank-text">
               {parts.map((part, i) => (
                 <span key={i}>
-                  <MathText>{part}</MathText>
+                  <MarkdownText>{part}</MarkdownText>
                   {i < parts.length - 1 && <span className="sp-blank-line sp-w16" />}
                 </span>
               ))}
@@ -114,7 +114,7 @@ function TrueFalsePreview({ question }) {
         <div key={index} className="sp-tf-row">
           <span className="sp-match-letter">{index + 1}.</span>
           <span className="sp-tf-statement">
-            {item ? <MathText>{item}</MathText> : <em style={{ color: "#a3a3a3" }}>Statement...</em>}
+            {item ? <MarkdownText>{item}</MarkdownText> : <em style={{ color: "#a3a3a3" }}>Statement...</em>}
           </span>
           <span className="sp-tf-choice">
             <span className="sp-tf-circle" /> True
@@ -153,7 +153,7 @@ function MatchPreview({ question }) {
                   {l && (
                     <div className="sp-match-box">
                       <span className="sp-match-letter">{String.fromCharCode(65 + i)}</span>
-                      {l.image ? <img src={l.image} alt="item" /> : <MathText>{l.label}</MathText>}
+                      {l.image ? <img src={l.image} alt="item" /> : <MarkdownText>{l.label}</MarkdownText>}
                     </div>
                   )}
                 </td>
@@ -164,7 +164,7 @@ function MatchPreview({ question }) {
                   {r && (
                     <div className="sp-match-box right">
                       <span className="sp-match-letter">{i + 1}</span>
-                      <MathText>{r.label}</MathText>
+                      <MarkdownText>{r.label}</MarkdownText>
                     </div>
                   )}
                 </td>
@@ -271,7 +271,7 @@ export function PrintPreview({ totalMarks }) {
 
               <span className="sp-q-text">
                 {question.text ? (
-                  <MathText>{question.text}</MathText>
+                  <MarkdownText>{question.text}</MarkdownText>
                 ) : question.type === QUESTION_TYPES.TRUE_FALSE ? (
                   <span className="sp-q-text-heading">State whether True or False</span>
                 ) : question.type === QUESTION_TYPES.FILL_BLANK ? (

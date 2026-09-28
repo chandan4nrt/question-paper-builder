@@ -20,6 +20,19 @@ export function useListPapers() {
   });
 }
 
+export function useListPapersSmart() {
+  return useQuery({
+    queryKey: ['question-papers', 'public'],
+    queryFn: () => api.listPapersSmart(),
+    select: (papers) =>
+      [...(papers ?? [])].sort(
+        (a, b) =>
+          new Date(b.updatedAt ?? b.createdAt ?? 0) -
+          new Date(a.updatedAt ?? a.createdAt ?? 0),
+      ),
+  });
+}
+
 export function useUpdatePaper() {
   const queryClient = useQueryClient();
   return useMutation({
