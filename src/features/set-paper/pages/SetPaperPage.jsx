@@ -7,9 +7,9 @@ import { PreviewPage } from "./PreviewPage";
 import { AddQuestionBar } from "../components/AddQuestionBar";
 import { ThemePanel } from "../components/ThemePanel";
 import { exportToPDF } from "../helpers";
-import { useSetPaper, useUpdatePaper, useListPapers } from "../hooks/useQuestionPapers";
+import { useSetPaper, useUpdatePaper, useListPapers, usePublishPaper } from "../hooks/useQuestionPapers";
 import { extractErrorMessage } from "../../../services/api";
-import { buildSetPaperFormData } from "../serializePaper";
+import { buildSetPaperFormData, buildPublishPayload } from "../serializePaper";
 import { deserializePaper } from "../deserializePaper";
 import { consumePendingQuestions } from "../pendingQuestions";
 
@@ -45,6 +45,7 @@ function PaperBuilder({ paperId }) {
   const [toastMessage, setToastMessage] = useState("");
   const setPaperMutation = useSetPaper();
   const updatePaperMutation = useUpdatePaper();
+  const publishMutation = usePublishPaper();
   const papersQuery = useListPapers();
   const [loaded, setLoaded] = useState(false);
 
@@ -127,15 +128,34 @@ function PaperBuilder({ paperId }) {
 
   function handleTogglePublished() {
     const willPublish = !state.published;
+    if (!paperId) {
+      dispatch({ type: "SET_PUBLISHED", payload: willPublish });
+      return;
+    }
+    const previous = state.published;
     dispatch({ type: "SET_PUBLISHED", payload: willPublish });
-    if (!paperId) return;
-    const snapshot = {
-      ...state,
-      published: willPublish,
-      publishedAt: willPublish ? (state.publishedAt ?? new Date().toISOString()) : null,
-    };
-    const { formData } = buildSetPaperFormData(snapshot, paperId, loadedPaper);
-    updatePaperMutation.mutate({ paperId, formData });
+    publishMutation.mutate(
+      {
+        paperId,
+        payload: buildPublishPayload(
+          { ...loadedPaper, published: previous, publishedAt: state.publishedAt },
+          willPublish,
+        ),
+      },
+      {
+        onSuccess: () => {
+          flashToast(
+            willPublish
+              ? "✅ Paper published. Students can now take it."
+              : "✅ Paper unpublished. Students can no longer take it.",
+          );
+        },
+        onError: (error) => {
+          dispatch({ type: "SET_PUBLISHED", payload: previous });
+          flashToast(`❌ Failed to update publish state: ${extractErrorMessage(error)}`);
+        },
+      },
+    );
   }
 
   if (paperId && papersQuery.isLoading) {
@@ -217,10 +237,17 @@ function PaperBuilder({ paperId }) {
             type="button"
             className={`sp-tab sp-publish-toggle ${state.published ? "on" : ""}`}
             onClick={handleTogglePublished}
+            disabled={publishMutation.isPending}
             title={state.published ? "Students can take this paper. Click to unpublish." : "Students cannot take this paper yet. Click to publish."}
           >
-            {state.published ? <Globe size={15} /> : <Lock size={15} />}
-            {state.published ? "Published" : "Draft"}
+            {publishMutation.isPending ? (
+              <Loader2 size={15} className="sp-spin" />
+            ) : state.published ? (
+              <Globe size={15} />
+            ) : (
+              <Lock size={15} />
+            )}
+            {publishMutation.isPending ? "Saving..." : state.published ? "Published" : "Draft"}
           </button>
         </div>
       </div>

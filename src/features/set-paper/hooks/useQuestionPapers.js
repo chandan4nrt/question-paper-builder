@@ -43,6 +43,16 @@ export function useUpdatePaper() {
   });
 }
 
+export function usePublishPaper() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ paperId, payload }) => api.publishPaper(paperId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['question-papers'] });
+    },
+  });
+}
+
 export function useDeletePaper() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { FileText, Trash2, Pencil, Loader2, Link2, Globe, Lock } from 'lucide-react';
-import { useListPapers, useDeletePaper, useUpdatePaper } from '../hooks/useQuestionPapers';
-import { deserializePaper } from '../deserializePaper';
-import { buildSetPaperFormData } from '../serializePaper';
+import { useListPapers, useDeletePaper, usePublishPaper } from '../hooks/useQuestionPapers';
+import { buildPublishPayload } from '../serializePaper';
+import { extractErrorMessage } from '../../../services/api';
 import { copyTextToClipboard } from '../../bloom-exam/copy';
 
 function copyStudentLink(link) {
@@ -19,7 +19,7 @@ export function PaperListPage() {
   const navigate = useNavigate();
   const papersQuery = useListPapers();
   const deleteMutation = useDeletePaper();
-  const updateMutation = useUpdatePaper();
+  const publishMutation = usePublishPaper();
 
   function handleDelete(paperId) {
     deleteMutation.mutate(paperId);
@@ -27,14 +27,20 @@ export function PaperListPage() {
 
   function togglePublished(paper) {
     const willPublish = paper.published !== true;
-    const nextState = deserializePaper(paper);
-    nextState.published = willPublish;
-    nextState.publishedAt = willPublish ? (nextState.publishedAt ?? new Date().toISOString()) : null;
-    const { formData } = buildSetPaperFormData(nextState, paper.paperId, paper);
-    updateMutation.mutate({ paperId: paper.paperId, formData });
+    publishMutation.mutate(
+      { paperId: paper.paperId, payload: buildPublishPayload(paper, willPublish) },
+      {
+        onSuccess: () => {
+          alert(willPublish ? 'Paper published.' : 'Paper unpublished.');
+        },
+        onError: (error) => {
+          alert(`Failed to update publish state: ${extractErrorMessage(error)}`);
+        },
+      },
+    );
   }
 
-  const updating = updateMutation.isPending;
+  const updating = publishMutation.isPending;
 
   return (
     <div className="sp-app page">
@@ -98,11 +104,11 @@ export function PaperListPage() {
                     type="button"
                     className={`sp-tab ${isPublished ? 'sp-publish-on' : ''}`}
                     onClick={() => togglePublished(paper)}
-                    disabled={updating && updateMutation.variables?.paperId === paper.paperId}
+                    disabled={updating && publishMutation.variables?.paperId === paper.paperId}
                     style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem', background: isPublished ? '#047857' : '#fff', color: isPublished ? '#fff' : '#475569', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
                     title={isPublished ? 'Students can take this paper. Click to unpublish.' : 'Students cannot take this paper yet. Click to publish.'}
                   >
-                    {updating && updateMutation.variables?.paperId === paper.paperId ? (
+                    {updating && publishMutation.variables?.paperId === paper.paperId ? (
                       <Loader2 size={13} className="sp-spin" />
                     ) : isPublished ? (
                       <Lock size={13} />

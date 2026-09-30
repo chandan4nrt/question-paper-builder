@@ -276,3 +276,33 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
   }
   return { formData, payload };
 }
+
+export function buildPublishPayload(paper, published) {
+  const source = paper ?? {};
+  const effectivePaperId = source.paperId;
+  const isPublished = published === true;
+
+  return {
+    id: source.id ?? null,
+    template: {},
+    paperId: effectivePaperId,
+    subject: source.subject ?? '',
+    classLevel: source.classLevel ?? '',
+    classSection: source.classSection ?? '',
+    totalMarks: source.totalMarks ?? 0,
+    totalQuestions: source.totalQuestions ?? 0,
+    durationInMin: source.durationInMin ?? 0,
+    examTerm: source.examTerm ?? '',
+    academicYear: source.academicYear ?? '',
+    numberOfSectionsInPpr: source.numberOfSectionsInPpr ?? 0,
+    exam_board: source.exam_board ?? '',
+    fromTheme: source.fromTheme === true,
+    published: isPublished,
+    publishedAt: isPublished
+      ? (source.publishedAt ?? new Date().toISOString())
+      : null,
+    publish_link: isPublished
+      ? (source.publish_link ?? `${window.location.origin}/paper/${effectivePaperId}`)
+      : null,
+  };
+}

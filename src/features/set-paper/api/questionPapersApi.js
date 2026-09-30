@@ -24,6 +24,11 @@ export async function updatePaper(paperId, formData) {
   return data;
 }
 
+export async function publishPaper(paperId, payload) {
+  const { data } = await api.patch(`${BASE}/publish/${paperId}`, payload);
+  return data;
+}
+
 export async function deletePaper(paperId) {
   await api.delete(`${BASE}/${paperId}`);
 }
