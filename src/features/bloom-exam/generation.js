@@ -71,7 +71,7 @@ function instructionHint(typeId) {
   }
 }
 
-async function fetchTypeQuestion(typeConfig, config, index) {
+async function fetchTypeQuestion(typeConfig, config, index, files = {}) {
   const endpoint = ENDPOINTS[typeConfig.id];
   const explicitHint = instructionHint(typeConfig.id);
   const extraInstructions = [explicitHint, config.extraInstructions].filter(Boolean).join(' ');
@@ -83,6 +83,8 @@ async function fetchTypeQuestion(typeConfig, config, index) {
     subject: config.subject,
     text: config.sourceText || null,
     extraInstructions,
+    images: files.images ?? [],
+    pdf: files.pdf ?? null,
   });
   const parserType = typeConfig.id === 'mcq' ? QUESTION_TYPES.MCQ : QUESTION_TYPES.NORMAL;
   const data = await generateQuestions(endpoint, payload);
@@ -158,13 +160,16 @@ function sampleQuestion(typeConfig, config, index) {
   };
 }
 
-// Generates the full question set for a configured exam plan.
-export async function generateExam(config, { onStatus } = {}) {
+// Generates the full question set for a configured exam plan. `images`/`pdf`
+// are File objects supplied by the caller and are attached to every request, so
+// they are deliberately not part of the persisted `config`.
+export async function generateExam(config, { onStatus, images = [], pdf = null } = {}) {
   const planned = QUESTION_TYPE_CONFIG.map((type) => ({
     ...type,
     count: Number(config.typeCounts?.[type.id]) || 0,
   })).filter((type) => type.count > 0);
 
+  const files = { images, pdf };
   const questions = [];
   let index = 0;
   for (const type of planned) {
@@ -173,7 +178,7 @@ export async function generateExam(config, { onStatus } = {}) {
       if (onStatus) onStatus(`Generating ${type.label} question ${i + 1} of ${type.count}…`);
       let question;
       try {
-        question = await fetchTypeQuestion(type, config, index);
+        question = await fetchTypeQuestion(type, config, index, files);
       } catch {
         question = sampleQuestion(type, config, index);
       }

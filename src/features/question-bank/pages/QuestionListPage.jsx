@@ -4,6 +4,7 @@ import { Pencil, ArrowUp, ArrowDown, FolderPlus, X } from 'lucide-react';
 import { useListPapers } from '../../set-paper/hooks/useQuestionPapers';
 import { deserializeQuestion } from '../../set-paper/deserializePaper';
 import { AddToPaperModal } from '../components/AddToPaperModal';
+import { RichTextPreview, plainText } from '../components/RichText';
 
 const TYPE_LABELS = {
   normal: 'Normal',
@@ -25,9 +26,11 @@ function flattenQuestions(papers) {
     const urlMap = paper.template?.urls ?? {};
     for (const raw of rawQuestions) {
       const subText = raw.subQuestions?.[0]?.subQuestion ?? '';
+      const questionText = raw.questionTitle || subText || '(untitled question)';
       rows.push({
         key: `${paper.paperId}-${raw.questionId}`,
-        questionText: raw.questionTitle || subText || '(untitled question)',
+        questionText,
+        searchText: plainText(questionText),
         type: raw.type ?? 'normal',
         marks: Number(raw.totalMarks ?? 0),
         paperId: paper.paperId,
@@ -76,7 +79,7 @@ export function QuestionListPage() {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
-      row.questionText.toLowerCase().includes(q) ||
+      row.searchText.toLowerCase().includes(q) ||
       row.subject.toLowerCase().includes(q) ||
       row.className.toLowerCase().includes(q)
     );
@@ -85,8 +88,10 @@ export function QuestionListPage() {
   const sorted = useMemo(() => {
     const next = [...filtered];
     next.sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
+      // `questionText` holds raw Markdown/LaTeX, so order/search by its plain
+      // text projection instead of the markup source.
+      const av = sortKey === 'questionText' ? a.searchText : a[sortKey];
+      const bv = sortKey === 'questionText' ? b.searchText : b[sortKey];
       let cmp;
       if (typeof av === 'number' && typeof bv === 'number') {
         cmp = av - bv;
@@ -222,11 +227,11 @@ export function QuestionListPage() {
                     type="checkbox"
                     checked={selectedKeys.has(row.key)}
                     onChange={() => toggleRow(row.key)}
-                    aria-label={`Select ${row.questionText.slice(0, 60)}`}
+                    aria-label={`Select ${row.searchText.slice(0, 60)}`}
                   />
                 </td>
                 <td style={{ maxWidth: 340 }}>
-                  <strong>{row.questionText.slice(0, 100)}</strong>
+                  <RichTextPreview lines={3} className="qb-cell-text">{row.questionText}</RichTextPreview>
                   {row.paperTitle && <div className="muted text-sm" style={{ marginTop: '0.15rem' }}>{row.paperTitle}</div>}
                 </td>
                 <td>{row.className}</td>

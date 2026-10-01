@@ -3082,12 +3082,14 @@ body.sp-theme-light {
 /* Markdown / rich text rendering (AI-generated content) */
 .sp-math-preview p,
 .sp-print-area p,
-.sp-ak-paper p {
+.sp-ak-paper p,
+.qb-rich p {
   margin: 0 0 0.35rem;
 }
 .sp-math-preview p:last-child,
 .sp-print-area p:last-child,
-.sp-ak-paper p:last-child {
+.sp-ak-paper p:last-child,
+.qb-rich p:last-child {
   margin-bottom: 0;
 }
 .sp-math-preview ul,
@@ -3095,13 +3097,16 @@ body.sp-theme-light {
 .sp-print-area ul,
 .sp-print-area ol,
 .sp-ak-paper ul,
-.sp-ak-paper ol {
+.sp-ak-paper ol,
+.qb-rich ul,
+.qb-rich ol {
   margin: 0.25rem 0 0.4rem;
   padding-left: 1.2rem;
 }
 .sp-math-preview li,
 .sp-print-area li,
-.sp-ak-paper li {
+.sp-ak-paper li,
+.qb-rich li {
   margin: 0.1rem 0;
 }
 .sp-math-preview h1,
@@ -3121,14 +3126,21 @@ body.sp-theme-light {
 .sp-ak-paper h3,
 .sp-ak-paper h4,
 .sp-ak-paper h5,
-.sp-ak-paper h6 {
+.sp-ak-paper h6,
+.qb-rich h1,
+.qb-rich h2,
+.qb-rich h3,
+.qb-rich h4,
+.qb-rich h5,
+.qb-rich h6 {
   margin: 0.35rem 0 0.25rem;
   line-height: 1.3;
   font-weight: 700;
 }
 .sp-math-preview blockquote,
 .sp-print-area blockquote,
-.sp-ak-paper blockquote {
+.sp-ak-paper blockquote,
+.qb-rich blockquote {
   margin: 0.25rem 0;
   padding-left: 0.6rem;
   border-left: 3px solid #cbd5e1;
@@ -3136,7 +3148,8 @@ body.sp-theme-light {
 }
 .sp-math-preview code,
 .sp-print-area code,
-.sp-ak-paper code {
+.sp-ak-paper code,
+.qb-rich code {
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
@@ -3146,17 +3159,104 @@ body.sp-theme-light {
 }
 .sp-math-preview hr,
 .sp-print-area hr,
-.sp-ak-paper hr {
+.sp-ak-paper hr,
+.qb-rich hr {
   border: 0;
   border-top: 1px solid #e2e8f0;
   margin: 0.5rem 0;
 }
-.sp-math-preview .katex-display {
+.sp-math-preview .katex-display,
+.qb-rich .katex-display {
   margin: 0.3rem 0;
 }
 .sp-print-area strong,
-.sp-ak-paper strong {
+.sp-ak-paper strong,
+.qb-rich strong {
   font-weight: 700;
+}
+
+/* ---------- Question Bank Markdown / LaTeX rendering ---------- */
+
+.qb-rich {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.field > span.qb-field-hint {
+  display: block;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* Clamped table cell preview: keeps the LaTeX intact instead of slicing the
+   source mid-delimiter the way a character truncation would. */
+.qb-rich-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: var(--qb-clamp-lines, 3);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.qb-page .qb-cell-text {
+  font-weight: 600;
+}
+
+.qb-cell-text > :first-child {
+  margin-top: 0;
+}
+
+.qb-cell-text .katex-display {
+  text-align: left;
+}
+
+.qb-field-block + .qb-field-block {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.qb-field-label {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.qb-remarks {
+  margin-top: 0.35rem;
+}
+
+.qb-form-preview {
+  margin: -0.35rem 0 1rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  border: 1px dashed var(--border);
+}
+
+.qb-form-preview-title {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.qb-form-preview-options {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.qb-page .qb-table tbody td {
+  vertical-align: top;
 }
 .sp-mcq-option-main {
   flex: 1;

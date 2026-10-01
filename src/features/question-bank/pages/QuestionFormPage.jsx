@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { questionFormSchema } from '../schemas/questionSchema';
 import { useChapters, useCreateQuestion, useQuestion, useSubjects, useTopics, useUpdateQuestion } from '../hooks/useQuestions';
 import { extractErrorMessage } from '../../../services/api';
+import { RichText, RichTextInline } from '../components/RichText';
 
 // Classes and academic years aren't exposed via a list endpoint in the
 // Phase 1 REST spec (only subjects/chapters/topics are). Hardcoded here to
@@ -53,6 +54,10 @@ export function QuestionFormPage({ mode }) {
   const subjectId = watch('subjectId');
   const classId = watch('classId');
   const chapterId = watch('chapterId');
+  const questionText = watch('questionText');
+  const explanation = watch('explanation');
+  const expectedAnswer = watch('expectedAnswer');
+  const formOptions = watch('options') ?? [];
 
   const { data: subjects } = useSubjects();
   const { data: chapters } = useChapters(subjectId, classId);
@@ -191,8 +196,37 @@ export function QuestionFormPage({ mode }) {
         <label className="field" style={{ marginTop: '0.25rem' }}>
           <span>Question</span>
           <textarea rows={3} style={{ width: '100%' }} {...register('questionText')} />
+          <span className="qb-field-hint">Markdown and LaTeX supported — wrap inline math in $…$ and display math in $$…$$.</span>
           {formState.errors.questionText && <span className="error-text">{formState.errors.questionText.message}</span>}
         </label>
+
+        {(questionText || formOptions.some((o) => o.optionText) || expectedAnswer || explanation) && (
+          <div className="qb-form-preview">
+            <span className="qb-form-preview-title">Preview</span>
+            {questionText && <RichText>{questionText}</RichText>}
+            {formOptions.some((o) => o.optionText) && (
+              <ul className="qb-form-preview-options">
+                {formOptions.map((o, index) => (
+                  <li key={index} style={{ fontWeight: o.isCorrect ? 700 : 400 }}>
+                    <RichTextInline>{o.optionText}</RichTextInline> {o.isCorrect && '✓'}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {expectedAnswer && (
+              <div className="qb-field-block">
+                <span className="qb-field-label">Expected Answer</span>
+                <RichText>{expectedAnswer}</RichText>
+              </div>
+            )}
+            {explanation && (
+              <div className="qb-field-block">
+                <span className="qb-field-label">Explanation</span>
+                <RichText>{explanation}</RichText>
+              </div>
+            )}
+          </div>
+        )}
 
         <label className="field">
           <span>Explanation (optional)</span>

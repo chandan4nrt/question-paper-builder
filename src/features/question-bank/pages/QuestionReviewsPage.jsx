@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { useQuestionReviews } from '../hooks/useQuestions';
+import { RichText } from '../components/RichText';
 
 const ACTION_CLASS = {
   SUBMITTED: 'status-pending_review',
@@ -31,7 +32,7 @@ export function QuestionReviewsPage() {
                 <span className={`badge ${ACTION_CLASS[r.action] ?? 'status-draft'}`}>{r.action}</span>{' '}
                 <span className="muted text-sm">by {r.reviewerName} — {new Date(r.createdAt).toLocaleString()}</span>
               </div>
-              {r.remarks && <p style={{ margin: '0.35rem 0 0' }}>{r.remarks}</p>}
+              {r.remarks && <RichText className="qb-remarks">{r.remarks}</RichText>}
             </div>
           ))}
         </div>

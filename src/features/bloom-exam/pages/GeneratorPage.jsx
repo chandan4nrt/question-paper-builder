@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Loader2, AlertTriangle, LayoutDashboard } from 'lucide-react';
+import { Sparkles, Loader2, AlertTriangle, LayoutDashboard, Upload, ImagePlus, FileText, Trash2 } from 'lucide-react';
 import {
   BLOOM_LEVELS,
   BLOOM_IDS,
@@ -16,7 +16,14 @@ import {
 } from '../bloom';
 import { generateExam } from '../generation';
 import { makeExamId, saveExam } from '../storage';
+import { MAX_FILE_SIZE } from '../../set-paper/aiGeneration';
+import { extractGenerationError } from '../../../services/generationApi';
 import { BlueprintChart } from '../components/BlueprintChart';
+
+function formatBytes(bytes) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(0)} KB`;
+}
 
 const PRESETS = [
   {
@@ -52,12 +59,17 @@ export function GeneratorPage() {
   });
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState('');
+  const [images, setImages] = useState([]);
+  const [pdf, setPdf] = useState(null);
+  const [fileError, setFileError] = useState('');
+  const [generateError, setGenerateError] = useState('');
 
   const numQuestions = totalQuestions(config.typeCounts);
   const marks = totalMarks(config.typeCounts, config.typeMarks);
   const bloomSum = blueprintTotal(config.blueprint);
   const blueprintValid = bloomSum === 100;
-  const hasContent = Boolean(config.topic.trim()) || Boolean(config.sourceText.trim());
+  const hasFiles = images.length > 0 || Boolean(pdf);
+  const hasContent = Boolean(config.topic.trim()) || Boolean(config.sourceText.trim()) || hasFiles;
   const canGenerate = !generating && numQuestions > 0 && blueprintValid && hasContent;
 
   const chartData = useMemo(() => blueprintChartData(config.blueprint, numQuestions), [config.blueprint, numQuestions]);
@@ -94,12 +106,49 @@ export function GeneratorPage() {
     patch({ blueprint: { ...config.blueprint, [id]: next } });
   }
 
+  function handleAddImages(fileList) {
+    const files = Array.from(fileList ?? []);
+    if (files.length === 0) return;
+    const oversized = files.find((file) => file.size > MAX_FILE_SIZE);
+    if (oversized) {
+      setFileError(`Image "${oversized.name}" exceeds the ${MAX_FILE_SIZE / (1024 * 1024)} MB limit.`);
+      return;
+    }
+    setFileError('');
+    setImages((prev) => [...prev, ...files]);
+  }
+
+  function handleAddPdf(file) {
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setFileError('Only PDF files are allowed.');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError(`PDF "${file.name}" exceeds the ${MAX_FILE_SIZE / (1024 * 1024)} MB limit.`);
+      return;
+    }
+    setFileError('');
+    setPdf(file);
+  }
+
+  function clearFiles() {
+    setImages([]);
+    setPdf(null);
+    setFileError('');
+  }
+
   async function handleGenerate() {
     if (!canGenerate) return;
     setGenerating(true);
     setStatus('');
+    setGenerateError('');
     try {
-      const result = await generateExam(config, { onStatus: (text) => setStatus(text) });
+      const result = await generateExam(config, {
+        onStatus: (text) => setStatus(text),
+        images,
+        pdf,
+      });
       const exam = {
         examId: makeExamId(),
         title: config.title.trim() || `${config.topic.trim() || config.subject.trim() || 'Assessment'}`,
@@ -113,6 +162,12 @@ export function GeneratorPage() {
           typeCounts: config.typeCounts,
           typeMarks: config.typeMarks,
           blueprint: config.blueprint,
+          // Metadata only: the File objects cannot be serialised into
+          // localStorage and the backend is stateless per request.
+          sourceDocuments: [
+            ...images.map((file) => ({ name: file.name, size: file.size, type: file.type })),
+            ...(pdf ? [{ name: pdf.name, size: pdf.size, type: pdf.type }] : []),
+          ],
         },
         numQuestions: result.questions.length,
         totalMarks: result.questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0),
@@ -124,6 +179,8 @@ export function GeneratorPage() {
       };
       saveExam(exam);
       navigate(`/staff/bloom-generator/review/${exam.examId}`);
+    } catch (error) {
+      setGenerateError(extractGenerationError(error));
     } finally {
       setGenerating(false);
     }
@@ -197,6 +254,86 @@ export function GeneratorPage() {
             />
           </label>
 
+          <div className="be-field">
+            <span>Syllabus / reference files (optional)</span>
+            <div className="sp-ai-upload-row">
+              <label className="sp-ai-upload-btn">
+                <Upload size={15} />
+                <span>Add image(s)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    handleAddImages(e.target.files);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+              <label className="sp-ai-upload-btn">
+                <Upload size={15} />
+                <span>Add PDF</span>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => {
+                    handleAddPdf(e.target.files?.[0]);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+              {hasFiles && (
+                <button type="button" className="sp-ai-upload-btn" onClick={clearFiles} disabled={generating}>
+                  <Trash2 size={15} />
+                  <span>Clear files</span>
+                </button>
+              )}
+            </div>
+            <p className="help-text" style={{ marginTop: '0.4rem' }}>
+              Upload the syllabus, chapter PDF or diagram the questions must follow — max {MAX_FILE_SIZE / (1024 * 1024)} MB
+              per file. Files are sent with the generation request only and are not stored with the exam.
+            </p>
+
+            {hasFiles && (
+              <div className="sp-ai-upload-list">
+                {images.map((file, index) => (
+                  <div key={`${file.name}-${index}`} className="sp-ai-upload-item">
+                    <ImagePlus size={14} />
+                    <span className="sp-ai-upload-name" title={file.name}>{file.name}</span>
+                    <span className="sp-ai-upload-size">{formatBytes(file.size)}</span>
+                    <button
+                      type="button"
+                      className="sp-ai-upload-remove"
+                      onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
+                      disabled={generating}
+                      aria-label="Remove image"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+                {pdf && (
+                  <div className="sp-ai-upload-item">
+                    <FileText size={14} />
+                    <span className="sp-ai-upload-name" title={pdf.name}>{pdf.name}</span>
+                    <span className="sp-ai-upload-size">{formatBytes(pdf.size)}</span>
+                    <button
+                      type="button"
+                      className="sp-ai-upload-remove"
+                      onClick={() => setPdf(null)}
+                      disabled={generating}
+                      aria-label="Remove PDF"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {fileError && <div className="alert alert-error" style={{ marginTop: '0.5rem' }}>{fileError}</div>}
+          </div>
+
           <div className="be-section-title-small">Question types</div>
           <div className="be-type-rows">
             {QUESTION_TYPE_CONFIG.map((type) => (
@@ -258,13 +395,16 @@ export function GeneratorPage() {
           <div className="be-blank" />
 
           {!hasContent && (
-            <div className="alert alert-warning">Add a topic or source/domain text to generate questions.</div>
+            <div className="alert alert-warning">Add a topic, source/domain text or a reference file to generate questions.</div>
           )}
           {!blueprintValid && (
             <div className="alert alert-warning">
               <AlertTriangle size={13} style={{ verticalAlign: 'middle', marginRight: '0.25rem' }} />
               Bloom's blueprint must total <strong>100%</strong> (currently {bloomSum}%).
             </div>
+          )}
+          {generateError && (
+            <div className="alert alert-error">{generateError}</div>
           )}
 
           <div className="be-generate-row">
