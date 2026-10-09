@@ -16,16 +16,9 @@ import {
   useDeletePaper,
   usePublishPaper,
 } from '../hooks/useQuestionPapers';
+import { buildStudentLink } from '../studentLink';
 
 import { extractErrorMessage } from '../../../services/api';
-
-function buildStudentLink(value) {
-  if (!value) return null;
-  const raw = String(value).trim();
-  if (/^https?:\/\//.test(raw)) return raw;
-  if (raw.startsWith('/')) return `${window.location.origin}${raw}`;
-  return `${window.location.origin}/paper/${raw}`;
-}
 
 export function PaperListPage() {
   const navigate = useNavigate();
@@ -229,9 +222,8 @@ export function PaperListPage() {
                   paper.paper_status === 'PUBLISHED' ||
                   paper.paperStatus === 'PUBLISHED';
 
-                const fallbackId = paper.paperId ?? paper.id ?? paper.paper_id ?? paper.uuid;
                 const storedLink = paper.publish_link || paper.publishLink || null;
-                const studentLink = buildStudentLink(storedLink ?? fallbackId);
+                const studentLink = buildStudentLink(storedLink);
 
               const isCopied = copiedPaperId === paper.paperId;
 
@@ -369,7 +361,7 @@ export function PaperListPage() {
                   </button>
 
                   {/* Student Link */}
-                  {isPublished && (
+                  {isPublished && studentLink && (
                     <button
                       type="button"
                       className="sp-tab"

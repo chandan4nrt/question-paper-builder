@@ -20,7 +20,7 @@ import {
   Grid
 } from 'lucide-react';
 import { useGetPaperForStudent } from '../../hooks/useQuestionPapers';
-import { extractPaperId } from '../../api/questionPapersApi';
+import { extractPaperId, isPublishLink } from '../../api/questionPapersApi';
 import { extractErrorMessage } from '../../../../services/api';
 import { deserializePaper } from '../../deserializePaper';
 import { StudentAnswerCard, isQuestionAnswered } from '../components/StudentQuestionView';
@@ -32,8 +32,11 @@ import { MarkdownText } from '../../components/MarkdownText';
 export function StudentAnswerPage() {
   const navigate = useNavigate();
   const { paperId } = useParams();
-  const resolvedPaperId = extractPaperId(paperId);
-  const paperStudentQuery = useGetPaperForStudent(resolvedPaperId);
+  const validPublishLink = isPublishLink(paperId);
+  const resolvedPaperId = validPublishLink ? extractPaperId(paperId) : null;
+  const paperStudentQuery = useGetPaperForStudent(
+    validPublishLink ? paperId : null,
+  );
 
   const record = useMemo(
     () => (paperStudentQuery.data ? (paperStudentQuery.data.data ?? paperStudentQuery.data) : null),

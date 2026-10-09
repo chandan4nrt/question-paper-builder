@@ -79,19 +79,36 @@ export function usePublishPaper() {
       const paperId = typeof variables === 'string' ? variables : variables?.paperId;
       return api.publishPaper(paperId);
     },
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['question-papers'] });
-      const linkToken = response?.publishLink;
-      const paperId = response?.paperId;
-      if (linkToken && paperId) {
-        queryClient.setQueryData(['question-papers'], (papers = []) =>
-          papers.map((p) =>
-            String(p.paperId ?? p.id ?? p.paper_id ?? p.uuid ?? '') === String(paperId)
-              ? { ...p, publishLink: linkToken, publish_link: linkToken }
-              : p,
-          ),
+    onSuccess: async (response, variables) => {
+      const queryKey = ['question-papers'];
+      await queryClient.invalidateQueries({ queryKey });
+
+      const linkToken = response?.publishLink ?? null;
+      const paperId =
+        response?.paperId ??
+        (typeof variables === 'string' ? variables : variables?.paperId);
+      if (!paperId) return;
+
+      const published = response?.status
+        ? response.status === 'PUBLISHED'
+        : Boolean(linkToken);
+      queryClient.setQueryData(queryKey, (papers) => {
+        if (!Array.isArray(papers)) return papers;
+        return papers.map((paper) =>
+          String(
+            paper.paperId ?? paper.id ?? paper.paper_id ?? paper.uuid ?? '',
+          ) === String(paperId)
+            ? {
+                ...paper,
+                published,
+                paper_status: published ? 'PUBLISHED' : 'UNPUBLISHED',
+                paperStatus: published ? 'PUBLISHED' : 'UNPUBLISHED',
+                publishLink: published ? linkToken : null,
+                publish_link: published ? linkToken : null,
+              }
+            : paper,
         );
-      }
+      });
     },
   });
 }

@@ -294,11 +294,11 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     publishedAt: state.published === true ? (state.publishedAt ?? new Date().toISOString()) : null,
     publish_link:
       state.published === true
-        ? (state.publish_link || state.publishLink || `${window.location.origin}/paper/${effectivePaperId}`)
+        ? (state.publish_link || state.publishLink || null)
         : null,
     publishLink:
       state.published === true
-        ? (state.publish_link || state.publishLink || `${window.location.origin}/paper/${effectivePaperId}`)
+        ? (state.publish_link || state.publishLink || null)
         : null,
     active: true,
     template: {

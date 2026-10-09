@@ -35,7 +35,9 @@ export async function deletePaper(paperId) {
 }
 
 export async function getPaperForStudent(paperId) {
-  if (!paperId) return null;
+  if (!isPublishLink(paperId)) {
+    throw new Error('A valid published paper link is required.');
+  }
   const resolved = extractPaperId(paperId);
   const envBase = import.meta.env.VITE_PAPER_STUDENT_API_URL;
   let url = envBase
@@ -59,4 +61,10 @@ export function extractPaperId(publishLink) {
   const match = raw.match(PUBLISH_LINK_SUFFIX_RE);
   if (match?.[1]) return match[1];
   return raw;
+}
+
+export function isPublishLink(value) {
+  if (!value) return false;
+  const match = String(value).trim().match(PUBLISH_LINK_SUFFIX_RE);
+  return Boolean(match?.[1]);
 }

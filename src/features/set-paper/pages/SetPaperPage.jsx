@@ -12,6 +12,7 @@ import { extractErrorMessage } from "../../../services/api";
 import { buildSetPaperFormData } from "../serializePaper";
 import { deserializePaper } from "../deserializePaper";
 import { consumePendingQuestions } from "../pendingQuestions";
+import { buildStudentLink } from "../studentLink";
 
 function waitForPrintArea() {
   return new Promise((resolve) => {
@@ -24,14 +25,6 @@ function waitForPrintArea() {
     };
     check();
   });
-}
-
-function buildStudentLink(value) {
-  if (!value) return null;
-  const raw = String(value).trim();
-  if (/^https?:\/\//.test(raw)) return raw;
-  if (raw.startsWith("/")) return `${window.location.origin}${raw}`;
-  return `${window.location.origin}/paper/${raw}`;
 }
 
 export function SetPaperPage() {
@@ -123,12 +116,7 @@ function PaperBuilder({ paperId }) {
       const isPublished = state.published === true;
       const backendLink =
         response?.publishLink ?? state.publish_link ?? state.publishLink ?? null;
-      const link =
-        isPublished && backendLink
-          ? buildStudentLink(backendLink)
-          : isPublished && savedId
-            ? `${window.location.origin}/paper/${savedId}`
-            : null;
+      const link = isPublished ? buildStudentLink(backendLink) : null;
       flashToast(
         link
           ? `✅ Paper saved successfully (${savedId}). Student link: ${link}`
