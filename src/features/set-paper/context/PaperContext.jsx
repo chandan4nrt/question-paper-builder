@@ -182,15 +182,28 @@ function paperReducer(state, action) {
     case 'SET_THEME':
       return { ...state, theme: action.payload };
 
-    case 'SET_PUBLISHED':
+    case 'SET_PUBLISHED': {
+      const p = action.payload;
+      if (p && typeof p === 'object') {
+        const published = p.published === true;
+        return {
+          ...state,
+          published,
+          publishedAt:
+            published ? (state.publishedAt ?? new Date().toISOString()) : null,
+          publish_link: published ? (p.publishLink ?? state.publish_link ?? null) : null,
+          publishLink: published ? (p.publishLink ?? state.publishLink ?? null) : null,
+        };
+      }
       return {
         ...state,
-        published: action.payload === true,
+        published: p === true,
         publishedAt:
-          action.payload === true
+          p === true
             ? (state.publishedAt ?? new Date().toISOString())
             : null,
       };
+    }
 
     case 'GENERATE_FROM_THEME': {
       const questions = [];

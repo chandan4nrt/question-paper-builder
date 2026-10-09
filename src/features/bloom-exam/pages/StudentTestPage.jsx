@@ -5,11 +5,14 @@ import { getExam, saveSubmission, getStudentName, setStudentName } from '../stor
 import { buildSubmission, bloomBreakdownRows } from '../scoring';
 import { bloomColor } from '../bloom';
 import { StudentQuestion } from '../components/StudentQuestion';
+import { IbpsOnboarding } from '../../set-paper/student/components/IbpsOnboarding';
 
 export function StudentTestPage() {
   const { examId } = useParams();
   const exam = useMemo(() => getExam(examId), [examId]);
   const [studentName, setStudent] = useState(() => getStudentName());
+  const [rollNo, setRollNo] = useState('');
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [answers, setAnswers] = useState(() => ({}));
   const [submission, setSubmission] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -22,6 +25,23 @@ export function StudentTestPage() {
           <p className="muted">The exam link is invalid or the exam was deleted.</p>
         </div>
       </div>
+    );
+  }
+
+  if (!onboardingComplete && !submission) {
+    return (
+      <IbpsOnboarding
+        examTitle={exam.title || 'Online Examination'}
+        subjectName={exam.config?.subject || 'General Section'}
+        numQuestions={exam.questions?.length ?? 0}
+        totalMarks={exam.totalMarks ?? 0}
+        durationMins={60}
+        studentName={studentName}
+        setStudentName={setStudent}
+        rollNo={rollNo}
+        setRollNo={setRollNo}
+        onReadyToBegin={() => setOnboardingComplete(true)}
+      />
     );
   }
 

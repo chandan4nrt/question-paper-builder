@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { ArrowLeft, RefreshCw, Sparkles, Check, Link2, LayoutDashboard } from 'lucide-react';
 import { BLOOM_LEVELS, BLOOM_IDS } from '../bloom';
 import { getExam, saveExam } from '../storage';
@@ -76,11 +77,17 @@ export function ReviewPage() {
 
   function togglePublish() {
     const published = exam.status === 'published';
+    const qCount = exam.questions?.length ?? 0;
+    if (!published && qCount === 0) {
+      toast.error('Cannot publish exam: Please add at least one question to the exam before publishing.');
+      return;
+    }
     persist({
       ...exam,
       status: published ? 'draft' : 'published',
       publishedAt: published ? null : new Date().toISOString(),
     });
+    toast.success(published ? 'Exam unpublished.' : 'Exam published successfully.');
   }
 
   async function copyStudentLink() {

@@ -1,4 +1,5 @@
 import { publicApi, getToken } from '../../../services/api';
+import jsPDF from "jspdf";
 
 const STORAGE_KEY = 'sp_submissions';
 
@@ -63,14 +64,58 @@ export function postSubmission(submission, paperId) {
     .catch(() => false);
 }
 
-export function downloadSubmissionJson(submission) {
-  const blob = new Blob([JSON.stringify(submission, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${submission.studentName?.replace(/\s+/g, '-') || 'student'}-submission.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+// export function downloadSubmissionJson(submission) {
+//   const blob = new Blob([JSON.stringify(submission, null, 2)], { type: 'application/json' });
+//   const url = URL.createObjectURL(blob);
+//   const a = document.createElement('a');
+//   a.href = url;
+//   a.download = `${submission.studentName?.replace(/\s+/g, '-') || 'student'}-submission.json`;
+//   document.body.appendChild(a);
+//   a.click();
+//   a.remove();
+//   URL.revokeObjectURL(url);
+// }
+export function downloadSubmissionPdf(submission) {
+  const doc = new jsPDF();
+
+  const studentName = submission?.studentName || "Student";
+
+  doc.setFontSize(18);
+  doc.text("Response Sheet", 20, 20);
+
+  doc.setFontSize(12);
+  doc.text(`Student Name: ${studentName}`, 20, 32);
+
+  if (submission?.exam) {
+    doc.text(`Exam: ${submission.exam}`, 20, 40);
+  }
+
+  let y = 55;
+
+  doc.setFontSize(12);
+  doc.text("Responses", 20, y);
+
+  y += 10;
+
+  const answers = submission?.answers || {};
+
+  Object.entries(answers).forEach(([questionNo, answer]) => {
+    if (y > 275) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.text(
+      `Question ${questionNo}: ${answer || "Not Answered"}`,
+      20,
+      y
+    );
+
+    y += 8;
+  });
+
+  const fileName = `${studentName
+    .replace(/\s+/g, "-")}-response-sheet.pdf`;
+
+  doc.save(fileName);
 }

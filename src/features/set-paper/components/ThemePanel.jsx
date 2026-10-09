@@ -20,6 +20,7 @@ import { usePaper } from "../context/PaperContext";
 import { QUESTION_TYPES } from "../types";
 import { DEFAULT_THEMES } from "../helpers";
 import * as themeApi from "../api/themeApi";
+import { extractErrorMessage } from "../../../services/api";
 
 const TYPE_ORDER = [
   QUESTION_TYPES.NORMAL,
@@ -70,6 +71,7 @@ function ThemeConfigModal({
     initial ? configFromTheme(initial) : TYPE_ORDER.map((t) => emptyConfig(t)),
   );
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [isSaving, setIsSaving] = useState(false);
 
   const totalQuestions = configs.reduce((s, c) => s + c.count, 0);
   const totalMarks = configs.reduce((s, c) => s + c.count * c.marks, 0);
@@ -82,13 +84,35 @@ function ThemeConfigModal({
     setConfigs((prev) => prev.map((c, i) => (i === index ? { ...c, marks: Math.max(0, Math.min(100, marks)) } : c)));
   }
 
-  function handleSave() {
-    onSave({
-      id: initial?.id ?? `theme-${Date.now()}`,
-      name: name.trim() || "Untitled Theme",
-      description: description.trim() || undefined,
-      questions: configs.filter((c) => c.count > 0),
-    });
+  async function handleSave() {
+    const selectedQuestions = configs.filter((c) => c.count > 0);
+    if (!name.trim()) {
+      alert("Please enter a theme name");
+      return;
+    }
+    if (selectedQuestions.length === 0) {
+      alert("Please add at least one question type with count > 0");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await onSave({
+        id: initial?.id,
+        themeId: initial?.themeId ?? initial?.id,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        questions: selectedQuestions,
+        themeTypes: initial?.themeTypes,
+        active: initial?.active ?? true,
+        createdAt: initial?.createdAt,
+        updatedAt: initial?.updatedAt,
+      });
+    } catch {
+      // Error handled by parent onSave toast
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -96,7 +120,7 @@ function ThemeConfigModal({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{initial ? "Edit Theme" : "New Theme"}</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close" disabled={isSaving}>
             <X size={18} />
           </button>
         </div>
@@ -108,8 +132,9 @@ function ThemeConfigModal({
               className="sp-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Nursery Worksheet"
+              placeholder="e.g. Worksheet class 1"
               autoFocus
+              disabled={isSaving}
             />
           </div>
           <div>
@@ -118,14 +143,14 @@ function ThemeConfigModal({
               className="sp-input"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Shapes, letters and picture-based fun"
+              placeholder="e.g. sheet"
+              disabled={isSaving}
             />
           </div>
         </div>
 
         <div className="sp-theme-config-list">
           <div className="sp-theme-config-row sp-theme-config-head">
-            
             <span className="sp-theme-config-label sp-theme-head-space" />
             <span className="sp-theme-col-label sp-theme-col-questions">No. of questions</span>
             <span className="sp-theme-col-label sp-theme-col-marks">marks / q</span>
@@ -143,6 +168,7 @@ function ThemeConfigModal({
                   className="sp-line-step sp-theme-step"
                   onClick={() => setCount(i, c.count - 1)}
                   aria-label={`Decrease ${meta.label}`}
+                  disabled={isSaving}
                 >
                   <span className="sp-step-sym">−</span>
                 </button>
@@ -152,6 +178,7 @@ function ThemeConfigModal({
                   className="sp-line-step sp-theme-step"
                   onClick={() => setCount(i, c.count + 1)}
                   aria-label={`Increase ${meta.label}`}
+                  disabled={isSaving}
                 >
                   <span className="sp-step-sym">+</span>
                 </button>
@@ -160,6 +187,7 @@ function ThemeConfigModal({
                   className="sp-line-step sp-theme-step"
                   onClick={() => setMarks(i, c.marks - 1)}
                   aria-label={`Decrease marks for ${meta.label}`}
+                  disabled={isSaving}
                 >
                   <span className="sp-step-sym">−</span>
                 </button>
@@ -169,6 +197,7 @@ function ThemeConfigModal({
                   className="sp-line-step sp-theme-step"
                   onClick={() => setMarks(i, c.marks + 1)}
                   aria-label={`Increase marks for ${meta.label}`}
+                  disabled={isSaving}
                 >
                   <span className="sp-step-sym">+</span>
                 </button>
@@ -184,11 +213,11 @@ function ThemeConfigModal({
         </div>
 
         <div className="sp-theme-modal-actions">
-          <button type="button" className="btn-secondary" onClick={onClose}>
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={isSaving}>
             Cancel
           </button>
-          <button type="button" onClick={handleSave}>
-            Save Theme
+          <button type="button" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Theme"}
           </button>
         </div>
       </div>
@@ -212,8 +241,7 @@ export function ThemePanel({ disabled = false }) {
           setThemes(remote);
         }
       } catch (err) {
-        // Backend theme API unavailable — keep local themes.
-        console.warn("Theme API unavailable — using local themes.", err);
+        console.warn("Theme API unavailable — using default preset themes.", err);
       }
     })();
     return () => {
@@ -225,25 +253,28 @@ export function ThemePanel({ disabled = false }) {
     dispatch({ type: "GENERATE_FROM_THEME", payload: theme });
   }
 
-  function saveTheme(theme) {
-    setThemes((prev) => {
-      const exists = prev.some((t) => t.id === theme.id);
-      return exists ? prev.map((t) => (t.id === theme.id ? theme : t)) : [...prev, theme];
-    });
-    setModalTheme(null);
-    saveThemeToBackend(theme);
-  }
-
-  async function saveThemeToBackend(theme) {
+  async function saveTheme(theme) {
     try {
-      const saved = await themeApi.saveTheme(theme);
-      const themeId = saved?.themeId ?? saved?.id;
-      if (themeId != null && Number(themeId) > 0 && String(themeId) !== String(theme.id)) {
-        setThemes((prev) => prev.map((t) => (t.id === theme.id ? { ...t, themeId, id: themeId } : t)));
+      const response = await themeApi.saveTheme(theme);
+      const serverTheme = themeApi.deserializeTheme(response?.data ?? response) || theme;
+      
+      const remote = await themeApi.listThemes().catch(() => null);
+      if (Array.isArray(remote) && remote.length > 0) {
+        setThemes(remote);
+      } else if (serverTheme) {
+        setThemes((prev) => {
+          const exists = prev.some((t) => String(t.id) === String(serverTheme.id));
+          return exists
+            ? prev.map((t) => (String(t.id) === String(serverTheme.id) ? serverTheme : t))
+            : [...prev, serverTheme];
+        });
       }
-      showToast?.("✅ Theme saved to server.");
-    } catch {
-      showToast?.(`❌ Failed to save theme to server. Saved locally.`);
+      setModalTheme(null);
+      showToast?.("✅ Theme saved successfully");
+    } catch (err) {
+      const msg = extractErrorMessage(err);
+      showToast?.(`❌ Failed to save theme: ${msg}`);
+      throw err;
     }
   }
 

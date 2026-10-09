@@ -1,9 +1,34 @@
 function parseDurationToMinutes(duration) {
   if (!duration) return 30;
-  const match = duration.match(/(\d+)/);
-  if (!match) return 30;
-  const mins = Number(match[1]);
-  return Number.isFinite(mins) && mins > 0 ? mins : 30;
+  if (typeof duration === 'number') return duration > 0 ? duration : 30;
+  const str = String(duration).toLowerCase().trim();
+
+  let totalMinutes = 0;
+  let matched = false;
+
+  const hrMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:hr|hour|h)s?/);
+  if (hrMatch) {
+    totalMinutes += Math.round(parseFloat(hrMatch[1]) * 60);
+    matched = true;
+  }
+
+  const minMatch = str.match(/(\d+)\s*(?:min|minute|m)s?/);
+  if (minMatch) {
+    totalMinutes += parseInt(minMatch[1], 10);
+    matched = true;
+  }
+
+  if (matched && totalMinutes > 0) {
+    return totalMinutes;
+  }
+
+  const numMatch = str.match(/(\d+)/);
+  if (numMatch) {
+    const mins = parseInt(numMatch[1], 10);
+    return mins > 0 ? mins : 30;
+  }
+
+  return 30;
 }
 
 function createUniqueName(used, base, fallback) {
@@ -29,20 +54,33 @@ function nextImageKey(counter) {
   return `IMG_${String(counter.current).padStart(3, '0')}`;
 }
 
+function getQuestionId(q, counterRef) {
+  const candidate = Number(q.id ?? q.questionId);
+  if (Number.isFinite(candidate) && candidate > 0) {
+    return candidate;
+  }
+  counterRef.current += 1;
+  return counterRef.current;
+}
+
 export function buildSetPaperFormData(state, paperId, existingPaper) {
   const images = [];
   const usedNames = new Set();
   const mappedQuestions = [];
-  let questionCounter = 0;
+  const maxExistingId = state.questions.reduce((max, q) => {
+    const num = Number(q.id ?? q.questionId);
+    return Number.isFinite(num) && num > max ? num : max;
+  }, 0);
+  const questionIdCounter = { current: maxExistingId };
   const imageKeyCounter = { current: 0 };
 
   for (const q of state.questions) {
+    const qId = getQuestionId(q, questionIdCounter);
     switch (q.type) {
       case 'normal': {
-        questionCounter += 1;
         mappedQuestions.push({
           type: 'normal',
-          questionId: questionCounter,
+          questionId: qId,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
           solution: q.solution ?? '',
@@ -53,34 +91,43 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
       case 'match': {
         const imageMap = {};
         const pictures = [];
+        const leftItems = [];
+        const leftLabels = [];
         for (const item of q.leftItems ?? []) {
+          const label = item.label ?? '';
+          leftLabels.push(label);
+          let imgKey = null;
           if (item.image) {
-            const imgKey = nextImageKey(imageKeyCounter);
+            imgKey = nextImageKey(imageKeyCounter);
             const fileName = createUniqueName(usedNames, item.imageName, `${item.id}.jpg`);
             if (item.imageBlob) images.push({ fileName, blob: item.imageBlob });
             imageMap[imgKey] = fileName;
             pictures.push(imgKey);
           }
+          leftItems.push({
+            label,
+            imageKey: imgKey,
+          });
         }
-        questionCounter += 1;
         mappedQuestions.push({
           type: 'matching-picture',
-          questionId: questionCounter,
+          questionId: qId,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
           solution: q.solution ?? '',
           letters: (q.rightItems ?? []).map((item) => item.label),
           images: imageMap,
           pictures,
+          leftItems,
+          leftLabels,
           matchPairs: q.matchPairs ?? {},
         });
         break;
       }
       case 'writing': {
-        questionCounter += 1;
         mappedQuestions.push({
           type: 'writing-practice',
-          questionId: questionCounter,
+          questionId: qId,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
           solution: q.solution ?? '',
@@ -92,11 +139,10 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
         break;
       }
       case 'mcq': {
-        questionCounter += 1;
         const correctOption = (q.options ?? []).find((o) => o.id === q.correctOptionId);
         mappedQuestions.push({
           type: 'multiple-choice',
-          questionId: questionCounter,
+          questionId: qId,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
           solution: q.solution ?? '',
@@ -125,7 +171,6 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           }
         }
         if (pictures.length > 0) {
-          questionCounter += 1;
           const writingMode = (q.options ?? []).some((option) => option.writingLines);
           let answers = [];
           if (writingMode) {
@@ -137,8 +182,8 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           mappedQuestions.push({
             type: 'color-the-image',
             mode: writingMode ? 'write' : 'circle',
-            questionId: questionCounter,
-            totalMarks: Number(q.marks || 0) * pictures.length,
+            questionId: qId,
+            totalMarks: Number(q.marks || 0),
             questionTitle: q.text,
             solution: q.solution ?? '',
             images: imageMap,
@@ -150,10 +195,9 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
       }
       case 'fill-blank': {
         const items = q.items ?? (q.text ? [q.text] : []);
-        questionCounter += 1;
         mappedQuestions.push({
           type: 'fill-in-the-blank',
-          questionId: questionCounter,
+          questionId: qId,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
           solution: q.solution ?? '',
@@ -167,7 +211,6 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
         break;
       }
       case 'label': {
-        questionCounter += 1;
         const labelImageMap = {};
         let labelPicture;
         if (q.image) {
@@ -179,7 +222,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
         }
         mappedQuestions.push({
           type: 'label-picture',
-          questionId: questionCounter,
+          questionId: qId,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
           solution: q.solution ?? '',
@@ -193,10 +236,9 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
       }
       case 'true-false': {
         const items = q.items ?? (q.text ? [q.text] : []);
-        questionCounter += 1;
         mappedQuestions.push({
           type: 'true-false',
-          questionId: questionCounter,
+          questionId: qId,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
           solution: q.solution ?? '',
@@ -224,28 +266,51 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
 
   const effectivePaperId = paperId || `paper-${Date.now()}`;
 
+  const paperTitle = [state.header.subject, state.header.className, state.header.exam, state.header.academicYear]
+    .filter(Boolean)
+    .join(' ') || 'Untitled Paper';
+
   const payload = {
+    id: existingPaper?.id != null ? existingPaper.id : undefined,
+    paperId: effectivePaperId,
+    title: paperTitle,
+    subject: state.header.subject ?? '',
+    classLevel: state.header.className ?? '',
+    classSection: state.header.classSection ?? '',
+    schoolName: state.header.schoolName ?? '',
+    date: state.header.date ?? '',
+    teacherName: state.header.teacherName ?? '',
+    instructions: state.header.instructions ?? '',
+    totalMarks,
+    totalQuestions: mappedQuestions.length,
+    durationInMin: parseDurationToMinutes(state.header.duration),
+    examTerm: state.header.exam ?? '',
+    academicYear: state.header.academicYear ?? '',
+    numberOfSectionsInPpr: includedSections.size,
+    questions: mappedQuestions,
+    paper_status: state.published === true ? 'PUBLISHED' : 'UNPUBLISHED',
+    paperStatus: state.published === true ? 'PUBLISHED' : 'UNPUBLISHED',
+    published: state.published === true,
+    publishedAt: state.published === true ? (state.publishedAt ?? new Date().toISOString()) : null,
+    publish_link:
+      state.published === true
+        ? (state.publish_link || state.publishLink || `${window.location.origin}/paper/${effectivePaperId}`)
+        : null,
+    publishLink:
+      state.published === true
+        ? (state.publish_link || state.publishLink || `${window.location.origin}/paper/${effectivePaperId}`)
+        : null,
+    active: true,
     template: {
-      title: [state.header.subject, state.header.className, state.header.exam, state.header.academicYear]
-        .filter(Boolean)
-        .join(' ') || 'Untitled Paper',
+      title: paperTitle,
       sectionId: null,
       questionCount: String(mappedQuestions.length),
       questions: mappedQuestions,
+      schoolName: state.header.schoolName ?? '',
+      date: state.header.date ?? '',
+      teacherName: state.header.teacherName ?? '',
+      instructions: state.header.instructions ?? '',
     },
-    paperId: effectivePaperId,
-    subject: state.header.subject,
-    classLevel: state.header.className,
-    classSection: '',
-    totalMarks,
-    durationInMin: parseDurationToMinutes(state.header.duration),
-    examTerm: state.header.exam,
-    academicYear: state.header.academicYear,
-    numberOfSectionsInPpr: includedSections.size,
-    published: state.published === true,
-    publishedAt: state.published === true ? (state.publishedAt ?? null) : null,
-    publish_link:
-      state.published === true ? `${window.location.origin}/paper/${effectivePaperId}` : null,
   };
 
   if (existingPaper) {
@@ -265,11 +330,11 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
   }
 
   const formData = new FormData();
-  if (existingPaper) {
-    formData.append('dto', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+  const jsonBlob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+  formData.append('metadata', jsonBlob);
+  formData.append('dto', jsonBlob);
+  if (payload.paperId) {
     formData.append('paperId', payload.paperId);
-  } else {
-    formData.append('metadata', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
   }
   for (const image of images) {
     if (image.blob) formData.append('files', image.blob, image.fileName);
@@ -277,32 +342,13 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
   return { formData, payload };
 }
 
-export function buildPublishPayload(paper, published) {
-  const source = paper ?? {};
-  const effectivePaperId = source.paperId;
-  const isPublished = published === true;
+export function buildPublishPayload() {
+
+ 
 
   return {
-    id: source.id ?? null,
-    template: {},
+   
     paperId: effectivePaperId,
-    subject: source.subject ?? '',
-    classLevel: source.classLevel ?? '',
-    classSection: source.classSection ?? '',
-    totalMarks: source.totalMarks ?? 0,
-    totalQuestions: source.totalQuestions ?? 0,
-    durationInMin: source.durationInMin ?? 0,
-    examTerm: source.examTerm ?? '',
-    academicYear: source.academicYear ?? '',
-    numberOfSectionsInPpr: source.numberOfSectionsInPpr ?? 0,
-    exam_board: source.exam_board ?? '',
-    fromTheme: source.fromTheme === true,
-    published: isPublished,
-    publishedAt: isPublished
-      ? (source.publishedAt ?? new Date().toISOString())
-      : null,
-    publish_link: isPublished
-      ? (source.publish_link ?? `${window.location.origin}/paper/${effectivePaperId}`)
-      : null,
+    
   };
 }

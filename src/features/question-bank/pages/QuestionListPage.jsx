@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { Pencil, ArrowUp, ArrowDown, FolderPlus, X } from 'lucide-react';
 import { useListPapers } from '../../set-paper/hooks/useQuestionPapers';
 import { deserializeQuestion } from '../../set-paper/deserializePaper';
+import { MarkdownText } from '../../set-paper/components/MarkdownText';
 import { AddToPaperModal } from '../components/AddToPaperModal';
-import { RichTextPreview, plainText } from '../components/RichText';
 
 const TYPE_LABELS = {
   normal: 'Normal',
@@ -20,17 +20,16 @@ const TYPE_LABELS = {
 function flattenQuestions(papers) {
   const rows = [];
   for (const paper of papers ?? []) {
+    if (paper.active === false) continue;
     const rawQuestions = paper.template?.sections?.length
       ? paper.template.sections.flatMap((s) => s.questions ?? [])
-      : (paper.template?.questions ?? []);
+      : (paper.template?.questions?.length ? paper.template.questions : (paper.questions ?? []));
     const urlMap = paper.template?.urls ?? {};
     for (const raw of rawQuestions) {
       const subText = raw.subQuestions?.[0]?.subQuestion ?? '';
-      const questionText = raw.questionTitle || subText || '(untitled question)';
       rows.push({
         key: `${paper.paperId}-${raw.questionId}`,
-        questionText,
-        searchText: plainText(questionText),
+        questionText: raw.questionTitle || subText || '(untitled question)',
         type: raw.type ?? 'normal',
         marks: Number(raw.totalMarks ?? 0),
         paperId: paper.paperId,
@@ -79,7 +78,7 @@ export function QuestionListPage() {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
-      row.searchText.toLowerCase().includes(q) ||
+      row.questionText.toLowerCase().includes(q) ||
       row.subject.toLowerCase().includes(q) ||
       row.className.toLowerCase().includes(q)
     );
@@ -88,10 +87,8 @@ export function QuestionListPage() {
   const sorted = useMemo(() => {
     const next = [...filtered];
     next.sort((a, b) => {
-      // `questionText` holds raw Markdown/LaTeX, so order/search by its plain
-      // text projection instead of the markup source.
-      const av = sortKey === 'questionText' ? a.searchText : a[sortKey];
-      const bv = sortKey === 'questionText' ? b.searchText : b[sortKey];
+      const av = a[sortKey];
+      const bv = b[sortKey];
       let cmp;
       if (typeof av === 'number' && typeof bv === 'number') {
         cmp = av - bv;
@@ -227,11 +224,13 @@ export function QuestionListPage() {
                     type="checkbox"
                     checked={selectedKeys.has(row.key)}
                     onChange={() => toggleRow(row.key)}
-                    aria-label={`Select ${row.searchText.slice(0, 60)}`}
+                    aria-label={`Select ${row.questionText.slice(0, 60)}`}
                   />
                 </td>
                 <td style={{ maxWidth: 340 }}>
-                  <RichTextPreview lines={3} className="qb-cell-text">{row.questionText}</RichTextPreview>
+                  <strong style={{ display: 'block' }}>
+                    <MarkdownText inline>{row.questionText}</MarkdownText>
+                  </strong>
                   {row.paperTitle && <div className="muted text-sm" style={{ marginTop: '0.15rem' }}>{row.paperTitle}</div>}
                 </td>
                 <td>{row.className}</td>

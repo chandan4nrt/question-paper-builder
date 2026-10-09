@@ -71,7 +71,7 @@ function instructionHint(typeId) {
   }
 }
 
-async function fetchTypeQuestion(typeConfig, config, index, files = {}) {
+async function fetchTypeQuestion(typeConfig, config, index) {
   const endpoint = ENDPOINTS[typeConfig.id];
   const explicitHint = instructionHint(typeConfig.id);
   const extraInstructions = [explicitHint, config.extraInstructions].filter(Boolean).join(' ');
@@ -83,8 +83,8 @@ async function fetchTypeQuestion(typeConfig, config, index, files = {}) {
     subject: config.subject,
     text: config.sourceText || null,
     extraInstructions,
-    images: files.images ?? [],
-    pdf: files.pdf ?? null,
+    images: config.images ?? [],
+    pdf: config.pdf ?? null,
   });
   const parserType = typeConfig.id === 'mcq' ? QUESTION_TYPES.MCQ : QUESTION_TYPES.NORMAL;
   const data = await generateQuestions(endpoint, payload);
@@ -93,95 +93,20 @@ async function fetchTypeQuestion(typeConfig, config, index, files = {}) {
   return toQuestionShape(typeConfig, parsed, index, 'api');
 }
 
-/* ---------- Deterministic sample fallback (keeps the demo working when the
-             generation service is unreachable) ---------- */
-
-const MCQ_OPTIONS = [
-  'It captures the key idea of the topic accurately.',
-  'It is completely unrelated to the topic.',
-  'It contradicts the generally accepted meaning.',
-  'It only applies to a single special case.',
-];
-
-const MCQ_TEMPLATES = [
-  (topic) => `Which of the following statements best describes ${topic}?`,
-  (topic) => `Which option is the most accurate example of ${topic}?`,
-  (topic) => `What assumption would someone make if they misunderstood ${topic}?`,
-];
-
-const SHORT_TEMPLATES = [
-  (topic) => `Explain in one or two sentences what ${topic} refers to.`,
-  (topic) => `Identify the most important idea within ${topic} and briefly justify your choice.`,
-  (topic) => `State the difference between two closely related concepts in ${topic} and give one example.`,
-];
-
-const SCENARIO_TEMPLATES = [
-  (topic) =>
-    `Scenario: A class project requires a small team to apply ${topic} to a real situation at school. Outline the key steps the team should take, justify why each step matters, and describe a simple check they can use to verify their outcome.`,
-  (topic) =>
-    `Scenario: A student keeps confusing parts of ${topic} when revising. Construct a short plan the student can follow, explain what could go wrong without each step, and describe how the plan could improve their results.`,
-];
-
-function sampleQuestion(typeConfig, config, index) {
-  const topic = config.topic?.trim() || 'the given topic';
-  const base = { id: `q${index}`, type: typeConfig.id, marks: typeConfig.marks, source: 'sample' };
-  if (typeConfig.id === 'mcq') {
-    const text = MCQ_TEMPLATES[index % MCQ_TEMPLATES.length](topic);
-    const options = MCQ_OPTIONS.map((label, oi) => ({
-      id: `o${oi + 1}`,
-      label: label.replace('the topic', topic).replace('The topic', topic),
-    }));
-    return {
-      ...base,
-      text,
-      options,
-      correctOptionId: 'o1',
-      expectedAnswer: '',
-      explanation: `The correct answer is accurate because it reflects the essential meaning of "${topic}".`,
-    };
-  }
-  if (typeConfig.id === 'short') {
-    return {
-      ...base,
-      text: SHORT_TEMPLATES[index % SHORT_TEMPLATES.length](topic),
-      options: null,
-      correctOptionId: null,
-      expectedAnswer: `A focused answer about ${topic} that names its key idea, supports it with a reason, and stays on point.`,
-      explanation: 'Look for the key idea of the topic, a supporting reason, and an example where relevant.',
-    };
-  }
-  return {
-    ...base,
-    text: SCENARIO_TEMPLATES[index % SCENARIO_TEMPLATES.length](topic),
-    options: null,
-    correctOptionId: null,
-    expectedAnswer: `A clear sequence of steps for ${topic}, each justified, followed by a concrete way to verify the result.`,
-    explanation: 'Assess the sequence of steps, the quality of the justification, and whether the verification check is concrete.',
-  };
-}
-
-// Generates the full question set for a configured exam plan. `images`/`pdf`
-// are File objects supplied by the caller and are attached to every request, so
-// they are deliberately not part of the persisted `config`.
-export async function generateExam(config, { onStatus, images = [], pdf = null } = {}) {
+// Generates the full question set for a configured exam plan.
+export async function generateExam(config, { onStatus } = {}) {
   const planned = QUESTION_TYPE_CONFIG.map((type) => ({
     ...type,
     count: Number(config.typeCounts?.[type.id]) || 0,
   })).filter((type) => type.count > 0);
 
-  const files = { images, pdf };
   const questions = [];
   let index = 0;
   for (const type of planned) {
     for (let i = 0; i < type.count; i += 1) {
       index += 1;
       if (onStatus) onStatus(`Generating ${type.label} question ${i + 1} of ${type.count}…`);
-      let question;
-      try {
-        question = await fetchTypeQuestion(type, config, index, files);
-      } catch {
-        question = sampleQuestion(type, config, index);
-      }
+      const question = await fetchTypeQuestion(type, config, index);
       questions.push(question);
     }
   }
@@ -189,7 +114,7 @@ export async function generateExam(config, { onStatus, images = [], pdf = null }
   const assigned = assignBloomLevels(questions, config.blueprint);
   return {
     questions: assigned,
-    usedFallback: assigned.some((q) => q.source === 'sample'),
+    usedFallback: false,
   };
 }
 
@@ -201,11 +126,6 @@ export async function regenerateOne(exam, questionIndex) {
   if (!typeConfig) return null;
   const config = exam.config ?? {};
   const seed = Number(String(target.id).replace(/\D/g, '')) || questionIndex + 1;
-  try {
-    const fresh = await fetchTypeQuestion(typeConfig, config, seed);
-    return { ...fresh, id: target.id, bloomLevel: target.bloomLevel, marks: target.marks };
-  } catch {
-    const fresh = sampleQuestion(typeConfig, config, seed);
-    return { ...fresh, id: target.id, bloomLevel: target.bloomLevel, marks: target.marks };
-  }
+  const fresh = await fetchTypeQuestion(typeConfig, config, seed);
+  return { ...fresh, id: target.id, bloomLevel: target.bloomLevel, marks: target.marks };
 }

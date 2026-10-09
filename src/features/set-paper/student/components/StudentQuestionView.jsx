@@ -1,5 +1,4 @@
 import { MarkdownText } from '../../components/MarkdownText';
-import { MathTextArea } from './MathTextArea';
 import { QUESTION_TYPES } from '../../types';
 
 const OPTION_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -15,20 +14,109 @@ function optionLetter(index) {
   return letters || OPTION_LETTERS[0];
 }
 
+const BLANK_REGEX = /(_{2,}|\.{3,}|\[\s*blank\s*\]|\(\s*blank\s*\)|\[\s*_{1,}\s*\])/gi;
+
+function InlineBlankItem({ sentence, answer, onChange, readOnly }) {
+  if (!sentence) {
+    return (
+      <input
+        type="text"
+        className="sp-inline-blank-input"
+        value={answer ?? ''}
+        onChange={(e) => onChange?.(e.target.value)}
+        placeholder="Type answer…"
+        disabled={readOnly}
+      />
+    );
+  }
+
+  const parts = sentence.split(/(_{2,}|\.{3,}|\[\s*blank\s*\]|\(\s*blank\s*\)|\[\s*_{1,}\s*\])/i);
+  const hasBlank = BLANK_REGEX.test(sentence);
+  BLANK_REGEX.lastIndex = 0;
+
+  if (!hasBlank) {
+    return (
+      <span className="sp-fill-sentence-inline">
+        <span>{sentence}</span>{' '}
+        <input
+          type="text"
+          className="sp-inline-blank-input"
+          value={answer ?? ''}
+          onChange={(e) => onChange?.(e.target.value)}
+          placeholder="Type answer…"
+          disabled={readOnly}
+        />
+      </span>
+    );
+  }
+
+  let blankRendered = false;
+
+  return (
+    <span className="sp-fill-sentence-inline">
+      {parts.map((part, i) => {
+        const isBlankPart = /(_{2,}|\.{3,}|\[\s*blank\s*\]|\(\s*blank\s*\)|\[\s*_{1,}\s*\])/i.test(part);
+        if (isBlankPart && !blankRendered) {
+          blankRendered = true;
+          return (
+            <input
+              key={i}
+              type="text"
+              className="sp-inline-blank-input"
+              value={answer ?? ''}
+              onChange={(e) => onChange?.(e.target.value)}
+              placeholder="Type answer…"
+              disabled={readOnly}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          );
+        }
+        if (isBlankPart && blankRendered) {
+          return (
+            <input
+              key={i}
+              type="text"
+              className="sp-inline-blank-input"
+              value={answer ?? ''}
+              onChange={(e) => onChange?.(e.target.value)}
+              placeholder="Type answer…"
+              disabled={readOnly}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </span>
+  );
+}
+
 export function isQuestionAnswered(question, value) {
+  if (!value) return false;
   switch (question.type) {
     case QUESTION_TYPES.MCQ:
     case QUESTION_TYPES.IMAGE_MCQ:
       return Boolean(value?.optionId);
-    case QUESTION_TYPES.TRUE_FALSE:
-      return Array.isArray(value) && value.length > 0 && value.every((v) => v === 'True' || v === 'False');
-    case QUESTION_TYPES.MATCH:
-      return Array.isArray(value) && value.length > 0 && value.every((v) => v != null && v !== '');
+    case QUESTION_TYPES.TRUE_FALSE: {
+      const items = Array.isArray(value) ? value : value?.items;
+      return Array.isArray(items) && items.length > 0 && items.every((v) => v === 'True' || v === 'False');
+    }
+    case QUESTION_TYPES.MATCH: {
+      const items = Array.isArray(value) ? value : value?.items;
+      return Array.isArray(items) && items.length > 0 && items.every((v) => v != null && v !== '');
+    }
     case QUESTION_TYPES.FILL_BLANK:
-    case QUESTION_TYPES.LABEL:
-      return Array.isArray(value) && value.some((v) => String(v ?? '').trim());
+    case QUESTION_TYPES.LABEL: {
+      const items = Array.isArray(value) ? value : value?.items;
+      if (Array.isArray(items) && items.length > 0) {
+        return items.some((v) => String(v ?? '').trim().length > 0);
+      }
+      return Boolean(String(value?.text ?? (typeof value === 'string' ? value : '')).trim());
+    }
     default:
-      return Boolean(String(value ?? '').trim());
+      return Boolean(String(value?.text ?? (typeof value === 'string' ? value : '')).trim());
   }
 }
 
@@ -49,10 +137,6 @@ export function StudentAnswerCard({ question, value, onChange, readOnly = false 
     const option = (question.options ?? []).find((o) => o.id === optionId);
     onChange?.({ type: question.type, optionId, optionText: option?.label ?? '' });
   }
-
-  const items = (question.items ?? []).map((v, i) =>
-    Array.isArray(value?.items) ? (value.items[i] ?? '') : (v ?? ''),
-  );
 
   const head = (
     <header className="sp-sq-head">
@@ -82,13 +166,16 @@ export function StudentAnswerCard({ question, value, onChange, readOnly = false 
       </div>
 
       {(question.type === QUESTION_TYPES.NORMAL || question.type === QUESTION_TYPES.WRITING) && (
-        <MathTextArea
-          value={typeof value?.text === 'string' ? value.text : ''}
-          onChange={(text) => setText(text)}
-          rows={question.type === QUESTION_TYPES.WRITING ? 5 : 3}
-          readOnly={readOnly}
-          placeholder="Write your answer — Hindi, English and math ($…)…"
-        />
+        <div className="sp-clean-textarea-wrap">
+          <textarea
+            className="sp-clean-textarea"
+            value={typeof value?.text === 'string' ? value.text : (typeof value === 'string' ? value : '')}
+            onChange={(e) => setText(e.target.value)}
+            rows={question.type === QUESTION_TYPES.WRITING ? 6 : 4}
+            disabled={readOnly}
+            placeholder="Type your answer here"
+          />
+        </div>
       )}
 
       {(question.type === QUESTION_TYPES.MCQ || question.type === QUESTION_TYPES.IMAGE_MCQ) && (
@@ -148,26 +235,28 @@ export function StudentAnswerCard({ question, value, onChange, readOnly = false 
 
       {question.type === QUESTION_TYPES.FILL_BLANK && (
         <div className="sp-sq-fill">
-          {(question.items && question.items.length > 0 ? question.items : ['']).map((item, index) => (
-            <div key={index} className="sp-sq-fill-row">
-              <span className="sp-sq-fill-no">{index + 1}.</span>
-              <MarkdownText>{item}</MarkdownText>
-              <div className="sp-sq-fill-input">
-                <MathTextArea
-                  compact
-                  rows={1}
-                  value={items[index] ?? ''}
-                  onChange={(text) => {
-                    const next = Array.isArray(value?.items) ? [...value.items] : [];
-                    next[index] = text;
-                    onChange?.({ type: question.type, items: next });
-                  }}
-                  placeholder="Answer…"
-                  readOnly={readOnly}
-                />
+          {(question.items && question.items.length > 0 ? question.items : [question.text || '']).map((item, index) => {
+            const currentAns = Array.isArray(value?.items)
+              ? (value.items[index] ?? '')
+              : (typeof value?.text === 'string' ? value.text : '');
+            return (
+              <div key={index} className="sp-fill-sentence-row">
+                <span className="sp-fill-num">{index + 1}.</span>
+                <div className="sp-fill-sentence-content">
+                  <InlineBlankItem
+                    sentence={item}
+                    answer={currentAns}
+                    onChange={(text) => {
+                      const next = Array.isArray(value?.items) ? [...value.items] : [];
+                      next[index] = text;
+                      onChange?.({ type: question.type, items: next, text: next.join(', ') });
+                    }}
+                    readOnly={readOnly}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -219,23 +308,27 @@ export function StudentAnswerCard({ question, value, onChange, readOnly = false 
           <div className="sp-sq-label-inputs">
             {(question.labelMarkers ?? [])
               .map((_, index) => index)
-              .map((index) => (
-                <div key={index} className="sp-sq-label-row">
-                  <span className="sp-sq-label-no">{index + 1}.</span>
-                  <MathTextArea
-                    compact
-                    rows={1}
-                    value={items[index] ?? ''}
-                    onChange={(text) => {
-                      const next = Array.isArray(value?.items) ? [...value.items] : [];
-                      next[index] = text;
-                      onChange?.({ type: question.type, items: next });
-                    }}
-                    placeholder="Label…"
-                    readOnly={readOnly}
-                  />
-                </div>
-              ))}
+              .map((index) => {
+                const currentLabel = Array.isArray(value?.items) ? (value.items[index] ?? '') : '';
+                return (
+                  <div key={index} className="sp-sq-label-row">
+                    <span className="sp-sq-label-no">{index + 1}.</span>
+                    <input
+                      type="text"
+                      className="sp-inline-blank-input"
+                      style={{ minWidth: '180px', textAlign: 'left' }}
+                      value={currentLabel}
+                      onChange={(e) => {
+                        const next = Array.isArray(value?.items) ? [...value.items] : [];
+                        next[index] = e.target.value;
+                        onChange?.({ type: question.type, items: next });
+                      }}
+                      placeholder="Type label name…"
+                      disabled={readOnly}
+                    />
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

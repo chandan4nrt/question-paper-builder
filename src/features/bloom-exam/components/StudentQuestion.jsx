@@ -1,5 +1,6 @@
 import { BloomLevelBadge } from './BloomLevelBadge';
 import { QUESTION_TYPE_CONFIG } from '../bloom';
+import { MarkdownText } from '../../set-paper/components/MarkdownText';
 
 export function StudentQuestion({ question, index, value, onChange, result, showBloom = true }) {
   const typeConfig = QUESTION_TYPE_CONFIG.find((type) => type.id === question.type);
@@ -23,7 +24,9 @@ export function StudentQuestion({ question, index, value, onChange, result, show
         <span className="be-mark-pill">{question.marks} mark{question.marks === 1 ? '' : 's'}</span>
       </header>
 
-      <p className="be-student-question">{question.text}</p>
+      <div className="be-student-question">
+        <MarkdownText>{question.text}</MarkdownText>
+      </div>
 
       {question.type === 'mcq' && (
         <div className="be-student-options">
@@ -45,7 +48,7 @@ export function StudentQuestion({ question, index, value, onChange, result, show
                 disabled={Boolean(result)}
               >
                 <span className="be-student-option-letter">{String.fromCharCode(65 + optionIndex)}</span>
-                <span>{option.label}</span>
+                <span><MarkdownText inline>{option.label}</MarkdownText></span>
                 {result && isCorrect && <span className="be-student-icon">✓</span>}
               </button>
             );

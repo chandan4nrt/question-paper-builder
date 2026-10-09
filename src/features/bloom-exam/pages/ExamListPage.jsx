@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { Pencil, LayoutDashboard, Trash2, Sparkles, Link2, Check, Eye } from 'lucide-react';
 import { listExams, deleteExam, saveExam } from '../storage';
 import { copyTextToClipboard } from '../copy';
@@ -70,11 +71,17 @@ function ExamCard({ exam, onDelete, onUpdate }) {
           className="btn-secondary btn-sm"
           onClick={() => {
             const published = exam.status === 'published';
+            const qCount = exam.questions?.length ?? 0;
+            if (!published && qCount === 0) {
+              toast.error('Cannot publish exam: Please add at least one question to the exam before publishing.');
+              return;
+            }
             onUpdate({
               ...exam,
               status: published ? 'draft' : 'published',
               publishedAt: published ? null : new Date().toISOString(),
             });
+            toast.success(published ? 'Exam unpublished.' : 'Exam published successfully.');
           }}
         >
           {exam.status === 'published' ? (

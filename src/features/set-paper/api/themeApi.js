@@ -1,7 +1,7 @@
 import { api } from '../../../services/api';
 import { QUESTION_TYPES } from '../types';
 
-const BASE = '/question-papers/theme';
+const BASE = import.meta.env.VITE_THEME_API_URL ?? '/api/v4/question-papers/theme';
 
 const FRONTEND_TO_BACKEND = {
   [QUESTION_TYPES.NORMAL]: 'normal',
@@ -54,35 +54,67 @@ export function backendQuestionType(type) {
 }
 
 export function serializeTheme(theme) {
-  const isNewTheme =
-    !(Number.isInteger(theme.themeId) && theme.themeId > 0) &&
-    !(Number.isInteger(Number(theme.id)) && Number(theme.id) > 0);
-  const themeId = isNewTheme ? null : Number(theme.themeId ?? theme.id);
-  const questionId = (id, index) => (isNewTheme ? null : Number.isInteger(id) && id > 0 ? id : index + 1);
-  const existing = Array.isArray(theme.themeTypes) ? theme.themeTypes : [];
-  return {
-    themeId,
-    themeName: theme.name ?? '',
-    themeDescription: theme.description ?? '',
-    themeTypes: (theme.questions ?? []).map((q, index) => {
-      const found = existing.find((e) => backendQuestionType(e.quesType) === q.type);
-      return {
-        id: questionId(found?.id, index),
-        quesType: backendQuestionType(q.type),
+  if (!theme || typeof theme !== 'object') return {};
+
+  const themeId = theme.themeId ?? theme.id;
+  const isExisting = Number.isInteger(Number(themeId)) && Number(themeId) > 0;
+  const idNum = isExisting ? Number(themeId) : null;
+
+  const existingTypes = Array.isArray(theme.themeTypes) ? theme.themeTypes : [];
+
+  let themeTypes = [];
+  if (Array.isArray(theme.questions) && theme.questions.length > 0) {
+    themeTypes = theme.questions.map((q) => {
+      const bType = backendQuestionType(q.type);
+      const found = existingTypes.find(
+        (e) => normalizeType(e.quesType) === q.type || e.quesType === bType
+      );
+
+      const item = {
+        quesType: bType,
         totalQuesInType: Number(q.count) || 0,
         totalMarksInType: Number(q.marks) || 0,
-        active: found?.active ?? true,
       };
-    }),
-    active: true,
-    createdAt: theme.createdAt ?? null,
-    updatedAt: theme.updatedAt ?? null,
+
+      if (!isExisting) {
+        item.active = true;
+      } else {
+        if (found?.id) item.id = found.id;
+        item.active = found?.active ?? true;
+      }
+
+      return item;
+    });
+  } else if (Array.isArray(theme.themeTypes) && theme.themeTypes.length > 0) {
+    themeTypes = theme.themeTypes.map((t) => ({
+      quesType: t.quesType,
+      totalQuesInType: Number(t.totalQuesInType) || 0,
+      totalMarksInType: Number(t.totalMarksInType) || 0,
+      ...(t.id ? { id: t.id } : {}),
+      active: t.active ?? true,
+    }));
+  }
+
+  const payload = {
+    themeName: theme.name ?? theme.themeName ?? '',
+    themeDescription: theme.description ?? theme.themeDescription ?? '',
+    themeTypes,
   };
+
+  if (isExisting && idNum) {
+    payload.themeId = idNum;
+    payload.active = theme.active ?? true;
+    if (theme.createdAt) payload.createdAt = theme.createdAt;
+    if (theme.updatedAt) payload.updatedAt = theme.updatedAt;
+  }
+
+  return payload;
 }
 
 export function deserializeTheme(raw) {
   if (!raw || typeof raw !== 'object') return null;
-  const themeTypes = Array.isArray(raw.themeTypes) ? raw.themeTypes : [];
+  const rawTheme = raw.data ?? raw;
+  const themeTypes = Array.isArray(rawTheme.themeTypes) ? rawTheme.themeTypes : [];
   const questions = themeTypes
     .filter((t) => Number(t.totalQuesInType) > 0)
     .map((t) => ({
@@ -91,18 +123,41 @@ export function deserializeTheme(raw) {
       marks: Number(t.totalMarksInType) || 0,
     }));
   return {
-    id: raw.themeId ?? raw.id,
-    themeId: raw.themeId,
-    name: raw.themeName ?? raw.name ?? 'Untitled Theme',
-    description: raw.themeDescription ?? raw.description ?? '',
+    id: rawTheme.themeId ?? rawTheme.id,
+    themeId: rawTheme.themeId ?? rawTheme.id,
+    name: rawTheme.themeName ?? rawTheme.name ?? 'Untitled Theme',
+    description: rawTheme.themeDescription ?? rawTheme.description ?? '',
     questions,
-    createdAt: raw.createdAt ?? null,
-    updatedAt: raw.updatedAt ?? null,
+    themeTypes: rawTheme.themeTypes ?? [],
+    active: rawTheme.active ?? true,
+    createdAt: rawTheme.createdAt ?? null,
+    updatedAt: rawTheme.updatedAt ?? null,
   };
 }
 
+export async function createTheme(theme) {
+  const payload = serializeTheme(theme);
+  const { data } = await api.post(BASE, payload);
+  return data;
+}
+
+export async function updateTheme(theme) {
+  const payload = serializeTheme(theme);
+  const themeId = payload.themeId ?? theme?.themeId ?? theme?.id;
+  const url = themeId ? `${BASE}?id=${themeId}` : BASE;
+  const { data } = await api.put(url, payload);
+  return data;
+}
+
 export async function saveTheme(theme) {
-  const { data } = await api.post(BASE, serializeTheme(theme));
+  const payload = serializeTheme(theme);
+  const themeId = payload.themeId ?? theme?.themeId ?? theme?.id;
+  const isExisting = Number.isInteger(Number(themeId)) && Number(themeId) > 0;
+  if (isExisting) {
+    const { data } = await api.put(`${BASE}?id=${themeId}`, payload);
+    return data;
+  }
+  const { data } = await api.post(BASE, payload);
   return data;
 }
 
@@ -114,5 +169,10 @@ export async function listThemes() {
 }
 
 export async function deleteTheme(themeId) {
-  await api.delete(`${BASE}/${themeId}`);
+  if (!themeId) return;
+  try {
+    await api.delete(`${BASE}?id=${themeId}`);
+  } catch {
+    await api.delete(`${BASE}/${themeId}`);
+  }
 }

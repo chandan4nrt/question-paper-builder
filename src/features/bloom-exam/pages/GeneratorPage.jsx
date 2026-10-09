@@ -1,6 +1,20 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Loader2, AlertTriangle, LayoutDashboard, Upload, ImagePlus, FileText, Trash2 } from 'lucide-react';
+import {
+  Sparkles,
+  Loader2,
+  AlertTriangle,
+  LayoutDashboard,
+  Upload,
+  X,
+  FileText,
+  Image as ImageIcon,
+  CheckCircle2,
+  ListOrdered,
+  ArrowRight,
+  RefreshCw,
+  Eye,
+} from 'lucide-react';
 import {
   BLOOM_LEVELS,
   BLOOM_IDS,
@@ -16,14 +30,11 @@ import {
 } from '../bloom';
 import { generateExam } from '../generation';
 import { makeExamId, saveExam } from '../storage';
-import { MAX_FILE_SIZE } from '../../set-paper/aiGeneration';
-import { extractGenerationError } from '../../../services/generationApi';
 import { BlueprintChart } from '../components/BlueprintChart';
+import { BloomLevelBadge } from '../components/BloomLevelBadge';
+import { MarkdownText } from '../../set-paper/components/MarkdownText';
 
-function formatBytes(bytes) {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / 1024).toFixed(0)} KB`;
-}
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
 const PRESETS = [
   {
@@ -53,24 +64,65 @@ export function GeneratorPage() {
     sourceText: '',
     difficulty: 'medium',
     extraInstructions: '',
+    images: [],
+    pdf: null,
     typeCounts: defaultTypeCounts(),
     typeMarks: defaultTypeMarks(),
     blueprint: defaultBlueprint(),
   });
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState('');
-  const [images, setImages] = useState([]);
-  const [pdf, setPdf] = useState(null);
   const [fileError, setFileError] = useState('');
-  const [generateError, setGenerateError] = useState('');
+  const [genError, setGenError] = useState('');
+  const [generatedExam, setGeneratedExam] = useState(null);
+  const [rightSideTab, setRightSideTab] = useState('blueprint'); // 'blueprint' | 'questions'
 
   const numQuestions = totalQuestions(config.typeCounts);
   const marks = totalMarks(config.typeCounts, config.typeMarks);
   const bloomSum = blueprintTotal(config.blueprint);
   const blueprintValid = bloomSum === 100;
-  const hasFiles = images.length > 0 || Boolean(pdf);
-  const hasContent = Boolean(config.topic.trim()) || Boolean(config.sourceText.trim()) || hasFiles;
+  const hasContent =
+    Boolean(config.topic.trim()) ||
+    Boolean(config.sourceText.trim()) ||
+    (config.images && config.images.length > 0) ||
+    Boolean(config.pdf);
   const canGenerate = !generating && numQuestions > 0 && blueprintValid && hasContent;
+
+  function handleAddImages(fileList) {
+    setFileError('');
+    const files = Array.from(fileList ?? []);
+    if (files.length === 0) return;
+    const oversized = files.filter((file) => file.size > MAX_FILE_SIZE);
+    if (oversized.length > 0) {
+      setFileError(`Image "${oversized[0].name}" exceeds the 20 MB limit.`);
+      return;
+    }
+    patch({ images: [...(config.images ?? []), ...files] });
+  }
+
+  function handleRemoveImage(index) {
+    const next = [...(config.images ?? [])];
+    next.splice(index, 1);
+    patch({ images: next });
+  }
+
+  function handleAddPdf(file) {
+    setFileError('');
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError(`PDF "${file.name}" exceeds the 20 MB limit.`);
+      return;
+    }
+    if (file.type !== 'application/pdf') {
+      setFileError('Only PDF files are allowed.');
+      return;
+    }
+    patch({ pdf: file });
+  }
+
+  function handleRemovePdf() {
+    patch({ pdf: null });
+  }
 
   const chartData = useMemo(() => blueprintChartData(config.blueprint, numQuestions), [config.blueprint, numQuestions]);
 
@@ -106,49 +158,13 @@ export function GeneratorPage() {
     patch({ blueprint: { ...config.blueprint, [id]: next } });
   }
 
-  function handleAddImages(fileList) {
-    const files = Array.from(fileList ?? []);
-    if (files.length === 0) return;
-    const oversized = files.find((file) => file.size > MAX_FILE_SIZE);
-    if (oversized) {
-      setFileError(`Image "${oversized.name}" exceeds the ${MAX_FILE_SIZE / (1024 * 1024)} MB limit.`);
-      return;
-    }
-    setFileError('');
-    setImages((prev) => [...prev, ...files]);
-  }
-
-  function handleAddPdf(file) {
-    if (!file) return;
-    if (file.type !== 'application/pdf') {
-      setFileError('Only PDF files are allowed.');
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      setFileError(`PDF "${file.name}" exceeds the ${MAX_FILE_SIZE / (1024 * 1024)} MB limit.`);
-      return;
-    }
-    setFileError('');
-    setPdf(file);
-  }
-
-  function clearFiles() {
-    setImages([]);
-    setPdf(null);
-    setFileError('');
-  }
-
   async function handleGenerate() {
     if (!canGenerate) return;
     setGenerating(true);
     setStatus('');
-    setGenerateError('');
+    setGenError('');
     try {
-      const result = await generateExam(config, {
-        onStatus: (text) => setStatus(text),
-        images,
-        pdf,
-      });
+      const result = await generateExam(config, { onStatus: (text) => setStatus(text) });
       const exam = {
         examId: makeExamId(),
         title: config.title.trim() || `${config.topic.trim() || config.subject.trim() || 'Assessment'}`,
@@ -162,12 +178,6 @@ export function GeneratorPage() {
           typeCounts: config.typeCounts,
           typeMarks: config.typeMarks,
           blueprint: config.blueprint,
-          // Metadata only: the File objects cannot be serialised into
-          // localStorage and the backend is stateless per request.
-          sourceDocuments: [
-            ...images.map((file) => ({ name: file.name, size: file.size, type: file.type })),
-            ...(pdf ? [{ name: pdf.name, size: pdf.size, type: pdf.type }] : []),
-          ],
         },
         numQuestions: result.questions.length,
         totalMarks: result.questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0),
@@ -178,9 +188,10 @@ export function GeneratorPage() {
         createdAt: new Date().toISOString(),
       };
       saveExam(exam);
-      navigate(`/staff/bloom-generator/review/${exam.examId}`);
-    } catch (error) {
-      setGenerateError(extractGenerationError(error));
+      setGeneratedExam(exam);
+      setRightSideTab('questions');
+    } catch (err) {
+      setGenError(err?.message || 'Failed to generate questions using AI. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -255,83 +266,121 @@ export function GeneratorPage() {
           </label>
 
           <div className="be-field">
-            <span>Syllabus / reference files (optional)</span>
-            <div className="sp-ai-upload-row">
-              <label className="sp-ai-upload-btn">
-                <Upload size={15} />
-                <span>Add image(s)</span>
+            <span>Reference material (optional) — max 20 MB per file</span>
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center', marginTop: '0.35rem' }}>
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: 8,
+                  border: '1px dashed #cbd5e1',
+                  background: '#f8fafc',
+                  fontSize: '0.82rem',
+                  fontWeight: 500,
+                  color: '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Upload size={14} /> Upload image(s)
                 <input
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(e) => {
-                    handleAddImages(e.target.files);
-                    e.target.value = '';
-                  }}
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleAddImages(e.target.files)}
                 />
               </label>
-              <label className="sp-ai-upload-btn">
-                <Upload size={15} />
-                <span>Add PDF</span>
+
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: 8,
+                  border: '1px dashed #cbd5e1',
+                  background: '#f8fafc',
+                  fontSize: '0.82rem',
+                  fontWeight: 500,
+                  color: '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Upload size={14} /> Upload PDF
                 <input
                   type="file"
                   accept="application/pdf"
-                  onChange={(e) => {
-                    handleAddPdf(e.target.files?.[0]);
-                    e.target.value = '';
-                  }}
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleAddPdf(e.target.files?.[0])}
                 />
               </label>
-              {hasFiles && (
-                <button type="button" className="sp-ai-upload-btn" onClick={clearFiles} disabled={generating}>
-                  <Trash2 size={15} />
-                  <span>Clear files</span>
-                </button>
-              )}
             </div>
-            <p className="help-text" style={{ marginTop: '0.4rem' }}>
-              Upload the syllabus, chapter PDF or diagram the questions must follow — max {MAX_FILE_SIZE / (1024 * 1024)} MB
-              per file. Files are sent with the generation request only and are not stored with the exam.
-            </p>
 
-            {hasFiles && (
-              <div className="sp-ai-upload-list">
-                {images.map((file, index) => (
-                  <div key={`${file.name}-${index}`} className="sp-ai-upload-item">
-                    <ImagePlus size={14} />
-                    <span className="sp-ai-upload-name" title={file.name}>{file.name}</span>
-                    <span className="sp-ai-upload-size">{formatBytes(file.size)}</span>
+            {((config.images && config.images.length > 0) || config.pdf) && (
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.6rem' }}>
+                {(config.images ?? []).map((file, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: 6,
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      fontSize: '0.78rem',
+                      color: '#1e40af',
+                    }}
+                  >
+                    <ImageIcon size={13} />
+                    <span>{file.name}</span>
                     <button
                       type="button"
-                      className="sp-ai-upload-remove"
-                      onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
-                      disabled={generating}
-                      aria-label="Remove image"
+                      onClick={() => handleRemoveImage(idx)}
+                      style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', color: '#1e40af', display: 'flex' }}
                     >
-                      <Trash2 size={13} />
+                      <X size={12} />
                     </button>
                   </div>
                 ))}
-                {pdf && (
-                  <div className="sp-ai-upload-item">
-                    <FileText size={14} />
-                    <span className="sp-ai-upload-name" title={pdf.name}>{pdf.name}</span>
-                    <span className="sp-ai-upload-size">{formatBytes(pdf.size)}</span>
+                {config.pdf && (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: 6,
+                      background: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      fontSize: '0.78rem',
+                      color: '#991b1b',
+                    }}
+                  >
+                    <FileText size={13} />
+                    <span>{config.pdf.name}</span>
                     <button
                       type="button"
-                      className="sp-ai-upload-remove"
-                      onClick={() => setPdf(null)}
-                      disabled={generating}
-                      aria-label="Remove PDF"
+                      onClick={handleRemovePdf}
+                      style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', color: '#991b1b', display: 'flex' }}
                     >
-                      <Trash2 size={13} />
+                      <X size={12} />
                     </button>
                   </div>
                 )}
               </div>
             )}
 
-            {fileError && <div className="alert alert-error" style={{ marginTop: '0.5rem' }}>{fileError}</div>}
+            {fileError && (
+              <div className="alert alert-error" style={{ marginTop: '0.5rem', padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}>
+                {fileError}
+              </div>
+            )}
           </div>
 
           <div className="be-section-title-small">Question types</div>
@@ -395,7 +444,7 @@ export function GeneratorPage() {
           <div className="be-blank" />
 
           {!hasContent && (
-            <div className="alert alert-warning">Add a topic, source/domain text or a reference file to generate questions.</div>
+            <div className="alert alert-warning">Add a topic, source text, image, or PDF reference material to generate questions.</div>
           )}
           {!blueprintValid && (
             <div className="alert alert-warning">
@@ -403,8 +452,12 @@ export function GeneratorPage() {
               Bloom's blueprint must total <strong>100%</strong> (currently {bloomSum}%).
             </div>
           )}
-          {generateError && (
-            <div className="alert alert-error">{generateError}</div>
+
+          {genError && (
+            <div className="alert alert-error" style={{ marginBottom: '1rem', padding: '0.6rem 0.8rem', fontSize: '0.85rem' }}>
+              <AlertTriangle size={14} style={{ verticalAlign: 'middle', marginRight: '0.35rem' }} />
+              {genError}
+            </div>
           )}
 
           <div className="be-generate-row">
@@ -416,66 +469,337 @@ export function GeneratorPage() {
         </section>
 
         <aside className="be-blueprint-panel">
-          <div className="be-section-title">
-            <Sparkles size={15} /> Assessment blueprint
-          </div>
-          <p className="help-text">
-            Percentage distribution of questions across Bloom's cognitive levels. Tune the sliders below — the chart
-            updates before the exam is generated.
-          </p>
+          {generatedExam && (
+            <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+              <button
+                type="button"
+                className={`btn-secondary btn-sm ${rightSideTab === 'blueprint' ? 'active' : ''}`}
+                style={{ flex: 1, fontWeight: rightSideTab === 'blueprint' ? 700 : 500 }}
+                onClick={() => setRightSideTab('blueprint')}
+              >
+                Blueprint
+              </button>
+              <button
+                type="button"
+                className={`btn-secondary btn-sm ${rightSideTab === 'questions' ? 'active' : ''}`}
+                style={{ flex: 1, fontWeight: rightSideTab === 'questions' ? 700 : 500, background: rightSideTab === 'questions' ? '#f0fdf4' : undefined, color: rightSideTab === 'questions' ? '#166534' : undefined }}
+                onClick={() => setRightSideTab('questions')}
+              >
+                Questions ({generatedExam.questions.length})
+              </button>
+            </div>
+          )}
 
-          <div className="be-blueprint-editors">
-            {BLOOM_IDS.map((id) => {
-              const level = BLOOM_LEVELS.find((l) => l.id === id);
-              const value = Number(config.blueprint[id]) || 0;
-              return (
-                <Fragment key={id}>
-                  <div className="be-level-editor">
-                    <span className="be-level-dot" style={{ background: level.color }} />
-                    <span className="be-level-label">{level.label}</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={value}
-                      onChange={(e) => setBloom(id, e.target.value)}
-                      style={{ accentColor: level.color }}
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={value}
-                      onChange={(e) => setBloom(id, e.target.value)}
-                      className="be-pct-input"
-                    />
-                    <span className="be-pct-symbol">%</span>
-                  </div>
-                </Fragment>
-              );
-            })}
-          </div>
+          {rightSideTab === 'questions' && generatedExam ? (
+            <div>
+              <div className="be-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span><ListOrdered size={15} /> Question Menu</span>
+                <span className="be-meta-pill" style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#15803d', fontWeight: 700 }}>
+                  {generatedExam.questions.length} Items
+                </span>
+              </div>
+              <p className="help-text">Click any question to view details below or open full review.</p>
 
-          <div className={`be-blueprint-total ${blueprintValid ? 'be-blueprint-ok' : 'be-blueprint-bad'}`}>
-            Total: <strong>{bloomSum}%</strong> {blueprintValid ? '· ready to generate' : '· must equal 100%'}
-          </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '420px', overflowY: 'auto', margin: '0.75rem 0' }}>
+                {generatedExam.questions.map((q, idx) => (
+                  <a
+                    key={q.id || idx}
+                    href={`#gen-q-${idx}`}
+                    style={{
+                      padding: '0.55rem 0.75rem',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <strong style={{ color: '#1e293b', minWidth: '1.4rem' }}>Q{idx + 1}</strong>
+                    <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#334155' }}>
+                      {q.text}
+                    </span>
+                    <BloomLevelBadge level={q.bloomLevel} />
+                  </a>
+                ))}
+              </div>
 
-          <div className="be-blueprint-chart-box">
-            <BlueprintChart data={chartData} legend={legend} />
-          </div>
+              <button
+                type="button"
+                className="be-generate-btn"
+                style={{ width: '100%', marginTop: '0.5rem', fontSize: '0.88rem' }}
+                onClick={() => navigate(`/staff/bloom-generator/review/${generatedExam.examId}`)}
+              >
+                Review & Publish <ArrowRight size={14} style={{ verticalAlign: 'middle', marginLeft: '4px' }} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="be-section-title">
+                <Sparkles size={15} /> Assessment blueprint
+              </div>
+              <p className="help-text">
+                Percentage distribution of questions across Bloom's cognitive levels. Tune the sliders below — the chart
+                updates before the exam is generated.
+              </p>
 
-          <div className="be-summary-strip">
-            <div><strong>{numQuestions}</strong><span>questions</span></div>
-            <div><strong>{marks}</strong><span>marks</span></div>
-            {numQuestions > 0 && (
-              <div><strong>{(marks / numQuestions).toFixed(1)}</strong><span>avg marks</span></div>
-            )}
-          </div>
+              <div className="be-blueprint-editors">
+                {BLOOM_IDS.map((id) => {
+                  const level = BLOOM_LEVELS.find((l) => l.id === id);
+                  const value = Number(config.blueprint[id]) || 0;
+                  return (
+                    <Fragment key={id}>
+                      <div className="be-level-editor">
+                        <span className="be-level-dot" style={{ background: level.color }} />
+                        <span className="be-level-label">{level.label}</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={value}
+                          onChange={(e) => setBloom(id, e.target.value)}
+                          style={{ accentColor: level.color }}
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={value}
+                          onChange={(e) => setBloom(id, e.target.value)}
+                          className="be-pct-input"
+                        />
+                        <span className="be-pct-symbol">%</span>
+                      </div>
+                    </Fragment>
+                  );
+                })}
+              </div>
+
+              <div className={`be-blueprint-total ${blueprintValid ? 'be-blueprint-ok' : 'be-blueprint-bad'}`}>
+                Total: <strong>{bloomSum}%</strong> {blueprintValid ? '· ready to generate' : '· must equal 100%'}
+              </div>
+
+              <div className="be-blueprint-chart-box">
+                <BlueprintChart data={chartData} legend={legend} />
+              </div>
+
+              <div className="be-summary-strip">
+                <div><strong>{numQuestions}</strong><span>questions</span></div>
+                <div><strong>{marks}</strong><span>marks</span></div>
+                {numQuestions > 0 && (
+                  <div><strong>{(marks / numQuestions).toFixed(1)}</strong><span>avg marks</span></div>
+                )}
+              </div>
+            </>
+          )}
         </aside>
       </div>
 
+      {/* GENERATED QUESTIONS MENU & SHOWCASE CARD ON GENERATOR PAGE */}
+      {generatedExam && (
+        <section
+          style={{
+            marginTop: '2rem',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+          }}
+        >
+          <header
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '1.25rem',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+              borderBottom: '1px solid #e2e8f0',
+              paddingBottom: '1rem',
+            }}
+          >
+            <div>
+              <h2
+                style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                }}
+              >
+                <CheckCircle2 size={22} color="#16a34a" /> Generated Questions List ({generatedExam.questions.length})
+              </h2>
+              <p className="muted" style={{ fontSize: '0.85rem', margin: '0.25rem 0 0 0' }}>
+                {generatedExam.title} · {generatedExam.totalMarks} total marks · {[generatedExam.config?.subject, generatedExam.config?.gradeLevel].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={() => setGeneratedExam(null)}
+              >
+                <RefreshCw size={13} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                Generate New
+              </button>
+              <button
+                type="button"
+                className="be-generate-btn"
+                style={{ padding: '0.5rem 1.1rem', fontSize: '0.88rem' }}
+                onClick={() => navigate(`/staff/bloom-generator/review/${generatedExam.examId}`)}
+              >
+                Open Full Review & Publish <ArrowRight size={14} style={{ verticalAlign: 'middle', marginLeft: '4px' }} />
+              </button>
+            </div>
+          </header>
+
+          <div className="be-review-list" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {generatedExam.questions.map((question, index) => (
+              <article
+                id={`gen-q-${index}`}
+                key={question.id || index}
+                className="be-review-card"
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '1.25rem',
+                }}
+              >
+                <header
+                  className="be-review-head"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    marginBottom: '0.85rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span className="be-q-no" style={{ fontWeight: 800, color: '#1e293b' }}>
+                    Q{index + 1}
+                  </span>
+                  <span className="be-type-chip">
+                    {QUESTION_TYPE_CONFIG.find((t) => t.id === question.type)?.label ?? question.type}
+                  </span>
+                  <BloomLevelBadge level={question.bloomLevel} />
+                  <span style={{ flex: 1 }} />
+                  <span className="be-mark-pill">
+                    {question.marks} mark{question.marks === 1 ? '' : 's'}
+                  </span>
+                </header>
+
+                <div className="be-review-body">
+                  <div
+                    style={{
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      marginBottom: '0.75rem',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <MarkdownText>{question.text}</MarkdownText>
+                  </div>
+
+                  {question.type === 'mcq' && Array.isArray(question.options) && (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                        gap: '0.6rem',
+                        marginTop: '0.6rem',
+                      }}
+                    >
+                      {question.options.map((opt, oi) => {
+                        const isCorrect = question.correctOptionId === opt.id;
+                        return (
+                          <div
+                            key={opt.id || oi}
+                            style={{
+                              padding: '0.55rem 0.85rem',
+                              borderRadius: '6px',
+                              fontSize: '0.88rem',
+                              background: isCorrect ? '#f0fdf4' : '#ffffff',
+                              border: isCorrect ? '1.5px solid #22c55e' : '1px solid #cbd5e1',
+                              color: isCorrect ? '#15803d' : '#334155',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                            }}
+                          >
+                            <strong style={{ opacity: 0.7 }}>
+                              {String.fromCharCode(65 + oi)}.
+                            </strong>
+                            <MarkdownText inline>{opt.label}</MarkdownText>
+                            {isCorrect && (
+                              <span
+                                style={{
+                                  marginLeft: 'auto',
+                                  fontWeight: 700,
+                                  fontSize: '0.75rem',
+                                  color: '#16a34a',
+                                }}
+                              >
+                                ✓ Correct
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {question.expectedAnswer && (
+                    <div
+                      style={{
+                        marginTop: '0.75rem',
+                        fontSize: '0.88rem',
+                        background: '#ffffff',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        color: '#1e293b',
+                      }}
+                    >
+                      <strong style={{ color: '#0f172a' }}>Expected Answer: </strong>
+                      <MarkdownText inline>{question.expectedAnswer}</MarkdownText>
+                    </div>
+                  )}
+
+                  {question.explanation && (
+                    <div
+                      style={{
+                        marginTop: '0.75rem',
+                        fontSize: '0.85rem',
+                        background: '#eff6ff',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '6px',
+                        borderLeft: '4px solid #3b82f6',
+                        color: '#1e40af',
+                      }}
+                    >
+                      <strong>Explanation: </strong>
+                      <MarkdownText inline>{question.explanation}</MarkdownText>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

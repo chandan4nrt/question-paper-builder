@@ -9,7 +9,7 @@ import { ThemePanel } from "../components/ThemePanel";
 import { exportToPDF } from "../helpers";
 import { useSetPaper, useUpdatePaper, useListPapers, usePublishPaper } from "../hooks/useQuestionPapers";
 import { extractErrorMessage } from "../../../services/api";
-import { buildSetPaperFormData, buildPublishPayload } from "../serializePaper";
+import { buildSetPaperFormData } from "../serializePaper";
 import { deserializePaper } from "../deserializePaper";
 import { consumePendingQuestions } from "../pendingQuestions";
 
@@ -24,6 +24,14 @@ function waitForPrintArea() {
     };
     check();
   });
+}
+
+function buildStudentLink(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  if (/^https?:\/\//.test(raw)) return raw;
+  if (raw.startsWith("/")) return `${window.location.origin}${raw}`;
+  return `${window.location.origin}/paper/${raw}`;
 }
 
 export function SetPaperPage() {
@@ -52,7 +60,11 @@ function PaperBuilder({ paperId }) {
   const saveMutation = paperId ? updatePaperMutation : setPaperMutation;
 
   const loadedPaper = paperId
-    ? papersQuery.data?.find((p) => p.paperId === paperId)
+    ? papersQuery.data?.find(
+        (p) =>
+          String(p.paperId ?? p.id ?? p.paper_id ?? p.uuid ?? "").trim() ===
+          String(paperId).trim()
+      )
     : undefined;
 
   useEffect(() => {
@@ -108,13 +120,21 @@ function PaperBuilder({ paperId }) {
     console.log("Payload items:", payload.template.questions);
     const onSuccess = (response) => {
       const savedId = response?.paperId ?? paperId;
-      const link = savedId ? `${window.location.origin}/paper/${savedId}` : null;
+      const isPublished = state.published === true;
+      const backendLink =
+        response?.publishLink ?? state.publish_link ?? state.publishLink ?? null;
+      const link =
+        isPublished && backendLink
+          ? buildStudentLink(backendLink)
+          : isPublished && savedId
+            ? `${window.location.origin}/paper/${savedId}`
+            : null;
       flashToast(
         link
           ? `✅ Paper saved successfully (${savedId}). Student link: ${link}`
           : `✅ Paper saved successfully (${savedId}).`,
       );
-      if (!paperId) navigate("/staff/paper-builder");
+      navigate("/staff/paper-builder");
     };
     const onError = (error) => {
       flashToast(`❌ Failed to save paper: ${extractErrorMessage(error)}`);
@@ -128,6 +148,11 @@ function PaperBuilder({ paperId }) {
 
   function handleTogglePublished() {
     const willPublish = !state.published;
+    const questionsCount = state.questions?.length ?? 0;
+    if (willPublish && questionsCount === 0) {
+      flashToast("⚠️ Cannot publish paper: Please add at least one question to the paper before publishing.");
+      return;
+    }
     if (!paperId) {
       dispatch({ type: "SET_PUBLISHED", payload: willPublish });
       return;
@@ -135,18 +160,24 @@ function PaperBuilder({ paperId }) {
     const previous = state.published;
     dispatch({ type: "SET_PUBLISHED", payload: willPublish });
     publishMutation.mutate(
+      { paperId },
       {
-        paperId,
-        payload: buildPublishPayload(
-          { ...loadedPaper, published: previous, publishedAt: state.publishedAt },
-          willPublish,
-        ),
-      },
-      {
-        onSuccess: () => {
+        onSuccess: (response) => {
+          dispatch({
+            type: "SET_PUBLISHED",
+            payload: {
+              published: willPublish,
+              publishLink: response?.publishLink ?? null,
+            },
+          });
+          const link = response?.publishLink
+            ? buildStudentLink(response.publishLink)
+            : null;
           flashToast(
             willPublish
-              ? "✅ Paper published. Students can now take it."
+              ? (link
+                  ? `✅ Paper published. Student link: ${link}`
+                  : "✅ Paper published. Students can now take it.")
               : "✅ Paper unpublished. Students can no longer take it.",
           );
         },
@@ -205,14 +236,16 @@ function PaperBuilder({ paperId }) {
             type="button"
             className="sp-tab sp-tab-save"
             onClick={handleSetPaper}
-            disabled={activeTab !== "preview" || saveMutation.isPending}
+            disabled={saveMutation.isPending}
           >
             {saveMutation.isPending ? (
               <Loader2 size={15} className="sp-spin" />
             ) : (
               <Upload size={15} />
             )}
-            {saveMutation.isPending ? "Saving..." : "Save Paper"}
+            {saveMutation.isPending
+              ? (paperId ? "Updating..." : "Saving...")
+              : (paperId ? "Update Paper" : "Save Paper")}
           </button>
           <button
             type="button"
