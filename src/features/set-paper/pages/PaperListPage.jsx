@@ -361,18 +361,19 @@ export function PaperListPage() {
                   </button>
 
                   {/* Student Link */}
-                  {isPublished && studentLink && (
+                  {isPublished && (
                     <button
                       type="button"
                       className="sp-tab"
                       onClick={() =>
-                        copyStudentLink(
-                          studentLink,
-                          paper.paperId,
-                        )
+                        studentLink &&
+                        copyStudentLink(studentLink, paper.paperId)
                       }
+                      disabled={!studentLink}
                       title={
-                        isCopied
+                        !studentLink
+                          ? 'Student link is unavailable because the publish token was not returned.'
+                          : isCopied
                           ? 'Student link copied'
                           : 'Copy student answer link'
                       }
@@ -380,7 +381,9 @@ export function PaperListPage() {
                         fontSize: '0.82rem',
                         padding: '0.35rem 0.75rem',
                         background: '#fff',
-                        color: isCopied
+                        color: !studentLink
+                          ? '#94a3b8'
+                          : isCopied
                           ? '#16a34a'
                           : '#0f766e',
                         boxShadow:
@@ -389,7 +392,7 @@ export function PaperListPage() {
                         alignItems: 'center',
                         gap: '6px',
                         border: 'none',
-                        cursor: 'pointer',
+                        cursor: studentLink ? 'pointer' : 'not-allowed',
                       }}
                     >
                       {isCopied ? (

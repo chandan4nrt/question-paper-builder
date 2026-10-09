@@ -48,6 +48,12 @@ function resolveImageUrl(urlMap, key) {
   return key ? (urlMap[key] ?? null) : null;
 }
 
+function normalizeAnswerList(answer) {
+  if (answer == null || answer === '') return [];
+  if (Array.isArray(answer)) return answer;
+  return String(answer).split(',').map((item) => item.trim());
+}
+
 export function deserializeQuestion(raw, urlMap) {
   const id = raw.questionId ?? 0;
   const base = {
@@ -130,8 +136,12 @@ export function deserializeQuestion(raw, urlMap) {
     }
     case 'fill-in-the-blank': {
       base.type = 'fill-blank';
-      base.items = (raw.subQuestions ?? []).map((sq) => sq.subQuestion ?? '');
-      base.answers = (raw.subQuestions ?? []).map((sq) => sq.answer?.[0] ?? '');
+      base.items = (raw.subQuestions ?? []).map(
+        (sq) => sq.subQuestionTitle ?? sq.subQuestion ?? '',
+      );
+      base.answers = (raw.subQuestions ?? []).map(
+        (sq) => normalizeAnswerList(sq.answer)[0] ?? '',
+      );
       base.blankCount = base.items.length;
       break;
     }
@@ -159,8 +169,12 @@ export function deserializeQuestion(raw, urlMap) {
     }
     case 'true-false': {
       base.type = 'true-false';
-      base.items = (raw.subQuestions ?? []).map((sq) => sq.subQuestion ?? '');
-      base.answers = (raw.subQuestions ?? []).map((sq) => sq.answer?.[0] ?? '');
+      base.items = (raw.subQuestions ?? []).map(
+        (sq) => sq.subQuestionTitle ?? sq.subQuestion ?? '',
+      );
+      base.answers = (raw.subQuestions ?? []).map(
+        (sq) => normalizeAnswerList(sq.answer)[0] ?? '',
+      );
       break;
     }
     default:

@@ -63,6 +63,38 @@ function getQuestionId(q, counterRef) {
   return counterRef.current;
 }
 
+function normalizeAnswer(answer) {
+  if (answer == null || answer.length === 0) return null;
+  return Array.isArray(answer)
+    ? answer.map((item) => String(item ?? '')).join(',')
+    : String(answer);
+}
+
+function toQuestionRequest(question) {
+  const images = Object.entries(question.images ?? {}).map(
+    ([imageId, imageName]) => ({ imageId, imageName }),
+  );
+
+  return {
+    questionId: Number(question.questionId),
+    questionTitle: question.questionTitle ?? '',
+    type: question.type ?? '',
+    marks: Number(question.totalMarks ?? question.marks ?? 0),
+    answer: normalizeAnswer(question.answers ?? question.answer),
+    options: question.options ?? null,
+    subQuestions: (question.subQuestions ?? []).map((subQuestion) => ({
+      subQuestionId: Number(subQuestion.subQuestionId ?? 1),
+      subQuestionTitle:
+        subQuestion.subQuestionTitle ?? subQuestion.subQuestion ?? '',
+      marks: subQuestion.marks ?? null,
+      answer: normalizeAnswer(subQuestion.answer),
+      options: subQuestion.options ?? null,
+      images: subQuestion.images ?? null,
+    })),
+    images: images.length > 0 ? images : null,
+  };
+}
+
 export function buildSetPaperFormData(state, paperId, existingPaper) {
   const images = [];
   const usedNames = new Set();
@@ -329,13 +361,30 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     if (state.header.logoBlob) images.push({ fileName: logoFileName, blob: state.header.logoBlob });
   }
 
+  const multipartPayload = {
+    totalMarks: payload.totalMarks,
+    academicYear: payload.academicYear,
+    examBoard: payload.examBoard ?? '',
+    paperId: payload.paperId,
+    totalQuestions: payload.totalQuestions,
+    examTerm: payload.examTerm,
+    classLevel: payload.classLevel,
+    subject: payload.subject,
+    questions: mappedQuestions.map(toQuestionRequest),
+    classSection: payload.classSection,
+    title: payload.title,
+    durationInMin: payload.durationInMin,
+    numberOfSectionsInPpr: String(payload.numberOfSectionsInPpr),
+  };
+
   const formData = new FormData();
-  const jsonBlob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-  formData.append('metadata', jsonBlob);
-  formData.append('dto', jsonBlob);
-  if (payload.paperId) {
-    formData.append('paperId', payload.paperId);
-  }
+  formData.append(
+    'metadata',
+    new Blob([JSON.stringify(multipartPayload)], {
+      type: 'application/json',
+    }),
+  );
+
   for (const image of images) {
     if (image.blob) formData.append('files', image.blob, image.fileName);
   }

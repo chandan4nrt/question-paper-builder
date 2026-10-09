@@ -1,5 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '../api/questionPapersApi';
+import {
+  clearStoredPublishToken,
+  getStoredPublishToken,
+  storePublishToken,
+} from '../studentLink';
+
+function normalizePaper(paper) {
+  const paperId = paper.paperId ?? paper.id ?? paper.paper_id ?? paper.uuid;
+  const status = paper.paper_status ?? paper.paperStatus;
+  const published = status
+    ? status === 'PUBLISHED'
+    : paper.published === true;
+  const publishToken = published
+    ? paper.publish_link ||
+      paper.publishLink ||
+      getStoredPublishToken(paperId)
+    : null;
+
+  return {
+    ...paper,
+    published,
+    publish_link: publishToken,
+    publishLink: publishToken,
+  };
+}
 
 export function useSetPaper() {
   return useMutation({
@@ -23,14 +48,7 @@ export function useListPapers() {
     select: (papers) =>
       [...(papers ?? [])]
         .filter((paper) => paper.active !== false)
-        .map((paper) => ({
-          ...paper,
-          published:
-            paper.published === true ||
-            paper.paper_status === 'PUBLISHED' ||
-            paper.paperStatus === 'PUBLISHED',
-          publish_link: paper.publish_link || paper.publishLink || null,
-        }))
+        .map(normalizePaper)
         .sort(
           (a, b) =>
             parseDateValue(b.updatedAt ?? b.createdAt ?? 0) -
@@ -46,14 +64,7 @@ export function useListPapersSmart() {
     select: (papers) =>
       [...(papers ?? [])]
         .filter((paper) => paper.active !== false)
-        .map((paper) => ({
-          ...paper,
-          published:
-            paper.published === true ||
-            paper.paper_status === 'PUBLISHED' ||
-            paper.paperStatus === 'PUBLISHED',
-          publish_link: paper.publish_link || paper.publishLink || null,
-        }))
+        .map(normalizePaper)
         .sort(
           (a, b) =>
             parseDateValue(b.updatedAt ?? b.createdAt ?? 0) -
@@ -80,9 +91,6 @@ export function usePublishPaper() {
       return api.publishPaper(paperId);
     },
     onSuccess: async (response, variables) => {
-      const queryKey = ['question-papers'];
-      await queryClient.invalidateQueries({ queryKey });
-
       const linkToken = response?.publishLink ?? null;
       const paperId =
         response?.paperId ??
@@ -92,6 +100,15 @@ export function usePublishPaper() {
       const published = response?.status
         ? response.status === 'PUBLISHED'
         : Boolean(linkToken);
+
+      if (published && linkToken) {
+        storePublishToken(paperId, linkToken);
+      } else if (!published) {
+        clearStoredPublishToken(paperId);
+      }
+
+      const queryKey = ['question-papers'];
+      await queryClient.invalidateQueries({ queryKey });
       queryClient.setQueryData(queryKey, (papers) => {
         if (!Array.isArray(papers)) return papers;
         return papers.map((paper) =>

@@ -109,8 +109,7 @@ function PaperBuilder({ paperId }) {
   }
 
   function handleSetPaper() {
-    const { formData, payload } = buildSetPaperFormData(state, paperId, loadedPaper);
-    console.log("Payload items:", payload.template.questions);
+    const { formData } = buildSetPaperFormData(state, paperId, loadedPaper);
     const onSuccess = (response) => {
       const savedId = response?.paperId ?? paperId;
       const isPublished = state.published === true;
