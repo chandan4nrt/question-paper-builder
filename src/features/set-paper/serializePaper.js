@@ -260,7 +260,9 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
 
   const formData = new FormData();
   if (existingPaper) {
-    formData.append('dto', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+    const jsonBlob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    formData.append('dto', jsonBlob);
+    formData.append('metadata', jsonBlob);
     formData.append('paperId', payload.paperId);
   } else {
     formData.append('metadata', new Blob([JSON.stringify(payload)], { type: 'application/json' }));

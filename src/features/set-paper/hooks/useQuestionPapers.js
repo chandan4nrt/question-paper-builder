@@ -20,6 +20,21 @@ export function useListPapers() {
   });
 }
 
+export function useGetPaper(paperId) {
+  return useQuery({
+    queryKey: ['question-paper', paperId],
+    queryFn: async () => {
+      try {
+        return await api.getPaper(paperId);
+      } catch (err) {
+        return null;
+      }
+    },
+    enabled: Boolean(paperId && paperId !== 'new'),
+    retry: false,
+  });
+}
+
 export function useUpdatePaper() {
   const queryClient = useQueryClient();
   return useMutation({

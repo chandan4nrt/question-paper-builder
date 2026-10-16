@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Pencil, Printer, Download, Loader2, Upload } from "lucide-react";
 import { PaperProvider, usePaper } from "../context/PaperContext";
 import { EditorPage } from "./EditorPage";
@@ -7,7 +7,7 @@ import { PreviewPage } from "./PreviewPage";
 import { AddQuestionBar } from "../components/AddQuestionBar";
 import { ThemePanel } from "../components/ThemePanel";
 import { exportToPDF } from "../helpers";
-import { useSetPaper, useUpdatePaper, useListPapers } from "../hooks/useQuestionPapers";
+import { useSetPaper, useUpdatePaper, useListPapers, useGetPaper } from "../hooks/useQuestionPapers";
 import { extractErrorMessage } from "../../../services/api";
 import { buildSetPaperFormData } from "../serializePaper";
 import { deserializePaper } from "../deserializePaper";
@@ -39,19 +39,22 @@ export function SetPaperPage() {
 function PaperBuilder({ paperId }) {
   const { state, dispatch } = usePaper();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("editor");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") === "preview" ? "preview" : "editor";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [exporting, setExporting] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const setPaperMutation = useSetPaper();
   const updatePaperMutation = useUpdatePaper();
+  const paperQuery = useGetPaper(paperId);
   const papersQuery = useListPapers();
   const [loaded, setLoaded] = useState(false);
 
   const saveMutation = paperId ? updatePaperMutation : setPaperMutation;
 
   const loadedPaper = paperId
-    ? papersQuery.data?.find((p) => p.paperId === paperId)
+    ? (paperQuery.data ?? papersQuery.data?.find((p) => p.paperId === paperId))
     : undefined;
 
   useEffect(() => {
@@ -119,7 +122,8 @@ function PaperBuilder({ paperId }) {
     }
   }
 
-  if (paperId && papersQuery.isLoading) {
+  const isPaperLoading = paperId && !loadedPaper && (papersQuery.isLoading || paperQuery.isLoading);
+  if (isPaperLoading) {
     return (
       <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
         <Loader2 size={24} className="sp-spin" style={{ color: "#64748b" }} />
@@ -128,7 +132,7 @@ function PaperBuilder({ paperId }) {
     );
   }
 
-  if (paperId && papersQuery.isError) {
+  if (paperId && !loadedPaper && papersQuery.isError && (paperQuery.isError || !paperQuery.isLoading)) {
     return (
       <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
         <p style={{ color: "#ef4444" }}>Failed to load papers. Please try again.</p>
@@ -136,7 +140,7 @@ function PaperBuilder({ paperId }) {
     );
   }
 
-  if (paperId && papersQuery.isSuccess && !loadedPaper) {
+  if (paperId && !loadedPaper && !papersQuery.isLoading && !paperQuery.isLoading && (papersQuery.isSuccess || paperQuery.isSuccess)) {
     return (
       <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
         <p style={{ color: "#ef4444" }}>Paper not found. Please check the ID and try again.</p>
@@ -151,14 +155,34 @@ function PaperBuilder({ paperId }) {
           <button
             type="button"
             className={`sp-tab ${activeTab === "editor" ? "active" : ""}`}
-            onClick={() => setActiveTab("editor")}
+            onClick={() => {
+              setActiveTab("editor");
+              setSearchParams(
+                (prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.delete("tab");
+                  return next;
+                },
+                { replace: true }
+              );
+            }}
           >
             <Pencil size={15} /> Editor
           </button>
           <button
             type="button"
             className={`sp-tab ${activeTab === "preview" ? "active" : ""}`}
-            onClick={() => setActiveTab("preview")}
+            onClick={() => {
+              setActiveTab("preview");
+              setSearchParams(
+                (prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.set("tab", "preview");
+                  return next;
+                },
+                { replace: true }
+              );
+            }}
           >
             <Printer size={15} /> Preview
           </button>

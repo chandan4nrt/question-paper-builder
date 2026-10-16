@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Trash2, Pencil, Loader2 } from 'lucide-react';
+import { FileText, Trash2, Pencil, Loader2, Eye } from 'lucide-react';
 import { useListPapers, useDeletePaper } from '../hooks/useQuestionPapers';
+import { PaperPreviewModal } from '../components/PaperPreviewModal';
 
 export function PaperListPage() {
   const navigate = useNavigate();
   const papersQuery = useListPapers();
   const deleteMutation = useDeletePaper();
+  const [viewingPaper, setViewingPaper] = useState(null);
 
   function handleDelete(paperId) {
     deleteMutation.mutate(paperId);
@@ -58,6 +61,22 @@ export function PaperListPage() {
                 <button
                   type="button"
                   className="sp-tab"
+                  onClick={() => setViewingPaper(paper)}
+                  style={{
+                    fontSize: '0.82rem',
+                    padding: '0.35rem 0.75rem',
+                    background: '#fff',
+                    color: '#0284c7',
+                    border: '1px solid #e0f2fe',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                  }}
+                  title="Preview paper and answer key"
+                >
+                  <Eye size={13} /> View
+                </button>
+                <button
+                  type="button"
+                  className="sp-tab"
                   onClick={() => navigate(`/staff/paper-builder/${paper.paperId}`)}
                   style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem', background: '#fff', color: '#8f240b', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
                 >
@@ -82,6 +101,13 @@ export function PaperListPage() {
           </div>
         )}
       </div>
+
+      {viewingPaper && (
+        <PaperPreviewModal
+          paper={viewingPaper}
+          onClose={() => setViewingPaper(null)}
+        />
+      )}
     </div>
   );
 }

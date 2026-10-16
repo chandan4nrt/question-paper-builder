@@ -19,11 +19,31 @@ const TYPE_LABELS = {
 function flattenQuestions(papers) {
   const rows = [];
   for (const paper of papers ?? []) {
-    const rawQuestions = paper.template?.sections?.length
-      ? paper.template.sections.flatMap((s) => s.questions ?? [])
-      : (paper.template?.questions ?? []);
-    const urlMap = paper.template?.urls ?? {};
+    let template = paper.template;
+    if (typeof template === 'string') {
+      try {
+        template = JSON.parse(template);
+      } catch (e) {
+        template = {};
+      }
+    }
+    if (!template || typeof template !== 'object') {
+      if (Array.isArray(paper.questions) || paper.sections) {
+        template = {
+          questions: paper.questions,
+          sections: paper.sections,
+          urls: paper.urls,
+        };
+      } else {
+        template = {};
+      }
+    }
+    const rawQuestions = template.sections?.length
+      ? template.sections.flatMap((s) => s?.questions ?? [])
+      : (template.questions ?? []);
+    const urlMap = template.urls ?? paper.urls ?? {};
     for (const raw of rawQuestions) {
+      if (!raw) continue;
       const subText = raw.subQuestions?.[0]?.subQuestion ?? '';
       rows.push({
         key: `${paper.paperId}-${raw.questionId}`,
@@ -31,7 +51,7 @@ function flattenQuestions(papers) {
         type: raw.type ?? 'normal',
         marks: Number(raw.totalMarks ?? 0),
         paperId: paper.paperId,
-        paperTitle: paper.template?.title || `${paper.subject ?? ''} ${paper.classLevel ?? ''}`.trim(),
+        paperTitle: template.title || `${paper.subject ?? ''} ${paper.classLevel ?? ''}`.trim(),
         subject: paper.subject ?? '',
         className: paper.classLevel ?? '',
         status: paper.status,
