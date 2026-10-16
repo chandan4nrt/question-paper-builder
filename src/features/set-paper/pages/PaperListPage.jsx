@@ -79,8 +79,9 @@ export function PaperListPage() {
                   className="sp-tab"
                   onClick={() => navigate(`/staff/paper-builder/${paper.paperId}`)}
                   style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem', background: '#fff', color: '#8f240b', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
+                  title="Update paper"
                 >
-                  <Pencil size={13} /> Edit
+                  <Pencil size={13} /> Update
                 </button>
                 <button
                   type="button"

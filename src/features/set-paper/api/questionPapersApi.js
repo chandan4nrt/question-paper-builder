@@ -18,7 +18,7 @@ export async function getPaper(paperId) {
 }
 
 export async function updatePaper(paperId, formData) {
-  const { data } = await api.put(BASE, formData);
+  const { data } = await api.put(`${BASE}/${paperId}`, formData);
   return data;
 }
 

@@ -188,7 +188,7 @@ function ThemeConfigModal({
             Cancel
           </button>
           <button type="button" onClick={handleSave}>
-            Save Theme
+            {initial ? "Update Theme" : "Save Theme"}
           </button>
         </div>
       </div>

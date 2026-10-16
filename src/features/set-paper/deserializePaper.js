@@ -119,6 +119,7 @@ export function deserializeQuestion(raw, urlMap = {}) {
             label: item.label ?? '',
             image: item.image ?? resolveImageUrl(urlMap, item.pictureKey),
             imageName: item.imageName ?? null,
+            pictureKey: item.pictureKey ?? (typeof item.image === 'string' && item.image.startsWith('IMG_') ? item.image : null),
           };
         }
         return {
@@ -126,6 +127,7 @@ export function deserializeQuestion(raw, urlMap = {}) {
           label: '',
           image: resolveImageUrl(urlMap, item),
           imageName: raw.images?.[item] ?? null,
+          pictureKey: item,
         };
       });
       base.rightItems = (raw.letters ?? raw.rightItems ?? []).map((item, i) => {
@@ -168,6 +170,7 @@ export function deserializeQuestion(raw, urlMap = {}) {
             label: item.label ?? '',
             image: item.image ?? resolveImageUrl(urlMap, item.pictureKey),
             imageName: item.imageName ?? null,
+            pictureKey: item.pictureKey ?? (typeof item.image === 'string' && item.image.startsWith('IMG_') ? item.image : null),
             writingLines: item.writingLines ?? false,
           };
         }
@@ -176,6 +179,7 @@ export function deserializeQuestion(raw, urlMap = {}) {
           label: '',
           image: resolveImageUrl(urlMap, item),
           imageName: raw.images?.[item] ?? null,
+          pictureKey: item,
           writingLines: raw.mode === 'write',
         };
       });

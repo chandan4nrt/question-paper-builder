@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { questionFormSchema } from '../schemas/questionSchema';
 import { useChapters, useCreateQuestion, useQuestion, useSubjects, useTopics, useUpdateQuestion } from '../hooks/useQuestions';
 import { extractErrorMessage } from '../../../services/api';
+import { MathPreview } from '../../set-paper/components/MathPreview';
 
 // Classes and academic years aren't exposed via a list endpoint in the
 // Phase 1 REST spec (only subjects/chapters/topics are). Hardcoded here to
@@ -191,30 +192,35 @@ export function QuestionFormPage({ mode }) {
         <label className="field" style={{ marginTop: '0.25rem' }}>
           <span>Question</span>
           <textarea rows={3} style={{ width: '100%' }} {...register('questionText')} />
+          <MathPreview value={watch('questionText')} />
           {formState.errors.questionText && <span className="error-text">{formState.errors.questionText.message}</span>}
         </label>
 
         <label className="field">
           <span>Explanation (optional)</span>
           <textarea rows={2} style={{ width: '100%' }} {...register('explanation')} />
+          <MathPreview value={watch('explanation')} />
         </label>
 
         {OPTION_BASED_TYPES.includes(questionType) && (
           <fieldset style={{ marginTop: '1rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '1rem' }}>
             <legend><strong>Options</strong></legend>
             {fields.map((field, index) => (
-              <div key={field.id} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                <input
-                  placeholder={`Option ${index + 1}`}
-                  {...register(`options.${index}.optionText`)}
-                  disabled={questionType === 'TRUE_FALSE'}
-                />
-                <label>
-                  <input type="checkbox" {...register(`options.${index}.isCorrect`)} /> Correct
-                </label>
-                {questionType !== 'TRUE_FALSE' && fields.length > 2 && (
-                  <button type="button" className="btn-danger btn-sm" onClick={() => remove(index)}>Remove</button>
-                )}
+              <div key={field.id} style={{ marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    placeholder={`Option ${index + 1}`}
+                    {...register(`options.${index}.optionText`)}
+                    disabled={questionType === 'TRUE_FALSE'}
+                  />
+                  <label>
+                    <input type="checkbox" {...register(`options.${index}.isCorrect`)} /> Correct
+                  </label>
+                  {questionType !== 'TRUE_FALSE' && fields.length > 2 && (
+                    <button type="button" className="btn-danger btn-sm" onClick={() => remove(index)}>Remove</button>
+                  )}
+                </div>
+                <MathPreview value={watch(`options.${index}.optionText`)} />
               </div>
             ))}
             {questionType !== 'TRUE_FALSE' && (
@@ -237,6 +243,7 @@ export function QuestionFormPage({ mode }) {
             <label className="field">
               <span>Expected Answer</span>
               <textarea rows={2} style={{ width: '100%' }} {...register('expectedAnswer')} />
+              <MathPreview value={watch('expectedAnswer')} />
               {formState.errors.expectedAnswer && (
                 <span className="error-text">{formState.errors.expectedAnswer.message}</span>
               )}
@@ -259,7 +266,13 @@ export function QuestionFormPage({ mode }) {
 
         <div className="button-row" style={{ marginTop: '1.5rem' }}>
           <button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Saving…' : 'Save as Draft'}
+            {mutation.isPending
+              ? mode === 'edit'
+                ? 'Updating…'
+                : 'Saving…'
+              : mode === 'edit'
+              ? 'Update Question'
+              : 'Save as Draft'}
           </button>
         </div>
         {mutation.isError && <div className="alert alert-error">{extractErrorMessage(mutation.error)}</div>}

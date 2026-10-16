@@ -10,6 +10,7 @@ import {
 import { StatusBadge } from '../components/Badges';
 import { extractErrorMessage } from '../../../services/api';
 import { getStoredProfile } from '../../auth/hooks/useAuth';
+import { MathText } from '../../set-paper/components/MathText';
 
 export function QuestionDetailPage() {
   const { id } = useParams();
@@ -47,7 +48,7 @@ export function QuestionDetailPage() {
       </div>
 
       <div className="card" style={{ whiteSpace: 'pre-wrap' }}>
-        {question.questionText}
+        <MathText>{question.questionText}</MathText>
       </div>
 
       {question.options.length > 0 && (
@@ -56,7 +57,7 @@ export function QuestionDetailPage() {
           <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0 0' }}>
             {question.options.map((o) => (
               <li key={o.optionText} style={{ fontWeight: o.isCorrect ? 700 : 400 }}>
-                {o.optionText} {o.isCorrect && '✓'}
+                <MathText>{o.optionText}</MathText> {o.isCorrect && '✓'}
               </li>
             ))}
           </ul>
@@ -65,8 +66,16 @@ export function QuestionDetailPage() {
 
       {(question.expectedAnswer || question.explanation) && (
         <div className="card" style={{ marginTop: '1rem' }}>
-          {question.expectedAnswer && <p style={{ margin: 0 }}><strong>Expected Answer:</strong> {question.expectedAnswer}</p>}
-          {question.explanation && <p style={{ margin: '0.5rem 0 0' }}><strong>Explanation:</strong> {question.explanation}</p>}
+          {question.expectedAnswer && (
+            <p style={{ margin: 0 }}>
+              <strong>Expected Answer:</strong> <MathText>{question.expectedAnswer}</MathText>
+            </p>
+          )}
+          {question.explanation && (
+            <p style={{ margin: '0.5rem 0 0' }}>
+              <strong>Explanation:</strong> <MathText>{question.explanation}</MathText>
+            </p>
+          )}
         </div>
       )}
 

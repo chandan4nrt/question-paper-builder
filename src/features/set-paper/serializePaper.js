@@ -54,25 +54,25 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
         const imageMap = {};
         const pictures = [];
         for (const item of q.leftItems ?? []) {
-          if (item.image) {
-            const imgKey = nextImageKey(imageKeyCounter);
+          if (item.image || item.pictureKey) {
+            const imgKey = item.pictureKey || nextImageKey(imageKeyCounter);
             const fileName = createUniqueName(usedNames, item.imageName, `${item.id}.jpg`);
             if (item.imageBlob) images.push({ fileName, blob: item.imageBlob });
-            imageMap[imgKey] = fileName;
+            imageMap[imgKey] = item.imageName || fileName;
             pictures.push(imgKey);
           }
         }
         questionCounter += 1;
         mappedQuestions.push({
           type: 'matching-picture',
+          images: imageMap,
+          letters: (q.rightItems ?? []).map((item) => (typeof item === 'object' ? item.label : String(item ?? ''))),
+          pictures,
+          solution: q.solution ?? '',
+          matchPairs: q.matchPairs ?? {},
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
           questionTitle: q.text,
-          solution: q.solution ?? '',
-          letters: (q.rightItems ?? []).map((item) => item.label),
-          images: imageMap,
-          pictures,
-          matchPairs: q.matchPairs ?? {},
         });
         break;
       }
@@ -222,32 +222,57 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     state.questions.map((q) => q.number ?? 1),
   );
 
-  const payload = {
-    template: {
-      title: [state.header.subject, state.header.className, state.header.exam, state.header.academicYear]
-        .filter(Boolean)
-        .join(' ') || 'Untitled Paper',
-      sectionId: null,
-      questionCount: String(mappedQuestions.length),
-      questions: mappedQuestions,
-    },
-    paperId: paperId || `paper-${Date.now()}`,
-    subject: state.header.subject,
-    classLevel: state.header.className,
-    classSection: '',
-    totalMarks,
-    durationInMin: parseDurationToMinutes(state.header.duration),
-    examTerm: state.header.exam,
-    academicYear: state.header.academicYear,
-    numberOfSectionsInPpr: includedSections.size,
+  let existingTemplate = existingPaper?.template;
+  if (typeof existingTemplate === 'string') {
+    try {
+      existingTemplate = JSON.parse(existingTemplate);
+    } catch {
+      existingTemplate = {};
+    }
+  }
+
+  const existingUrls = existingTemplate?.urls ?? existingPaper?.urls ?? state.urls ?? {};
+
+  const templateTitle =
+    state.header.schoolName ||
+    existingTemplate?.title ||
+    [state.header.subject, state.header.className, state.header.exam, state.header.academicYear]
+      .filter(Boolean)
+      .join(' ') ||
+    'Untitled Paper';
+
+  const templateObj = {
+    urls: Object.keys(existingUrls).length > 0 ? existingUrls : undefined,
+    title: templateTitle,
+    questions: mappedQuestions,
+    sectionId: existingTemplate?.sectionId ?? null,
+    questionCount: String(mappedQuestions.length),
   };
 
-  if (existingPaper) {
-    if (existingPaper.id != null) payload.id = existingPaper.id;
-    if (existingPaper.createdAt) payload.createdAt = existingPaper.createdAt;
-    if (existingPaper.updatedAt) payload.updatedAt = existingPaper.updatedAt;
-    const urls = existingPaper.template?.urls ?? state.urls ?? {};
-    if (Object.keys(urls).length > 0) payload.template.urls = urls;
+  const payload = {};
+  if (existingPaper?.id != null) {
+    payload.id = existingPaper.id;
+  }
+  payload.template = templateObj;
+  payload.subject = state.header.subject || existingPaper?.subject || '';
+  payload.classLevel = state.header.className || existingPaper?.classLevel || '';
+  payload.classSection = existingPaper?.classSection ?? '';
+  payload.totalMarks = totalMarks || Number(state.header.totalMarks) || existingPaper?.totalMarks || 0;
+  payload.totalQuestions = existingPaper?.totalQuestions ?? null;
+  payload.durationInMin = parseDurationToMinutes(state.header.duration) || existingPaper?.durationInMin || 30;
+  payload.examTerm = state.header.exam || existingPaper?.examTerm || '';
+  payload.academicYear = state.header.academicYear || existingPaper?.academicYear || '';
+  payload.numberOfSectionsInPpr = existingPaper?.numberOfSectionsInPpr ?? includedSections.size ?? 1;
+  payload.exam_board = existingPaper?.exam_board ?? null;
+  payload.fromTheme = existingPaper?.fromTheme ?? null;
+  payload.published = existingPaper?.published ?? null;
+  payload.publishedAt = existingPaper?.publishedAt ?? null;
+  payload.publish_link = existingPaper?.publish_link ?? null;
+  payload.createdAt = existingPaper?.createdAt ?? null;
+  payload.updatedAt = existingPaper?.updatedAt ?? null;
+
+  if (!existingPaper) {
+    payload.paperId = paperId || `paper-${Date.now()}`;
   }
 
   if (state.header.logo) {
@@ -259,16 +284,19 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
   }
 
   const formData = new FormData();
-  if (existingPaper) {
-    const jsonBlob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-    formData.append('dto', jsonBlob);
-    formData.append('metadata', jsonBlob);
-    formData.append('paperId', payload.paperId);
-  } else {
-    formData.append('metadata', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-  }
+  const jsonBlob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+  formData.append('metadata', jsonBlob);
+
+  let hasFiles = false;
   for (const image of images) {
-    if (image.blob) formData.append('files', image.blob, image.fileName);
+    if (image.blob) {
+      formData.append('files', image.blob, image.fileName);
+      hasFiles = true;
+    }
   }
+  if (!hasFiles) {
+    formData.append('files', 'string');
+  }
+
   return { formData, payload };
 }

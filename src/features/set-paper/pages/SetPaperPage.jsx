@@ -106,14 +106,15 @@ function PaperBuilder({ paperId }) {
   }
 
   function handleSetPaper() {
+    const isEditMode = Boolean(paperId);
     const { formData, payload } = buildSetPaperFormData(state, paperId, loadedPaper);
     console.log("Payload items:", payload.template.questions);
     const onSuccess = (response) => {
-      flashToast(`✅ Paper saved successfully (${response?.paperId ?? paperId}).`);
+      flashToast(`✅ Paper ${isEditMode ? "updated" : "saved"} successfully (${response?.paperId ?? paperId}).`);
       if (!paperId) navigate("/staff/paper-builder");
     };
     const onError = (error) => {
-      flashToast(`❌ Failed to save paper: ${extractErrorMessage(error)}`);
+      flashToast(`❌ Failed to ${isEditMode ? "update" : "save"} paper: ${extractErrorMessage(error)}`);
     };
     if (paperId) {
       updatePaperMutation.mutate({ paperId, formData }, { onSuccess, onError });
@@ -197,7 +198,13 @@ function PaperBuilder({ paperId }) {
             ) : (
               <Upload size={15} />
             )}
-            {saveMutation.isPending ? "Saving..." : "Save Paper"}
+            {saveMutation.isPending
+              ? Boolean(paperId)
+                ? "Updating..."
+                : "Saving..."
+              : Boolean(paperId)
+              ? "Update Paper"
+              : "Save Paper"}
           </button>
           <button
             type="button"

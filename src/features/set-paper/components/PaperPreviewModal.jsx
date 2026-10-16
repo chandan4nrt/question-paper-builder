@@ -147,7 +147,7 @@ function PaperPreviewModalContent({ initialPaper, onClose }) {
               }}
               title="Open full editor"
             >
-              <Pencil size={13} /> Edit Paper
+              <Pencil size={13} /> Update Paper
             </button>
             <button
               type="button"

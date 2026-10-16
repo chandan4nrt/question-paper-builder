@@ -3062,11 +3062,16 @@ body.sp-theme-light {
   padding: 0.1rem 0;
 }
 .math-text-inline {
-  display: inline-block;
-  padding: 0 0.1rem;
+  display: inline;
+  padding: 0 0.05rem;
+  vertical-align: baseline;
 }
 .math-text .katex-display {
   margin: 0.25rem 0;
+}
+.math-text .katex {
+  font-size: 1.05em;
+  white-space: normal;
 }
 .sp-math-preview {
   margin-top: 0.3rem;
@@ -3087,4 +3092,85 @@ body.sp-theme-light {
 }
 .sp-mcq-option-main .sp-match-label {
   width: 100%;
+}
+
+/* Question Bank LaTeX and question item styles */
+.qb-question-cell {
+  max-width: 480px;
+  min-width: 260px;
+  vertical-align: top;
+}
+
+.qb-question-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.qb-question-text {
+  display: block;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text, #1e293b);
+  word-break: break-word;
+}
+
+.qb-row-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.qb-option-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--surface-2, #f1f5f9);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text-muted, #475569);
+  line-height: 1.35;
+}
+
+.qb-opt-letter {
+  font-weight: 700;
+  color: var(--primary, #2563eb);
+}
+
+.qb-subitems-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.15rem;
+  font-size: 0.82rem;
+  color: var(--text-muted, #475569);
+}
+
+.qb-subitem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.qb-subitem-bullet {
+  color: var(--primary, #2563eb);
+  font-weight: bold;
+}
+
+.qb-paper-title {
+  margin-top: 0.15rem;
+  color: var(--text-muted, #64748b);
+  font-size: 0.78rem;
+}
+
+.qb-details-expanded {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.82rem;
 }
