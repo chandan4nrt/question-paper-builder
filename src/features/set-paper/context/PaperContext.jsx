@@ -77,6 +77,7 @@ function newQuestion(nextId, number, type) {
     id: nextId,
     number,
     type,
+    questionTitle: '',
     text: '',
     marks: 1,
   };

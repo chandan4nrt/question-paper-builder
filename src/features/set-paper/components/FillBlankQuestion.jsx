@@ -2,6 +2,7 @@ import { Trash2, ChevronUp, ChevronDown, Plus, X } from 'lucide-react';
 import { Fragment } from 'react';
 import { usePaper } from '../context/PaperContext';
 import { SolutionField } from './SolutionField';
+import { CommonTitleField } from './CommonTitleField';
 
 export function FillBlankQuestion({
   question,
@@ -105,6 +106,11 @@ export function FillBlankQuestion({
           gap: '0.75rem',
         }}
       >
+        <CommonTitleField
+          value={question.questionTitle}
+          onChange={(questionTitle) => update({ questionTitle })}
+          placeholder="Fill in the blanks"
+        />
         {items.map((item, index) => (
           <Fragment key={index}>
             <div

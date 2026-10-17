@@ -1,5 +1,6 @@
 import { Trash2, Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { usePaper } from '../context/PaperContext';
+import { CommonTitleField } from './CommonTitleField';
 
 export function TrueFalseQuestion({
   question,
@@ -81,6 +82,11 @@ export function TrueFalseQuestion({
           gap: '0.75rem',
         }}
       >
+        <CommonTitleField
+          value={question.questionTitle}
+          onChange={(questionTitle) => update({ questionTitle })}
+          placeholder="State whether True or False"
+        />
         {items.map((item, index) => (
           <div
             key={index}

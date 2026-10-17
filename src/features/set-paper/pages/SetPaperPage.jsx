@@ -13,10 +13,12 @@ import { buildSetPaperFormData } from "../serializePaper";
 import { deserializePaper } from "../deserializePaper";
 import { consumePendingQuestions } from "../pendingQuestions";
 
-function waitForPrintArea() {
+function waitForPrintArea(withAnswerKey = false) {
   return new Promise((resolve) => {
     const check = () => {
-      if (document.getElementById("print-area")) {
+      const hasPrint = Boolean(document.getElementById("print-area"));
+      const hasAk = !withAnswerKey || Boolean(document.getElementById("answer-key-area"));
+      if (hasPrint && hasAk) {
         resolve();
       } else {
         window.setTimeout(check, 50);
@@ -87,7 +89,7 @@ function PaperBuilder({ paperId }) {
 
   async function handleGeneratePDF(withAnswerKey = false) {
     setActiveTab("preview");
-    await waitForPrintArea();
+    await waitForPrintArea(withAnswerKey);
     setExporting(withAnswerKey ? "answer-key" : "plain");
     try {
       const baseName = state.header.schoolName || "question-paper";

@@ -190,10 +190,10 @@ export function ImageMcqQuestion({
                             <button
                               type="button"
                               className={`sp-correct-answer-btn${question.correctOptionId === opt.id ? ' active' : ''}`}
-                              onClick={() => update({ correctOptionId: opt.id })}
-                              title="Mark as correct picture"
+                              onClick={() => update({ correctOptionId: question.correctOptionId === opt.id ? null : opt.id })}
+                              title={question.correctOptionId === opt.id ? 'Correct picture (click to unmark)' : 'Mark as correct picture'}
                             >
-                              <Check size={14} />
+                              <Check size={14} strokeWidth={3} />
                             </button>
                           )}
                         </div>

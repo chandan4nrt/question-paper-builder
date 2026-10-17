@@ -29,6 +29,27 @@ function nextImageKey(counter) {
   return `IMG_${String(counter.current).padStart(3, '0')}`;
 }
 
+export const DEFAULT_COMMON_TITLES = {
+  normal: 'Answer the following question',
+  mcq: 'Choose the correct option',
+  'fill-blank': 'Fill in the blanks',
+  match: 'Match the following',
+  'true-false': 'State whether True or False',
+  writing: 'Writing Practice',
+  'image-mcq': 'Choose the correct picture',
+  label: 'Label the parts of the picture',
+};
+
+export function getQuestionTitle(q) {
+  if (typeof q?.questionTitle === 'string' && q.questionTitle.trim()) {
+    return q.questionTitle.trim();
+  }
+  if (typeof q?.title === 'string' && q.title.trim()) {
+    return q.title.trim();
+  }
+  return DEFAULT_COMMON_TITLES[q?.type] || 'Answer the following question';
+}
+
 export function buildSetPaperFormData(state, paperId, existingPaper) {
   const images = [];
   const usedNames = new Set();
@@ -44,7 +65,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           type: 'normal',
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
-          questionTitle: q.text,
+          questionTitle: getQuestionTitle(q),
           solution: q.solution ?? '',
           subQuestions: [{ subQuestionId: 1, subQuestion: q.text, options: [], answer: q.answers ?? [] }],
         });
@@ -72,7 +93,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           matchPairs: q.matchPairs ?? {},
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
-          questionTitle: q.text,
+          questionTitle: getQuestionTitle(q),
         });
         break;
       }
@@ -82,7 +103,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           type: 'writing-practice',
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
-          questionTitle: q.text,
+          questionTitle: getQuestionTitle(q),
           solution: q.solution ?? '',
           lines: q.lines,
           fragments: q.fragments,
@@ -98,7 +119,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           type: 'multiple-choice',
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
-          questionTitle: q.text,
+          questionTitle: getQuestionTitle(q),
           solution: q.solution ?? '',
           subQuestions: [
             {
@@ -139,7 +160,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
             mode: writingMode ? 'write' : 'circle',
             questionId: questionCounter,
             totalMarks: Number(q.marks || 0) * pictures.length,
-            questionTitle: q.text,
+            questionTitle: getQuestionTitle(q),
             solution: q.solution ?? '',
             images: imageMap,
             pictures,
@@ -155,7 +176,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           type: 'fill-in-the-blank',
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
-          questionTitle: q.text,
+          questionTitle: getQuestionTitle(q),
           solution: q.solution ?? '',
           subQuestions: items.map((item, index) => ({
             subQuestionId: index + 1,
@@ -181,7 +202,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           type: 'label-picture',
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
-          questionTitle: q.text,
+          questionTitle: getQuestionTitle(q),
           solution: q.solution ?? '',
           pictures: labelPicture ? [labelPicture] : [],
           images: labelImageMap,
@@ -198,7 +219,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
           type: 'true-false',
           questionId: questionCounter,
           totalMarks: Number(q.marks || 0),
-          questionTitle: q.text,
+          questionTitle: getQuestionTitle(q),
           solution: q.solution ?? '',
           subQuestions: items.map((item, index) => ({
             subQuestionId: index + 1,
@@ -246,7 +267,6 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     title: templateTitle,
     questions: mappedQuestions,
     sectionId: existingTemplate?.sectionId ?? null,
-    questionCount: String(mappedQuestions.length),
   };
 
   const payload = {};
@@ -258,7 +278,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
   payload.classLevel = state.header.className || existingPaper?.classLevel || '';
   payload.classSection = existingPaper?.classSection ?? '';
   payload.totalMarks = totalMarks || Number(state.header.totalMarks) || existingPaper?.totalMarks || 0;
-  payload.totalQuestions = existingPaper?.totalQuestions ?? null;
+  payload.totalQuestions = mappedQuestions.length;
   payload.durationInMin = parseDurationToMinutes(state.header.duration) || existingPaper?.durationInMin || 30;
   payload.examTerm = state.header.exam || existingPaper?.examTerm || '';
   payload.academicYear = state.header.academicYear || existingPaper?.academicYear || '';

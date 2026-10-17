@@ -1128,6 +1128,16 @@ body.sp-theme-light {
   background: #e86624;
 }
 
+.sp-match-item.has-image {
+  align-items: flex-start;
+}
+.sp-match-item.has-image .sp-match-letter {
+  margin-top: 0.25rem;
+}
+.sp-match-item.has-image > .sp-icon-btn {
+  margin-top: 0.25rem;
+}
+
 .sp-match-label {
   flex: 1;
   font-size: 0.8rem;
@@ -1144,27 +1154,54 @@ body.sp-theme-light {
 
 .sp-match-img-wrap {
   position: relative;
+  width: 100%;
+  height: 96px;
+  background: #ffffff;
+  border: 1px solid #dcb3ff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 6px;
+  box-sizing: border-box;
 }
 .sp-match-img {
-  width: 100%;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 8px;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  display: block;
 }
 .sp-img-remove {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
+  top: 4px;
+  right: 4px;
   background: #ef4444;
   color: #fff;
   border: none;
   border-radius: 50%;
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  padding: 0 !important;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: background 0.15s, transform 0.15s;
+}
+.sp-img-remove:hover {
+  background: #dc2626;
+  transform: scale(1.08);
 }
 
 .sp-upload-label {
@@ -1341,6 +1378,7 @@ body.sp-theme-light {
 }
 .sp-image-option-body .sp-match-img-wrap {
   width: 100%;
+  height: 72px;
 }
 .sp-image-option-body .sp-match-img {
   height: 72px;
@@ -2776,6 +2814,48 @@ body.sp-theme-light {
 .sp-solution-section .sp-answer-label {
   color: #7c5cd0;
 }
+.sp-common-title-section {
+  margin-bottom: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sp-common-title-section .sp-answer-label {
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sp-common-title-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: none;
+  letter-spacing: normal;
+  background: #f1f5f9;
+  padding: 0.1rem 0.45rem;
+  border-radius: 6px;
+}
+.sp-common-title-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  background: #f8fafc;
+  color: #1e293b;
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+.sp-common-title-input:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+.sp-common-title-input::placeholder {
+  color: #94a3b8;
+  font-style: italic;
+}
 .sp-answer-input:focus {
   outline: none;
   border-color: #3b82f6;
@@ -2834,21 +2914,40 @@ body.sp-theme-light {
   justify-content: center;
   width: 22px;
   height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  max-width: 22px;
+  max-height: 22px;
+  padding: 0 !important;
+  margin: 0;
   border-radius: 50%;
   border: 1.5px solid #cbd5e1;
   background: #fff;
   color: transparent;
   cursor: pointer;
   flex-shrink: 0;
+  box-sizing: border-box;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+.sp-correct-answer-btn svg {
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 .sp-correct-answer-btn:hover {
   border-color: #16a34a;
   color: #16a34a;
+  background: #f0fdf4;
 }
 .sp-correct-answer-btn.active {
-  background: #22c55e;
+  background: #16a34a;
   border-color: #16a34a;
   color: #fff;
+  box-shadow: 0 1px 3px rgba(22, 163, 74, 0.35);
+}
+.sp-correct-answer-btn.active svg {
+  stroke-width: 3px;
 }
 
 /* ---------- AI Generation Modal (paper builder) ---------- */

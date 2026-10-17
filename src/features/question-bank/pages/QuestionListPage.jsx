@@ -46,7 +46,7 @@ function flattenQuestions(papers) {
     for (const raw of rawQuestions) {
       if (!raw) continue;
       const subText = raw.subQuestions?.[0]?.subQuestion ?? '';
-      const qText = raw.questionTitle || raw.questionText || raw.text || subText || '(untitled question)';
+      const qText = subText || raw.text || raw.questionText || raw.questionTitle || '(untitled question)';
       rows.push({
         key: `${paper.paperId}-${raw.questionId}`,
         questionText: qText,

@@ -3,15 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Trash2, Pencil, Loader2, Eye } from 'lucide-react';
 import { useListPapers, useDeletePaper } from '../hooks/useQuestionPapers';
 import { PaperPreviewModal } from '../components/PaperPreviewModal';
+import { extractErrorMessage } from '../../../services/api';
 
 export function PaperListPage() {
   const navigate = useNavigate();
   const papersQuery = useListPapers();
   const deleteMutation = useDeletePaper();
   const [viewingPaper, setViewingPaper] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  function flashToast(message, type = 'success') {
+    setToast({ message, type });
+    window.setTimeout(() => setToast(null), 4000);
+  }
 
   function handleDelete(paperId) {
-    deleteMutation.mutate(paperId);
+    deleteMutation.mutate(paperId, {
+      onSuccess: () => {
+        flashToast('✅ Paper deleted successfully');
+      },
+      onError: (error) => {
+        flashToast(`❌ Failed to delete paper: ${extractErrorMessage(error)}`, 'error');
+      },
+    });
   }
 
   return (
@@ -108,6 +122,12 @@ export function PaperListPage() {
           paper={viewingPaper}
           onClose={() => setViewingPaper(null)}
         />
+      )}
+
+      {toast && (
+        <div className={`sp-toast sp-toast-${toast.type}`} role="status">
+          {toast.message}
+        </div>
       )}
     </div>
   );

@@ -51,7 +51,7 @@ export function McqQuestion({
   }
 
   function setCorrectOption(id) {
-    update({ correctOptionId: id });
+    update({ correctOptionId: question.correctOptionId === id ? null : id });
   }
 
   return (
@@ -111,9 +111,9 @@ export function McqQuestion({
                   type="button"
                   className={`sp-correct-answer-btn${question.correctOptionId === opt.id ? ' active' : ''}`}
                   onClick={() => setCorrectOption(opt.id)}
-                  title="Mark as correct answer"
+                  title={question.correctOptionId === opt.id ? 'Correct answer (click to unmark)' : 'Mark as correct answer'}
                 >
-                  <Check size={14} />
+                  <Check size={14} strokeWidth={3} />
                 </button>
                 <span className="sp-match-letter sp-mcq-letter">{getOptionLetter(index)}</span>
                 <div className="sp-mcq-option-main">

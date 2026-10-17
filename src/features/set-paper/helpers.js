@@ -132,6 +132,7 @@ function buildPageFragments(element) {
    * how tall one A4 page is in CSS px.
    */
   const pxPerMm = contentWidth / A4_WIDTH;
+  const a4PageHeightPx = A4_HEIGHT * pxPerMm;
 
   /*
    * The print-area element carries its own vertical padding, which supplies
@@ -141,13 +142,17 @@ function buildPageFragments(element) {
   const computedStyle = getComputedStyle(element);
   const topMarginPx = parseFloat(computedStyle.paddingTop) || 0;
   const bottomMarginPx = parseFloat(computedStyle.paddingBottom) || 0;
-  const pageHeightCss = (A4_HEIGHT * pxPerMm) - topMarginPx - bottomMarginPx;
+
+  // Maximum content boundary on Page 1 (leaving bottom margin before page end)
+  const page1MaxContent = a4PageHeightPx - bottomMarginPx;
+
+  // Usable vertical space on subsequent pages (which are offset by topMargin in jsPDF)
+  const usableHeightLaterPages = a4PageHeightPx - topMarginPx - bottomMarginPx;
 
   /*
-   * Find every complete question.
+   * Find every complete question block.
    */
   const questionElements = Array.from(element.querySelectorAll(".pdf-question-block"));
-
   const elementRect = element.getBoundingClientRect();
 
   const questions = questionElements.map((question) => {
@@ -158,33 +163,86 @@ function buildPageFragments(element) {
   });
 
   /*
-   * Build page boundaries in CSS px.
+   * Determine the bottom-most extent of actual visible content in the element.
+   * This prevents creating extra blank pages from the container's min-height or trailing padding.
    */
+  let maxContentBottom = 0;
+  const contentBlocks = Array.from(
+    element.querySelectorAll(
+      ".pdf-question-block, .sp-footer, .sp-school-head, .sp-ak-head, .sp-ak-block, .sp-instructions, .sp-name-roll"
+    )
+  );
+  for (const block of contentBlocks) {
+    const rect = block.getBoundingClientRect();
+    const bottom = rect.bottom - elementRect.top;
+    if (bottom > maxContentBottom) {
+      maxContentBottom = bottom;
+    }
+  }
+  for (const child of element.children) {
+    const rect = child.getBoundingClientRect();
+    const bottom = rect.bottom - elementRect.top;
+    if (bottom > maxContentBottom) {
+      maxContentBottom = bottom;
+    }
+  }
+  if (maxContentBottom <= 0) {
+    maxContentBottom = contentHeight - bottomMarginPx;
+  }
+
   const pages = [];
 
+  /*
+   * Case 1: All content fits within a single A4 page.
+   * .sp-print-area has CSS `min-height: 297mm` (which equals a4PageHeightPx).
+   * If the lowest content plus bottom margin fits within one A4 page, output exactly 1 page.
+   */
+  if (maxContentBottom + bottomMarginPx <= a4PageHeightPx + 5) {
+    pages.push({ start: 0, end: contentHeight });
+    return { element, contentWidth, contentHeight, pxPerMm, topMarginPx, validPages: pages };
+  }
+
+  /*
+   * Case 2: Multi-page content.
+   */
   let pageStart = 0;
 
-  while (pageStart < contentHeight - 1) {
-    let pageEnd = Math.min(pageStart + pageHeightCss, contentHeight);
+  // Page 1
+  let page1End = Math.min(page1MaxContent, contentHeight);
+  const crossing1 = questions.find(
+    (q) => q.top < page1End - 0.5 && q.bottom > page1End + 0.5
+  );
+  if (crossing1 && crossing1.height <= usableHeightLaterPages && crossing1.top > MIN_PAGE_GAP) {
+    page1End = crossing1.top;
+  }
+  pages.push({ start: pageStart, end: page1End });
+  pageStart = page1End;
 
-    /*
-     * Question crosses the page bottom - move the ENTIRE question
-     * to the next page when it can fit on one page.
-     */
-    const crossing = questions.find(
-      (q) => q.top < pageEnd - 0.5 && q.bottom > pageEnd + 0.5,
-    );
+  // Subsequent pages
+  while (pageStart < maxContentBottom - MIN_PAGE_GAP) {
+    const candidateEnd = pageStart + usableHeightLaterPages;
 
-    if (crossing && crossing.height <= pageHeightCss && crossing.top > pageStart + MIN_PAGE_GAP) {
-      pageEnd = crossing.top;
+    // If remaining content fits on this page, include it up to contentHeight and finish
+    if (candidateEnd >= maxContentBottom - MIN_PAGE_GAP) {
+      const pageEnd = Math.min(candidateEnd + bottomMarginPx, contentHeight);
+      pages.push({ start: pageStart, end: pageEnd });
+      pageStart = pageEnd;
+      break;
     }
 
-    pages.push({ start: pageStart, end: pageEnd });
+    let pageEnd = candidateEnd;
+    const crossing = questions.find(
+      (q) => q.top < candidateEnd - 0.5 && q.bottom > candidateEnd + 0.5
+    );
+    if (crossing && crossing.height <= usableHeightLaterPages && crossing.top > pageStart + MIN_PAGE_GAP) {
+      pageEnd = crossing.top;
+    }
 
     if (pageEnd - pageStart <= MIN_PAGE_GAP) {
       break;
     }
 
+    pages.push({ start: pageStart, end: pageEnd });
     pageStart = pageEnd;
   }
 
@@ -294,18 +352,18 @@ export async function exportToPDF(elementIds, filename = "question-paper.pdf") {
         });
 
         /*
-         * Map the page canvas onto A4 at its natural scale.
-         * jsPDF accepts the canvas directly (it encodes internally).
-         */
-        const imageHeight = pageHeight / section.pxPerMm;
-
-        /*
          * The first page already has a margin thanks to the print-area's own
          * padding; later pages are cropped from the element, so push them down
          * by the same top padding to keep margins consistent.
          */
         const topMarginMm = section.topMarginPx / section.pxPerMm;
         const drawY = isFirstPageOfSection ? 0 : topMarginMm;
+
+        /*
+         * Map the page canvas onto A4 at its natural scale, clamped so it never
+         * exceeds the page boundary.
+         */
+        const imageHeight = Math.min(A4_HEIGHT - drawY, pageHeight / section.pxPerMm);
 
         pdf.addImage(canvas, "JPEG", 0, drawY, A4_WIDTH, imageHeight, undefined, "FAST");
         isFirstPageOfSection = false;

@@ -273,9 +273,9 @@ export function PrintPreview({ totalMarks }) {
                 {question.text ? (
                   <MathText>{question.text}</MathText>
                 ) : question.type === QUESTION_TYPES.TRUE_FALSE ? (
-                  <span className="sp-q-text-heading">State whether True or False</span>
+                  <span className="sp-q-text-heading">{question.questionTitle || "State whether True or False"}</span>
                 ) : question.type === QUESTION_TYPES.FILL_BLANK ? (
-                  <span className="sp-q-text-heading">Fill in the blanks</span>
+                  <span className="sp-q-text-heading">{question.questionTitle || "Fill in the blanks"}</span>
                 ) : (
                   <em style={{ color: "#a3a3a3" }}>Question text...</em>
                 )}

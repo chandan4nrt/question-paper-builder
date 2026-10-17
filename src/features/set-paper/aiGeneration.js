@@ -191,12 +191,14 @@ function extractSolution(item) {
 
 function parseMcq(item) {
   const text = firstString(item, ['questionText', 'question', 'prompt', 'statement', 'text', 'question_text', 'question_statement']);
+  const title = firstString(item, ['questionTitle', 'question_title', 'title', 'instruction', 'heading']);
   const options = extractOptions(item);
   if (options.length < 2) return null;
   const correctIndex = findCorrectIndex(item, options);
   const parsedOptions = options.map((label, index) => ({ id: `o${index + 1}`, label }));
   return {
     type: QUESTION_TYPES.MCQ,
+    questionTitle: title,
     text,
     options: parsedOptions,
     correctOptionId: correctIndex >= 0 ? parsedOptions[correctIndex].id : undefined,
@@ -214,11 +216,12 @@ function splitAnswerFromSentence(sentence) {
 function parseFillBlank(item) {
   if (typeof item === 'string') {
     const { sentence, answer } = splitAnswerFromSentence(item);
-    return { type: QUESTION_TYPES.FILL_BLANK, text: sentence, items: [sentence], answers: answer ? [answer] : [], marks: 1, solution: '' };
+    return { type: QUESTION_TYPES.FILL_BLANK, questionTitle: '', text: sentence, items: [sentence], answers: answer ? [answer] : [], marks: 1, solution: '' };
   }
+  const title = firstString(item, ['questionTitle', 'question_title', 'title', 'instruction', 'heading']);
   const sentence = firstString(item, ['sentence', 'question', 'statement', 'question_text', 'questionText', 'text', 'blank', 'question_statement']);
   const answer = extractCorrectAnswer(item);
-  return { type: QUESTION_TYPES.FILL_BLANK, text: sentence, items: [sentence], answers: answer ? [answer] : [], marks: 1, solution: extractSolution(item) };
+  return { type: QUESTION_TYPES.FILL_BLANK, questionTitle: title, text: sentence, items: [sentence], answers: answer ? [answer] : [], marks: 1, solution: extractSolution(item) };
 }
 
 function parseMatch(item) {
@@ -280,9 +283,11 @@ function parseMatch(item) {
     });
   }
 
+  const title = firstString(item, ['questionTitle', 'question_title', 'title', 'heading']);
   return {
     type: QUESTION_TYPES.MATCH,
-    text: firstString(item, ['question', 'questionText', 'instruction', 'text', 'question_text', 'title']) || 'Match the following',
+    questionTitle: title,
+    text: firstString(item, ['question', 'questionText', 'instruction', 'text', 'question_text']) || 'Match the following',
     leftItems,
     rightItems,
     matchPairs,
@@ -293,9 +298,17 @@ function parseMatch(item) {
 
 function parseQa(item) {
   const text = firstString(item, ['questionText', 'question', 'prompt', 'statement', 'text', 'question_text', 'question_statement']);
+  const title = firstString(item, ['questionTitle', 'question_title', 'title', 'instruction', 'heading']);
   const answer = extractCorrectAnswer(item);
   if (!text) return null;
-  return { type: QUESTION_TYPES.NORMAL, text, answers: answer ? [answer] : [], marks: 1, solution: extractSolution(item) };
+  return {
+    type: QUESTION_TYPES.NORMAL,
+    questionTitle: title,
+    text,
+    answers: answer ? [answer] : [],
+    marks: 1,
+    solution: extractSolution(item),
+  };
 }
 
 const PARSERS = {

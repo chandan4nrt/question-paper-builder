@@ -95,7 +95,7 @@ export function AnswerKey() {
               <div className="sp-ak-qrow">
                 <span className="sp-ak-qno">Q{question.number}.</span>
                 <span className="sp-ak-qtext">
-                  {question.text || heading || 'Untitled question'}
+                  {question.text || question.questionTitle || heading || 'Untitled question'}
                 </span>
               </div>
               {answers.length > 0 ? (

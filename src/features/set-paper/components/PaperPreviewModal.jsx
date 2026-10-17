@@ -9,10 +9,12 @@ import { exportToPDF } from "../helpers";
 import { deserializePaper } from "../deserializePaper";
 import { useGetPaper } from "../hooks/useQuestionPapers";
 
-function waitForPrintArea() {
+function waitForPrintArea(withAnswerKey = false) {
   return new Promise((resolve) => {
     const check = () => {
-      if (document.getElementById("print-area")) {
+      const hasPrint = Boolean(document.getElementById("print-area"));
+      const hasAk = !withAnswerKey || Boolean(document.getElementById("answer-key-area"));
+      if (hasPrint && hasAk) {
         resolve();
       } else {
         window.setTimeout(check, 50);
@@ -55,7 +57,7 @@ function PaperPreviewModalContent({ initialPaper, onClose }) {
   }
 
   async function handleGeneratePDF(withAnswerKey = false) {
-    await waitForPrintArea();
+    await waitForPrintArea(withAnswerKey);
     setExporting(withAnswerKey ? "answer-key" : "plain");
     try {
       const baseName = state.header.schoolName || activePaper.subject || "question-paper";

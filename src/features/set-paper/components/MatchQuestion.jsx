@@ -72,6 +72,7 @@ export function MatchQuestion({
           : item,
       ),
     });
+    e.target.value = '';
   }
 
   function handleShuffle() {
@@ -150,7 +151,7 @@ export function MatchQuestion({
             <div key={index} className="sp-match-row">
               <div className="sp-match-cell-box">
                 {left ? (
-                  <div className="sp-match-item left">
+                  <div className={`sp-match-item left${left.image ? ' has-image' : ''}`}>
                     <span className="sp-match-letter">{String.fromCharCode(65 + index)}</span>
                     <div className="sp-match-content">
                       {left.image ? (
@@ -168,13 +169,14 @@ export function MatchQuestion({
                                 ),
                               })
                             }
+                            title="Remove image"
                           >
-                            <X size={10} />
+                            <X size={12} />
                           </button>
                         </div>
                       ) : (
                         <label className="sp-upload-label">
-                          <ImageIcon size={10} /> Upload image
+                          <ImageIcon size={12} /> Upload image
                           <input
                             type="file"
                             accept="image/*"
@@ -187,11 +189,16 @@ export function MatchQuestion({
                         className="sp-match-label"
                         value={left.label}
                         onChange={(e) => updateLeftItem(left.id, 'label', e.target.value)}
-                        placeholder="Label..."
+                        placeholder={left.image ? "Label (optional)..." : "Label..."}
                       />
                       <MathPreview value={left.label} />
                     </div>
-                    <button type="button" className="sp-icon-btn" onClick={() => removeLeftItem(left.id)}>
+                    <button
+                      type="button"
+                      className="sp-icon-btn"
+                      onClick={() => removeLeftItem(left.id)}
+                      title="Remove item"
+                    >
                       <X size={14} />
                     </button>
                   </div>

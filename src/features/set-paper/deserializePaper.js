@@ -87,18 +87,38 @@ export function deserializePaper(res) {
 }
 
 function resolveImageUrl(urlMap, key) {
-  if (!urlMap || !key) return null;
-  return urlMap[key] ?? null;
+  if (!key) return null;
+  if (urlMap && urlMap[key]) return urlMap[key];
+  if (typeof key === 'string' && (key.startsWith('http://') || key.startsWith('https://') || key.startsWith('data:') || key.startsWith('blob:'))) {
+    return key;
+  }
+  return null;
 }
 
 export function deserializeQuestion(raw, urlMap = {}) {
   if (!raw || typeof raw !== 'object') return null;
   const id = raw.questionId ?? 0;
+  const rawSubQuestions = Array.isArray(raw.subQuestions)
+    ? raw.subQuestions
+    : (Array.isArray(raw.sub_questions) ? raw.sub_questions : []);
+  const firstSub = rawSubQuestions[0];
+  const subText = typeof firstSub === 'string' ? firstSub : (firstSub?.subQuestion ?? firstSub?.text ?? '');
+  const rawTitle = (raw.questionTitle ?? raw.title ?? '').trim();
+
+  // If rawTitle is identical to subQuestion 1 (or any sub-question), it was duplicated by older serialization
+  const isDuplicateOfSub = rawSubQuestions.some((sq) => {
+    const text = (typeof sq === 'string' ? sq : (sq?.subQuestion ?? sq?.text ?? '')).trim();
+    return text && (text === rawTitle || text.toLowerCase() === rawTitle.toLowerCase());
+  }) || (raw.text && raw.text.trim().toLowerCase() === rawTitle.toLowerCase());
+
+  const questionTitle = isDuplicateOfSub ? '' : rawTitle;
+
   const base = {
     id,
     number: id,
     type: 'normal',
-    text: raw.questionTitle ?? raw.text ?? '',
+    questionTitle,
+    text: subText || raw.text || rawTitle || '',
     marks: raw.totalMarks ?? raw.marks ?? 0,
     solution: raw.solution ?? '',
   };
@@ -106,6 +126,7 @@ export function deserializeQuestion(raw, urlMap = {}) {
   switch (raw.type) {
     case 'normal': {
       base.type = 'normal';
+      base.text = subText || raw.text || rawTitle || '';
       base.answers = raw.subQuestions?.[0]?.answer ?? (Array.isArray(raw.answers) ? raw.answers : []);
       break;
     }
@@ -114,12 +135,14 @@ export function deserializeQuestion(raw, urlMap = {}) {
       base.type = 'match';
       base.leftItems = (raw.pictures ?? raw.leftItems ?? []).map((item, i) => {
         if (typeof item === 'object' && item !== null) {
+          const key = item.pictureKey || (typeof item.image === 'string' && item.image.startsWith('IMG_') ? item.image : null);
+          const resolvedImg = resolveImageUrl(urlMap, key) || resolveImageUrl(urlMap, item.image) || (typeof item.image === 'string' && !item.image.startsWith('IMG_') ? item.image : null);
           return {
             id: item.id ?? `l${i}`,
             label: item.label ?? '',
-            image: item.image ?? resolveImageUrl(urlMap, item.pictureKey),
-            imageName: item.imageName ?? null,
-            pictureKey: item.pictureKey ?? (typeof item.image === 'string' && item.image.startsWith('IMG_') ? item.image : null),
+            image: resolvedImg,
+            imageName: item.imageName ?? (key && raw.images?.[key]) ?? null,
+            pictureKey: key,
           };
         }
         return {
@@ -142,6 +165,7 @@ export function deserializeQuestion(raw, urlMap = {}) {
     case 'multiple-choice':
     case 'mcq': {
       base.type = 'mcq';
+      base.text = subText || raw.text || rawTitle || '';
       const opts = raw.subQuestions?.[0]?.options ?? (Array.isArray(raw.options) ? raw.options : []);
       base.options = opts.map((item, i) => {
         if (typeof item === 'object' && item !== null) {
@@ -195,13 +219,14 @@ export function deserializeQuestion(raw, urlMap = {}) {
     case 'fill-in-the-blank':
     case 'fill-blank': {
       base.type = 'fill-blank';
-      base.items = raw.subQuestions?.length
-        ? raw.subQuestions.map((sq) => sq.subQuestion ?? '')
-        : (Array.isArray(raw.items) ? raw.items : [base.text]);
-      base.answers = raw.subQuestions?.length
-        ? raw.subQuestions.map((sq) => sq.answer?.[0] ?? '')
+      base.items = rawSubQuestions.length
+        ? rawSubQuestions.map((sq) => (typeof sq === 'string' ? sq : (sq.subQuestion ?? sq.text ?? '')))
+        : (Array.isArray(raw.items) ? raw.items : (base.text ? [base.text] : ['']));
+      base.answers = rawSubQuestions.length
+        ? rawSubQuestions.map((sq) => sq.answer?.[0] ?? '')
         : (Array.isArray(raw.answers) ? raw.answers : []);
       base.blankCount = base.items.length || 1;
+      base.text = '';
       break;
     }
     case 'label-picture':
@@ -222,6 +247,7 @@ export function deserializeQuestion(raw, urlMap = {}) {
     case 'writing-practice':
     case 'writing': {
       base.type = 'writing';
+      base.text = subText || raw.text || rawTitle || '';
       base.lines = raw.lines ?? 4;
       base.fragments = raw.fragments ?? 1;
       base.sampleText = raw.sampleText ?? '';
@@ -230,12 +256,13 @@ export function deserializeQuestion(raw, urlMap = {}) {
     }
     case 'true-false': {
       base.type = 'true-false';
-      base.items = raw.subQuestions?.length
-        ? raw.subQuestions.map((sq) => sq.subQuestion ?? '')
-        : (Array.isArray(raw.items) ? raw.items : (base.text ? [base.text] : []));
-      base.answers = raw.subQuestions?.length
-        ? raw.subQuestions.map((sq) => sq.answer?.[0] ?? '')
+      base.items = rawSubQuestions.length
+        ? rawSubQuestions.map((sq) => (typeof sq === 'string' ? sq : (sq.subQuestion ?? sq.text ?? '')))
+        : (Array.isArray(raw.items) ? raw.items : (base.text ? [base.text] : ['']));
+      base.answers = rawSubQuestions.length
+        ? rawSubQuestions.map((sq) => sq.answer?.[0] ?? '')
         : (Array.isArray(raw.answers) ? raw.answers : []);
+      base.text = '';
       break;
     }
     default:
