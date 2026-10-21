@@ -63,7 +63,7 @@ const initialState = {
     date: today(),
     totalMarks: 0,
     duration: '30 Minutes',
-    teacherName: 'Mr. Chandan',
+    teacherName: 'Mr. XYZ',
     instructions: 'Read each question carefully before answering.',
     logo: null,
   },
