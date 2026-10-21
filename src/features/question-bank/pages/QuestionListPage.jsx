@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, ArrowUp, ArrowDown, FolderPlus, X, Eye } from 'lucide-react';
+import { Pencil, ArrowUp, ArrowDown, FolderPlus, X, Eye, Search, RotateCcw } from 'lucide-react';
 import { useListPapers } from '../../set-paper/hooks/useQuestionPapers';
 import { deserializeQuestion } from '../../set-paper/deserializePaper';
 import { AddToPaperModal } from '../components/AddToPaperModal';
@@ -158,6 +158,16 @@ export function QuestionListPage() {
     setSelectedKeys(new Set());
   }
 
+  const hasActiveFilters = Boolean(search || classFilter || subjectFilter || typeFilter || marksFilter);
+
+  function resetAllFilters() {
+    setSearch('');
+    setClassFilter('');
+    setSubjectFilter('');
+    setTypeFilter('');
+    setMarksFilter('');
+  }
+
   function handleSort(key) {
     if (sortKey === key) {
       setSortDir((dir) => (dir === 'asc' ? 'desc' : 'asc'));
@@ -187,24 +197,94 @@ export function QuestionListPage() {
         </div>
       </div>
 
-      <div className="button-row qb-filter-bar">
-        <input placeholder="Search question, subject or class…" onChange={(e) => setSearch(e.target.value)} />
-        <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
-          <option value="">All Classes</option>
-          {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}>
-          <option value="">All Subjects</option>
-          {subjectOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-          <option value="">All Types</option>
-          {typeOptions.map((o) => <option key={o} value={o}>{TYPE_LABELS[o] ?? o.replace('_', ' ')}</option>)}
-        </select>
-        <select value={marksFilter} onChange={(e) => setMarksFilter(e.target.value)}>
-          <option value="">All Marks</option>
-          {marksOptions.map((o) => <option key={o} value={o}>{o} mark{o === '1' ? '' : 's'}</option>)}
-        </select>
+      <div className="qb-filter-card">
+        <div className="qb-search-input-wrap">
+          <Search size={16} className="qb-search-icon" />
+          <input
+            type="text"
+            className="qb-search-input"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search questions, subject or class…"
+          />
+          {search && (
+            <button
+              type="button"
+              className="qb-search-clear"
+              onClick={() => setSearch('')}
+              title="Clear search"
+              aria-label="Clear search"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        <div className="qb-filters-group">
+          <select
+            className={`qb-filter-select${classFilter ? ' is-active' : ''}`}
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+          >
+            <option value="">All Classes</option>
+            {classOptions.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+          <select
+            className={`qb-filter-select${subjectFilter ? ' is-active' : ''}`}
+            value={subjectFilter}
+            onChange={(e) => setSubjectFilter(e.target.value)}
+          >
+            <option value="">All Subjects</option>
+            {subjectOptions.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+          <select
+            className={`qb-filter-select${typeFilter ? ' is-active' : ''}`}
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+          >
+            <option value="">All Types</option>
+            {typeOptions.map((o) => (
+              <option key={o} value={o}>
+                {TYPE_LABELS[o] ?? o.replace('_', ' ')}
+              </option>
+            ))}
+          </select>
+          <select
+            className={`qb-filter-select${marksFilter ? ' is-active' : ''}`}
+            value={marksFilter}
+            onChange={(e) => setMarksFilter(e.target.value)}
+          >
+            <option value="">All Marks</option>
+            {marksOptions.map((o) => (
+              <option key={o} value={o}>
+                {o} mark{o === '1' ? '' : 's'}
+              </option>
+            ))}
+          </select>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="qb-reset-filters-btn"
+              onClick={resetAllFilters}
+              title="Reset all filters"
+            >
+              <RotateCcw size={13} /> Clear filters
+            </button>
+          )}
+        </div>
+
+        <div className="qb-results-count">
+          {filtered.length} {filtered.length === 1 ? 'question' : 'questions'}
+        </div>
       </div>
 
       {selectedKeys.size > 0 && (
@@ -227,138 +307,140 @@ export function QuestionListPage() {
       )}
 
       {sorted.length > 0 && (
-        <table className="data-table qb-table">
-          <thead>
-            <tr>
-              <th style={{ width: 36 }}>
-                <input
-                  type="checkbox"
-                  checked={allFilteredSelected}
-                  onChange={toggleAll}
-                  aria-label="Select all filtered questions"
-                />
-              </th>
-              <SortHeader label="Question" column="questionText" />
-              <SortHeader label="Class" column="className" />
-              <SortHeader label="Subject" column="subject" />
-              <SortHeader label="Type" column="type" />
-              <SortHeader label="Marks" column="marks" />
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((row) => {
-              const isExpanded = expandedKeys.has(row.key);
-              const hasExtraDetails = Boolean(row.question?.solution || (row.question?.answers?.length > 0));
+        <div className="qb-table-wrap">
+          <table className="data-table qb-table">
+            <thead>
+              <tr>
+                <th style={{ width: 36 }}>
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleAll}
+                    aria-label="Select all filtered questions"
+                  />
+                </th>
+                <SortHeader label="Question" column="questionText" />
+                <SortHeader label="Class" column="className" />
+                <SortHeader label="Subject" column="subject" />
+                <SortHeader label="Type" column="type" />
+                <SortHeader label="Marks" column="marks" />
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((row) => {
+                const isExpanded = expandedKeys.has(row.key);
+                const hasExtraDetails = Boolean(row.question?.solution || (row.question?.answers?.length > 0));
 
-              return (
-                <tr key={row.key} className={selectedKeys.has(row.key) ? 'row-selected' : undefined}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedKeys.has(row.key)}
-                      onChange={() => toggleRow(row.key)}
-                      aria-label={`Select ${row.questionText.slice(0, 60)}`}
-                    />
-                  </td>
-                  <td className="qb-question-cell">
-                    <div className="qb-question-content">
-                      <strong className="qb-question-text">
-                        <MathText>{row.questionText}</MathText>
-                      </strong>
+                return (
+                  <tr key={row.key} className={selectedKeys.has(row.key) ? 'row-selected' : undefined}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedKeys.has(row.key)}
+                        onChange={() => toggleRow(row.key)}
+                        aria-label={`Select ${row.questionText.slice(0, 60)}`}
+                      />
+                    </td>
+                    <td className="qb-question-cell">
+                      <div className="qb-question-content">
+                        <strong className="qb-question-text">
+                          <MathText>{row.questionText}</MathText>
+                        </strong>
 
-                      {/* Render MCQ options if present */}
-                      {row.question?.options?.length > 0 && (
-                        <div className="qb-row-options">
-                          {row.question.options.map((opt, i) => (
-                            <span key={opt.id || i} className="qb-option-pill">
-                              <span className="qb-opt-letter">{String.fromCharCode(65 + i)}.</span>{' '}
-                              <MathText>{opt.label}</MathText>
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                        {/* Render MCQ options if present */}
+                        {row.question?.options?.length > 0 && (
+                          <div className="qb-row-options">
+                            {row.question.options.map((opt, i) => (
+                              <span key={opt.id || i} className="qb-option-pill">
+                                <span className="qb-opt-letter">{String.fromCharCode(65 + i)}.</span>{' '}
+                                <MathText>{opt.label}</MathText>
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
-                      {/* Render sub-items (e.g. fill-in-blanks or true-false) if distinct */}
-                      {row.question?.items?.length > 0 && row.question.items.some((it) => it && it !== row.questionText) && (
-                        <div className="qb-subitems-list">
-                          {row.question.items.slice(0, 3).map((it, i) => (
-                            <div key={i} className="qb-subitem">
-                              <span className="qb-subitem-bullet">•</span> <MathText>{it}</MathText>
-                            </div>
-                          ))}
-                          {row.question.items.length > 3 && (
-                            <span className="muted text-xs">+{row.question.items.length - 3} more</span>
-                          )}
-                        </div>
-                      )}
+                        {/* Render sub-items (e.g. fill-in-blanks or true-false) if distinct */}
+                        {row.question?.items?.length > 0 && row.question.items.some((it) => it && it !== row.questionText) && (
+                          <div className="qb-subitems-list">
+                            {row.question.items.slice(0, 3).map((it, i) => (
+                              <div key={i} className="qb-subitem">
+                                <span className="qb-subitem-bullet">•</span> <MathText>{it}</MathText>
+                              </div>
+                            ))}
+                            {row.question.items.length > 3 && (
+                              <span className="muted text-xs">+{row.question.items.length - 3} more</span>
+                            )}
+                          </div>
+                        )}
 
-                      {/* Render matching pairs if present */}
-                      {row.question?.leftItems?.length > 0 && (
-                        <div className="qb-row-options">
-                          {row.question.leftItems.slice(0, 3).map((item, i) => (
-                            <span key={item.id || i} className="qb-option-pill">
-                              <span className="qb-opt-letter">{i + 1}.</span>{' '}
-                              <MathText>{item.label || 'Item'}</MathText>
-                            </span>
-                          ))}
-                          {row.question.leftItems.length > 3 && (
-                            <span className="muted text-xs">+{row.question.leftItems.length - 3} more</span>
-                          )}
-                        </div>
-                      )}
+                        {/* Render matching pairs if present */}
+                        {row.question?.leftItems?.length > 0 && (
+                          <div className="qb-row-options">
+                            {row.question.leftItems.slice(0, 3).map((item, i) => (
+                              <span key={item.id || i} className="qb-option-pill">
+                                <span className="qb-opt-letter">{i + 1}.</span>{' '}
+                                <MathText>{item.label || 'Item'}</MathText>
+                              </span>
+                            ))}
+                            {row.question.leftItems.length > 3 && (
+                              <span className="muted text-xs">+{row.question.leftItems.length - 3} more</span>
+                            )}
+                          </div>
+                        )}
 
-                      {/* Expanded Answer / Solution view */}
-                      {isExpanded && (
-                        <div className="qb-details-expanded">
-                          {row.question?.answers?.length > 0 && (
-                            <div>
-                              <strong>Answer:</strong>{' '}
-                              <MathText>{Array.isArray(row.question.answers) ? row.question.answers.join(', ') : String(row.question.answers)}</MathText>
-                            </div>
-                          )}
-                          {row.question?.solution && (
-                            <div style={{ marginTop: '0.25rem' }}>
-                              <strong>Solution:</strong>{' '}
-                              <MathText>{row.question.solution}</MathText>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        {/* Expanded Answer / Solution view */}
+                        {isExpanded && (
+                          <div className="qb-details-expanded">
+                            {row.question?.answers?.length > 0 && (
+                              <div>
+                                <strong>Answer:</strong>{' '}
+                                <MathText>{Array.isArray(row.question.answers) ? row.question.answers.join(', ') : String(row.question.answers)}</MathText>
+                              </div>
+                            )}
+                            {row.question?.solution && (
+                              <div style={{ marginTop: '0.25rem' }}>
+                                <strong>Solution:</strong>{' '}
+                                <MathText>{row.question.solution}</MathText>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
-                      {row.paperTitle && (
-                        <div className="qb-paper-title">
-                          <MathText>{row.paperTitle}</MathText>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td>{row.className}</td>
-                  <td>{row.subject}</td>
-                  <td>{TYPE_LABELS[row.type] ?? row.type.replace('_', ' ')}</td>
-                  <td>{row.marks}</td>
-                  <td>
-                    <div className="row-actions">
-                      {hasExtraDetails && (
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm"
-                          onClick={() => toggleExpand(row.key)}
-                          title={isExpanded ? 'Hide answers' : 'View answers'}
-                        >
-                          <Eye size={13} style={{ verticalAlign: 'middle' }} /> {isExpanded ? 'Hide' : 'View'}
-                        </button>
-                      )}
-                      <Link to={`/staff/paper-builder/${row.paperId}`}>
-                        <button className="btn-secondary btn-sm"><Pencil size={13} style={{ verticalAlign: 'middle' }} /> Open Paper</button>
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        {row.paperTitle && (
+                          <div className="qb-paper-title">
+                            <MathText>{row.paperTitle}</MathText>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td>{row.className}</td>
+                    <td>{row.subject}</td>
+                    <td>{TYPE_LABELS[row.type] ?? row.type.replace('_', ' ')}</td>
+                    <td>{row.marks}</td>
+                    <td>
+                      <div className="row-actions">
+                        {hasExtraDetails && (
+                          <button
+                            type="button"
+                            className="btn-ghost btn-sm"
+                            onClick={() => toggleExpand(row.key)}
+                            title={isExpanded ? 'Hide answers' : 'View answers'}
+                          >
+                            <Eye size={13} style={{ verticalAlign: 'middle' }} /> {isExpanded ? 'Hide' : 'View'}
+                          </button>
+                        )}
+                        <Link to={`/staff/paper-builder/${row.paperId}`}>
+                          <button className="btn-secondary btn-sm"><Pencil size={13} style={{ verticalAlign: 'middle' }} /> Open Paper</button>
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {showAddModal && (

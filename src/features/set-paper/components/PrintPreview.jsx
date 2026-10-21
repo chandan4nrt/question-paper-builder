@@ -68,11 +68,6 @@ function ImageMcqPreview({ question }) {
                 <span className="sp-image-writing-line-bottom" />
               </div>
             )}
-            {!opt.writingLines && (
-              <span className="sp-match-label sp-image-mcq-preview-label">
-                {opt.label || <em>Option</em>}
-              </span>
-            )}
           </div>
         ))}
       </div>

@@ -420,51 +420,211 @@ table.data-table {
   color: var(--primary);
 }
 
-/* ---------- Question Bank sticky header ---------- */
+/* ---------- Question Bank search & filters ---------- */
 
-.qb-page .qb-filter-bar {
-  position: sticky;
-  top: 137px;
-  z-index: 90;
-  background: var(--bg);
-  padding: 0.35rem 0;
-  margin: 0.9rem 0 0.75rem;
+.qb-filter-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0 0.85rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.qb-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+
+.qb-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.qb-search-input {
+  width: 100%;
+  padding: 0.52rem 2.2rem 0.52rem 2.35rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 0.88rem;
+  background: #f8fafc;
+  color: var(--text);
+  transition: all 0.15s ease;
+}
+
+.qb-search-input:focus {
+  background: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(180, 56, 97, 0.12);
+}
+
+.qb-search-clear {
+  position: absolute;
+  right: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+}
+
+.qb-search-clear:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+.qb-filters-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qb-filter-select {
+  padding: 0.52rem 0.85rem;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.qb-filter-select:hover {
+  border-color: #cbd5e1;
+  background: #fff;
+}
+
+.qb-filter-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(180, 56, 97, 0.12);
+  background: #fff;
+}
+
+.qb-filter-select.is-active {
+  border-color: var(--primary);
+  background: #fdf2f5;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.qb-reset-filters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.52rem 0.85rem;
+  border: 1px dashed rgba(220, 38, 38, 0.4);
+  border-radius: 9px;
+  background: #fff5f5;
+  color: #dc2626;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.qb-reset-filters-btn:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+  color: #b91c1c;
+}
+
+.qb-results-count {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  background: #f1f5f9;
+  border-radius: 6px;
 }
 
 .qb-page .qb-selection-bar-sticky {
-  position: sticky;
-  top: 188px;
-  z-index: 85;
+  margin-bottom: 0.75rem;
 }
 
-.qb-page .qb-table {
+.qb-table-wrap {
+  max-height: calc(100vh - 270px);
+  min-height: 300px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.qb-page.qb-has-selection .qb-table-wrap {
+  max-height: calc(100vh - 330px);
+}
+
+.qb-table-wrap::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.qb-table-wrap::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+.qb-table-wrap::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.qb-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.qb-table-wrap .qb-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
   overflow: visible;
 }
 
-.qb-page .qb-table thead th {
+.qb-table-wrap .qb-table thead th {
   position: sticky;
-  top: 188px;
-  z-index: 80;
+  top: 0;
+  z-index: 10;
   background: #f8fafc;
+  border-bottom: 2px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.qb-page.qb-has-selection .qb-table thead th {
-  top: 254px;
-}
-
-.qb-page .qb-table thead th:first-child {
+.qb-table-wrap .qb-table thead th:first-child {
   border-top-left-radius: var(--radius);
 }
 
-.qb-page .qb-table thead th:last-child {
+.qb-table-wrap .qb-table thead th:last-child {
   border-top-right-radius: var(--radius);
 }
 
-.qb-page .qb-table tbody tr:last-child td:first-child {
+.qb-table-wrap .qb-table tbody tr:last-child td:first-child {
   border-bottom-left-radius: var(--radius);
 }
 
-.qb-page .qb-table tbody tr:last-child td:last-child {
+.qb-table-wrap .qb-table tbody tr:last-child td:last-child {
   border-bottom-right-radius: var(--radius);
 }
 
@@ -2548,8 +2708,8 @@ body.sp-theme-light {
   display: grid;
   grid-template-columns: 39% 58%;
   gap: 1.25rem;
-  align-items: flex-start;
-  padding-top: 50px;
+  align-items: stretch;
+  min-height: calc(100vh - 140px);
 }
 
 .sp-builder-main,
@@ -2563,20 +2723,43 @@ body.sp-theme-light {
   gap: 0.9rem;
 }
 
-/* .sp-sidebar-left,
-.sp-sidebar-right {
-  position: sticky;
-  top: 140px;
-} */
 .layout-sec {
   position: sticky;
-  top: 140px;
+  top: 130px;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-height: calc(100vh - 145px);
+  overflow-y: auto;
+  z-index: 20;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(147, 51, 234, 0.25) transparent;
+}
+.layout-sec::-webkit-scrollbar {
+  width: 5px;
+}
+.layout-sec::-webkit-scrollbar-track {
+  background: transparent;
+}
+.layout-sec::-webkit-scrollbar-thumb {
+  background: rgba(147, 51, 234, 0.25);
+  border-radius: 4px;
+}
+.layout-sec::-webkit-scrollbar-thumb:hover {
+  background: rgba(147, 51, 234, 0.45);
 }
 
 @media (max-width: 1100px) {
   .sp-builder-layout {
     grid-template-columns: 1fr;
     gap: 1rem;
+    min-height: auto;
+  }
+  .layout-sec {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
   }
   .sp-sidebar-left,
   .sp-sidebar-right {

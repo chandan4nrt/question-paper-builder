@@ -207,12 +207,14 @@ export function ImageMcqQuestion({
                   >
                     {opt.writingLines ? 'Remove writing lines' : 'Add writing lines'}
                   </button>
-                  <input
-                    className="sp-match-label"
-                    value={opt.label}
-                    onChange={(e) => updateOption(opt.id, 'label', e.target.value)}
-                    placeholder={`Option ${getOptionLetter(index)}`}
-                  />
+                  {opt.writingLines && (
+                    <input
+                      className="sp-match-label"
+                      value={opt.label}
+                      onChange={(e) => updateOption(opt.id, 'label', e.target.value)}
+                      placeholder={`Option ${getOptionLetter(index)}`}
+                    />
+                  )}
                 </div>
                 <div className="sp-reorder">
                   <button type="button" onClick={() => moveOption(index, -1)} disabled={index === 0} title="Move up">
