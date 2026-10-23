@@ -159,7 +159,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
             type: 'color-the-image',
             mode: writingMode ? 'write' : 'circle',
             questionId: questionCounter,
-            totalMarks: Number(q.marks || 0) * pictures.length,
+            totalMarks: Number(q.marks || 0),
             questionTitle: getQuestionTitle(q),
             solution: q.solution ?? '',
             images: imageMap,
