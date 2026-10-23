@@ -39,8 +39,11 @@ export function useUpdatePaper() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ paperId, formData }) => api.updatePaper(paperId, formData),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['question-papers'] });
+      if (variables?.paperId) {
+        queryClient.invalidateQueries({ queryKey: ['question-paper', variables.paperId] });
+      }
     },
   });
 }

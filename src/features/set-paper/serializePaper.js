@@ -24,9 +24,10 @@ function createUniqueName(used, base, fallback) {
   return candidate;
 }
 
-function nextImageKey(counter) {
-  counter.current += 1;
-  return `IMG_${String(counter.current).padStart(3, '0')}`;
+function extractImageNumber(str) {
+  if (typeof str !== 'string') return 0;
+  const match = str.match(/IMG_(\d+)/i);
+  return match ? parseInt(match[1], 10) : 0;
 }
 
 export const DEFAULT_COMMON_TITLES = {
@@ -55,7 +56,69 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
   const usedNames = new Set();
   const mappedQuestions = [];
   let questionCounter = 0;
-  const imageKeyCounter = { current: 0 };
+
+  let existingTemplate = existingPaper?.template;
+  if (typeof existingTemplate === 'string') {
+    try {
+      existingTemplate = JSON.parse(existingTemplate);
+    } catch {
+      existingTemplate = {};
+    }
+  }
+
+  const existingUrls = {
+    ...(state.urls ?? {}),
+    ...(existingPaper?.urls ?? {}),
+    ...(existingTemplate?.urls ?? {}),
+  };
+
+  const usedKeys = new Set();
+  let maxImgNum = 0;
+
+  const registerKey = (k) => {
+    if (typeof k === 'string' && k.startsWith('IMG_')) {
+      usedKeys.add(k);
+      const num = extractImageNumber(k);
+      if (num > maxImgNum) maxImgNum = num;
+    }
+  };
+
+  Object.keys(existingUrls).forEach(registerKey);
+  for (const q of state.questions) {
+    if (q.pictureKey) registerKey(q.pictureKey);
+    for (const item of q.leftItems ?? []) {
+      if (item.pictureKey) registerKey(item.pictureKey);
+      if (typeof item.image === 'string' && item.image.startsWith('IMG_')) registerKey(item.image);
+    }
+    for (const opt of q.options ?? []) {
+      if (opt.pictureKey) registerKey(opt.pictureKey);
+      if (typeof opt.image === 'string' && opt.image.startsWith('IMG_')) registerKey(opt.image);
+    }
+  }
+
+  const rawExistingQuestions = Array.isArray(existingTemplate?.sections) && existingTemplate.sections.length > 0
+    ? existingTemplate.sections.flatMap((s) => s?.questions ?? [])
+    : (Array.isArray(existingTemplate?.questions) ? existingTemplate.questions : []);
+
+  for (const raw of rawExistingQuestions) {
+    if (raw?.images && typeof raw.images === 'object') {
+      Object.keys(raw.images).forEach(registerKey);
+    }
+    if (Array.isArray(raw?.pictures)) {
+      raw.pictures.forEach(registerKey);
+    }
+  }
+
+  const imageKeyCounter = { current: maxImgNum };
+
+  function getNextImageKey() {
+    do {
+      imageKeyCounter.current += 1;
+    } while (usedKeys.has(`IMG_${String(imageKeyCounter.current).padStart(3, '0')}`));
+    const key = `IMG_${String(imageKeyCounter.current).padStart(3, '0')}`;
+    usedKeys.add(key);
+    return key;
+  }
 
   for (const q of state.questions) {
     switch (q.type) {
@@ -75,11 +138,19 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
         const imageMap = {};
         const pictures = [];
         for (const item of q.leftItems ?? []) {
-          if (item.image || item.pictureKey) {
-            const imgKey = item.pictureKey || nextImageKey(imageKeyCounter);
+          if (item.image || item.imageBlob || item.pictureKey) {
+            let imgKey = item.pictureKey;
+            if (!imgKey || item.imageBlob) {
+              imgKey = getNextImageKey();
+            }
+            usedKeys.add(imgKey);
             const fileName = createUniqueName(usedNames, item.imageName, `${item.id}.jpg`);
-            if (item.imageBlob) images.push({ fileName, blob: item.imageBlob });
-            imageMap[imgKey] = item.imageName || fileName;
+            if (item.imageBlob) {
+              images.push({ fileName, blob: item.imageBlob });
+              imageMap[imgKey] = fileName;
+            } else {
+              imageMap[imgKey] = item.imageName || fileName;
+            }
             pictures.push(imgKey);
           }
         }
@@ -135,13 +206,21 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
       case 'image-mcq': {
         const imageMap = {};
         const pictures = [];
-        const imgOptions = (q.options ?? []).filter((option) => option.image);
+        const imgOptions = (q.options ?? []).filter((option) => option.image || option.imageBlob || option.pictureKey);
         for (const option of imgOptions) {
-          if (option.image) {
-            const imgKey = nextImageKey(imageKeyCounter);
+          if (option.image || option.imageBlob || option.pictureKey) {
+            let imgKey = option.pictureKey;
+            if (!imgKey || option.imageBlob) {
+              imgKey = getNextImageKey();
+            }
+            usedKeys.add(imgKey);
             const fileName = createUniqueName(usedNames, option.imageName, `${option.id}.jpg`);
-            if (option.imageBlob) images.push({ fileName, blob: option.imageBlob });
-            imageMap[imgKey] = fileName;
+            if (option.imageBlob) {
+              images.push({ fileName, blob: option.imageBlob });
+              imageMap[imgKey] = fileName;
+            } else {
+              imageMap[imgKey] = option.imageName || fileName;
+            }
             pictures.push(imgKey);
           }
         }
@@ -191,11 +270,19 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
         questionCounter += 1;
         const labelImageMap = {};
         let labelPicture;
-        if (q.image) {
-          const imgKey = nextImageKey(imageKeyCounter);
+        if (q.image || q.imageBlob || q.pictureKey) {
+          let imgKey = q.pictureKey;
+          if (!imgKey || q.imageBlob) {
+            imgKey = getNextImageKey();
+          }
+          usedKeys.add(imgKey);
           const fileName = createUniqueName(usedNames, q.imageName, `${q.id}.jpg`);
-          if (q.imageBlob) images.push({ fileName, blob: q.imageBlob });
-          labelImageMap[imgKey] = fileName;
+          if (q.imageBlob) {
+            images.push({ fileName, blob: q.imageBlob });
+            labelImageMap[imgKey] = fileName;
+          } else {
+            labelImageMap[imgKey] = q.imageName || fileName;
+          }
           labelPicture = imgKey;
         }
         mappedQuestions.push({
@@ -243,16 +330,34 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     state.questions.map((q) => q.number ?? 1),
   );
 
-  let existingTemplate = existingPaper?.template;
-  if (typeof existingTemplate === 'string') {
-    try {
-      existingTemplate = JSON.parse(existingTemplate);
-    } catch {
-      existingTemplate = {};
-    }
+  const sampleUrl = Object.values(existingUrls).find((u) => typeof u === 'string' && u.startsWith('http'));
+  let baseUrl = sampleUrl ? sampleUrl.substring(0, sampleUrl.lastIndexOf('/') + 1) : null;
+  const pId = paperId || existingPaper?.paperId || existingPaper?.id;
+  if (!baseUrl && pId) {
+    baseUrl = `https://cargofile.s3.ap-south-1.amazonaws.com/primarySchool/${pId}/`;
   }
 
-  const existingUrls = existingTemplate?.urls ?? existingPaper?.urls ?? state.urls ?? {};
+  // Ensure every image key used in mapped questions has a URL in existingUrls
+  for (const q of mappedQuestions) {
+    if (q.images && typeof q.images === 'object') {
+      for (const [key, fName] of Object.entries(q.images)) {
+        if (!existingUrls[key] && fName) {
+          const clean = String(fName).trim();
+          const matchExisting = Object.values(existingUrls).find((u) => {
+            if (typeof u !== 'string') return false;
+            const pathPart = u.split('?')[0].split('#')[0];
+            const filePart = pathPart.substring(pathPart.lastIndexOf('/') + 1);
+            return filePart === clean || filePart === encodeURI(clean) || decodeURIComponent(filePart) === clean;
+          });
+          if (matchExisting) {
+            existingUrls[key] = matchExisting;
+          } else if (baseUrl) {
+            existingUrls[key] = `${baseUrl}${encodeURI(clean)}`;
+          }
+        }
+      }
+    }
+  }
 
   const templateTitle =
     state.header.schoolName ||
@@ -290,16 +395,17 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
   payload.publish_link = existingPaper?.publish_link ?? null;
   payload.createdAt = existingPaper?.createdAt ?? null;
   payload.updatedAt = existingPaper?.updatedAt ?? null;
-
-  if (!existingPaper) {
-    payload.paperId = paperId || `paper-${Date.now()}`;
-  }
+  payload.paperId = paperId || existingPaper?.paperId || `paper-${Date.now()}`;
 
   if (state.header.logo) {
     const logoFileName = createUniqueName(usedNames, state.header.logoName, 'logo.png');
     payload.logo = logoFileName;
     payload.logoName = state.header.logoName || logoFileName;
     payload.template.images = { ...(payload.template.images ?? {}), LOGO: logoFileName };
+    if (baseUrl && !existingUrls.LOGO) {
+      existingUrls.LOGO = `${baseUrl}${encodeURI(logoFileName)}`;
+      payload.template.urls = existingUrls;
+    }
     if (state.header.logoBlob) images.push({ fileName: logoFileName, blob: state.header.logoBlob });
   }
 

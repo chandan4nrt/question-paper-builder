@@ -72,7 +72,7 @@ export function ImageMcqQuestion({
     }
     update({
       options: options.map((o) =>
-        o.id === id ? { ...o, image: URL.createObjectURL(file), imageName: file.name, imageBlob: file } : o,
+        o.id === id ? { ...o, image: URL.createObjectURL(file), imageName: file.name, imageBlob: file, pictureKey: null } : o,
       ),
     });
   }
@@ -145,7 +145,7 @@ export function ImageMcqQuestion({
                               update({
                                 options: options.map((o) =>
                                   o.id === opt.id
-                                    ? { ...o, image: null, imageName: null, imageBlob: null }
+                                    ? { ...o, image: null, imageName: null, imageBlob: null, pictureKey: null }
                                     : o,
                                 ),
                               })

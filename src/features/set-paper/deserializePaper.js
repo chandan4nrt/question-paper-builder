@@ -46,7 +46,7 @@ export function deserializePaper(res) {
     }
   }
 
-  const urlMap = template.urls ?? res.urls ?? {};
+  const urlMap = { ...(template.urls ?? res.urls ?? {}) };
   const imagesMap = template.images ?? res.images ?? {};
   const questions = [];
   let maxId = 0;
@@ -54,6 +54,36 @@ export function deserializePaper(res) {
   const rawQuestions = Array.isArray(template.sections) && template.sections.length > 0
     ? template.sections.flatMap((s) => s?.questions ?? [])
     : (Array.isArray(template.questions) ? template.questions : []);
+
+  const sampleUrl = Object.values(urlMap).find((u) => typeof u === 'string' && u.startsWith('http'));
+  let baseUrl = sampleUrl ? sampleUrl.substring(0, sampleUrl.lastIndexOf('/') + 1) : null;
+  const pId = res.paperId || res.id;
+  if (!baseUrl && pId) {
+    baseUrl = `https://cargofile.s3.ap-south-1.amazonaws.com/primarySchool/${pId}/`;
+  }
+
+  // Pre-fill any missing keys in urlMap using raw.images from all questions
+  for (const raw of rawQuestions) {
+    if (!raw) continue;
+    if (raw.images && typeof raw.images === 'object') {
+      for (const [key, name] of Object.entries(raw.images)) {
+        if (!urlMap[key] && name) {
+          const clean = String(name).trim();
+          const matchExisting = Object.values(urlMap).find((u) => {
+            if (typeof u !== 'string') return false;
+            const pathPart = u.split('?')[0].split('#')[0];
+            const filePart = pathPart.substring(pathPart.lastIndexOf('/') + 1);
+            return filePart === clean || filePart === encodeURI(clean) || decodeURIComponent(filePart) === clean;
+          });
+          if (matchExisting) {
+            urlMap[key] = matchExisting;
+          } else if (baseUrl) {
+            urlMap[key] = `${baseUrl}${encodeURI(clean)}`;
+          }
+        }
+      }
+    }
+  }
 
   for (const raw of rawQuestions) {
     if (!raw) continue;
@@ -76,7 +106,7 @@ export function deserializePaper(res) {
       duration: res.duration ? res.duration : `${res.durationInMin ?? 30} Minutes`,
       teacherName: res.teacherName ?? res.header?.teacherName ?? '',
       instructions: res.instructions ?? res.header?.instructions ?? '',
-      logo: resolveImageUrl(urlMap, 'LOGO') ?? res.logo ?? null,
+      logo: resolveImageUrl(urlMap, 'LOGO', imagesMap.LOGO ?? res.logoName) ?? res.logo ?? null,
       logoName: imagesMap.LOGO ?? res.logoName ?? null,
     },
     questions,
@@ -86,11 +116,27 @@ export function deserializePaper(res) {
   };
 }
 
-function resolveImageUrl(urlMap, key) {
-  if (!key) return null;
-  if (urlMap && urlMap[key]) return urlMap[key];
+function resolveImageUrl(urlMap, key, imageName) {
+  if (!key && !imageName) return null;
+  if (key && urlMap && urlMap[key]) return urlMap[key];
   if (typeof key === 'string' && (key.startsWith('http://') || key.startsWith('https://') || key.startsWith('data:') || key.startsWith('blob:'))) {
     return key;
+  }
+  if (imageName && urlMap) {
+    const clean = String(imageName).trim();
+    const matchExisting = Object.values(urlMap).find((u) => {
+      if (typeof u !== 'string') return false;
+      const pathPart = u.split('?')[0].split('#')[0];
+      const filePart = pathPart.substring(pathPart.lastIndexOf('/') + 1);
+      return filePart === clean || filePart === encodeURI(clean) || decodeURIComponent(filePart) === clean;
+    });
+    if (matchExisting) return matchExisting;
+
+    const sample = Object.values(urlMap).find((u) => typeof u === 'string' && u.startsWith('http'));
+    if (sample) {
+      const baseUrl = sample.substring(0, sample.lastIndexOf('/') + 1);
+      return `${baseUrl}${encodeURI(clean)}`;
+    }
   }
   return null;
 }
@@ -136,20 +182,22 @@ export function deserializeQuestion(raw, urlMap = {}) {
       base.leftItems = (raw.pictures ?? raw.leftItems ?? []).map((item, i) => {
         if (typeof item === 'object' && item !== null) {
           const key = item.pictureKey || (typeof item.image === 'string' && item.image.startsWith('IMG_') ? item.image : null);
-          const resolvedImg = resolveImageUrl(urlMap, key) || resolveImageUrl(urlMap, item.image) || (typeof item.image === 'string' && !item.image.startsWith('IMG_') ? item.image : null);
+          const imgName = item.imageName ?? (key && raw.images?.[key]) ?? null;
+          const resolvedImg = resolveImageUrl(urlMap, key, imgName) || resolveImageUrl(urlMap, item.image, imgName) || (typeof item.image === 'string' && !item.image.startsWith('IMG_') ? item.image : null);
           return {
             id: item.id ?? `l${i}`,
             label: item.label ?? '',
             image: resolvedImg,
-            imageName: item.imageName ?? (key && raw.images?.[key]) ?? null,
+            imageName: imgName,
             pictureKey: key,
           };
         }
+        const imgName = raw.images?.[item] ?? null;
         return {
           id: `l${i}`,
           label: '',
-          image: resolveImageUrl(urlMap, item),
-          imageName: raw.images?.[item] ?? null,
+          image: resolveImageUrl(urlMap, item, imgName),
+          imageName: imgName,
           pictureKey: item,
         };
       });
@@ -189,20 +237,23 @@ export function deserializeQuestion(raw, urlMap = {}) {
       const pics = raw.pictures ?? (Array.isArray(raw.options) ? raw.options : []);
       base.options = pics.map((item, i) => {
         if (typeof item === 'object' && item !== null) {
+          const key = item.pictureKey ?? (typeof item.image === 'string' && item.image.startsWith('IMG_') ? item.image : null);
+          const imgName = item.imageName ?? (key && raw.images?.[key]) ?? null;
           return {
             id: item.id ?? `o${i}`,
             label: item.label ?? '',
-            image: item.image ?? resolveImageUrl(urlMap, item.pictureKey),
-            imageName: item.imageName ?? null,
-            pictureKey: item.pictureKey ?? (typeof item.image === 'string' && item.image.startsWith('IMG_') ? item.image : null),
+            image: item.image ?? resolveImageUrl(urlMap, key, imgName),
+            imageName: imgName,
+            pictureKey: key,
             writingLines: item.writingLines ?? false,
           };
         }
+        const imgName = raw.images?.[item] ?? null;
         return {
           id: `o${i}`,
           label: '',
-          image: resolveImageUrl(urlMap, item),
-          imageName: raw.images?.[item] ?? null,
+          image: resolveImageUrl(urlMap, item, imgName),
+          imageName: imgName,
           pictureKey: item,
           writingLines: raw.mode === 'write',
         };
@@ -233,8 +284,10 @@ export function deserializeQuestion(raw, urlMap = {}) {
     case 'label': {
       base.type = 'label';
       const firstPic = raw.pictures?.[0] ?? raw.picture;
-      base.image = raw.image ?? resolveImageUrl(urlMap, firstPic);
-      base.imageName = raw.imageName ?? (firstPic ? (raw.images?.[firstPic] ?? null) : null);
+      const imgName = raw.imageName ?? (firstPic ? (raw.images?.[firstPic] ?? null) : null);
+      base.image = raw.image ?? resolveImageUrl(urlMap, firstPic, imgName);
+      base.imageName = imgName;
+      base.pictureKey = firstPic || (typeof base.image === 'string' && base.image.startsWith('IMG_') ? base.image : null);
       base.labelMarkers = (raw.labelMarkers ?? []).map((m) => ({
         id: m.id,
         x: m.x,

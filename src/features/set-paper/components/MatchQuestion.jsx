@@ -68,7 +68,7 @@ export function MatchQuestion({
     update({
       leftItems: leftItems.map((item) =>
         item.id === id
-          ? { ...item, image: URL.createObjectURL(file), imageName: file.name, imageBlob: file }
+          ? { ...item, image: URL.createObjectURL(file), imageName: file.name, imageBlob: file, pictureKey: null }
           : item,
       ),
     });
@@ -164,7 +164,7 @@ export function MatchQuestion({
                               update({
                                 leftItems: leftItems.map((item) =>
                                   item.id === left.id
-                                    ? { ...item, image: null, imageName: null, imageBlob: null }
+                                    ? { ...item, image: null, imageName: null, imageBlob: null, pictureKey: null }
                                     : item,
                                 ),
                               })

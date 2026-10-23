@@ -162,6 +162,7 @@ export function LabelQuestion({
       image: URL.createObjectURL(file),
       imageName: file.name,
       imageBlob: file,
+      pictureKey: null,
     });
   }
 
@@ -251,7 +252,7 @@ export function LabelQuestion({
                 type="button"
                 className="sp-icon-btn"
                 style={{ alignSelf: 'flex-end' }}
-                onClick={() => update({ image: null, imageName: null, imageBlob: null })}
+                onClick={() => update({ image: null, imageName: null, imageBlob: null, pictureKey: null })}
                 title="Remove diagram"
               >
                 <X size={14} /> Remove picture
