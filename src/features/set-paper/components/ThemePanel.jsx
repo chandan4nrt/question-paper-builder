@@ -134,7 +134,7 @@ function ThemeConfigModal({
             const meta = TYPE_META[c.type] ?? TYPE_META[QUESTION_TYPES.NORMAL];
             return (
               <div key={c.type} className="sp-theme-config-row">
-                <span className="sp-theme-config-icon" style={{ color: meta.color }}>
+                <span className={`sp-theme-config-icon sp-theme-icon-${c.type}`}>
                   {meta.icon}
                 </span>
                 <span className="sp-theme-config-label">{meta.label}</span>
@@ -256,25 +256,18 @@ export function ThemePanel({ disabled = false }) {
     <div className={`sp-sidebar-card${disabled ? ' sp-sidebar-disabled' : ''}`}>
       <button
         type="button"
-        className="sp-sidebar-title"
-        style={{
-          width: "100%",
-          justifyContent: "space-between",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-        }}
+        className="sp-sidebar-title sp-sidebar-title-btn"
         onClick={() => !disabled && setExpanded((s) => !s)}
       >
-        <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+        <span className="sp-sidebar-title-row">
           <Layers size={15} color="#9333EA" /> Themes (One-Click Paper)
         </span>
-        <ChevronDown size={15} style={{ transform: expanded ? "rotate(180deg)" : "none" }} />
+        <ChevronDown size={15} className={`sp-sidebar-chevron${expanded ? " is-open" : ""}`} />
       </button>
 
       {expanded && (
         <>
-          <div style={{ display: "flex", flexWrap: "wrap", height: "98px", overflow: "auto", gap: "0.6rem", marginTop: "0.5rem" }}>
+          <div className="sp-theme-list-container">
             {themes.map((theme) => (
               <div key={theme.id} className="sp-theme-card">
                 <div className="sp-theme-card-head">
@@ -308,8 +301,7 @@ export function ThemePanel({ disabled = false }) {
           </div>
           <button
             type="button"
-            className="sp-mcq-add"
-            style={{ width: "100%", justifyContent: "center" }}
+            className="sp-mcq-add sp-btn-block-center"
             onClick={() => setModalTheme("new")}
           >
             <Plus size={14} /> New Theme

@@ -38,7 +38,7 @@ export function HeaderEditor() {
   return (
     <div className="sp-header-card">
       <button type="button" onClick={() => setExpanded((e) => !e)} className="sp-header-title">
-        <span style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+        <span className="sp-header-title-inner">
           <School size={20} />
           <span>Paper Header</span>
         </span>
@@ -114,7 +114,7 @@ export function HeaderEditor() {
             ))}
           </div>
 
-          <div style={{ marginTop: "1rem" }}>
+          <div className="sp-header-extra-spacing">
             <label className="sp-field-label">
               <ClipboardList size={15} /> Exam Instructions
             </label>

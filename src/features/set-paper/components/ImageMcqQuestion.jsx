@@ -88,7 +88,7 @@ export function ImageMcqQuestion({
             <ChevronDown size={14} />
           </button>
         </div>
-        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#c43a22,#f4624f)' }}>
+        <div className="sp-q-number sp-q-number-image-mcq">
           {question.number}
         </div>
         <span className="sp-q-type teal">Circle It</span>
@@ -162,7 +162,7 @@ export function ImageMcqQuestion({
                         <input
                           type="file"
                           accept="image/*"
-                          style={{ display: 'none' }}
+                          className="sp-hidden-file-input"
                           onChange={(e) => handleImageUpload(opt.id, e)}
                         />
                       </label>
@@ -180,11 +180,10 @@ export function ImageMcqQuestion({
                         <div className="sp-answer-pair">
                           {opt.writingLines ? (
                             <input
-                              className="sp-answer-input"
+                              className="sp-answer-input sp-answer-input-flex"
                               value={getWriteAnswer(opt.id)}
                               onChange={(e) => setWriteAnswer(opt.id, e.target.value)}
                               placeholder="Right name for this picture..."
-                              style={{ flex: 1 }}
                             />
                           ) : (
                             <button

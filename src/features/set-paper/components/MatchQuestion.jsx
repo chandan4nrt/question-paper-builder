@@ -92,7 +92,7 @@ export function MatchQuestion({
             <ChevronDown size={14} />
           </button>
         </div>
-        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#f5a623,#e86624)' }}>
+        <div className="sp-q-number sp-q-number-match">
           {question.number}
         </div>
         <span className="sp-q-type green">Match the Following</span>
@@ -132,12 +132,11 @@ export function MatchQuestion({
           <span>Column A</span>
         </div>
         <div className="sp-col-title">
-          <span style={{ display: 'flex', gap: '0.3rem' }}>
+          <span className="sp-match-header-actions">
             <button
               type="button"
               onClick={handleShuffle}
-              className="sp-mini-btn blue"
-              style={shuffled ? { background: 'rgba(245,166,35,0.25)', color: '#8f240b' } : {}}
+              className={`sp-mini-btn blue${shuffled ? ' is-shuffled' : ''}`}
             >
               <Shuffle size={12} /> Shuffle
             </button>
@@ -180,7 +179,7 @@ export function MatchQuestion({
                           <input
                             type="file"
                             accept="image/*"
-                            style={{ display: 'none' }}
+                            className="sp-hidden-file-input"
                             onChange={(e) => handleImageUpload(left.id, e)}
                           />
                         </label>

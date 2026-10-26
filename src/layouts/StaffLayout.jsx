@@ -26,7 +26,7 @@ export function StaffLayout() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div className="app-header-left">
     
           <nav className="app-nav">        
             <NavLink

@@ -23,7 +23,7 @@ function McqPreview({ question }) {
   return (
     <div className="sp-mcq-preview">
       {options.length === 0 && (
-        <div style={{ color: "#94a3b8", fontStyle: "italic" }}>Add options in the editor...</div>
+        <div className="sp-preview-empty-notice">Add options in the editor...</div>
       )}
       <div className="sp-mcq-grid">
         {options.map((opt, i) => (
@@ -31,7 +31,7 @@ function McqPreview({ question }) {
             <span className="sp-match-letter sp-mcq-letter">{getOptionLetter(i)}</span>
             {/* <span className="sp-mcq-answer-dot" /> */}
             <span className="sp-mcq-preview-label">
-              {opt.label ? <MathText>{opt.label}</MathText> : <em style={{ color: "#a3a3a3" }}>Option...</em>}
+              {opt.label ? <MathText>{opt.label}</MathText> : <em className="sp-preview-placeholder-italics">Option...</em>}
             </span>
           </div>
         ))}
@@ -45,7 +45,7 @@ function ImageMcqPreview({ question }) {
   return (
     <div className="sp-image-mcq-preview">
       {options.length === 0 && (
-        <div style={{ color: "#94a3b8", fontStyle: "italic" }}>Add picture options in the editor...</div>
+        <div className="sp-preview-empty-notice">Add picture options in the editor...</div>
       )}
       <div className="sp-image-mcq-grid">
         {options.map((opt, i) => (
@@ -56,7 +56,7 @@ function ImageMcqPreview({ question }) {
                 <img src={opt.image} alt={opt.label || "option"} />
               ) : (
                 <div className="sp-image-mcq-placeholder">
-                  {opt.label || <em style={{ color: "#cbd5e1" }}>Option</em>}
+                  {opt.label || <em className="sp-preview-option-placeholder">Option</em>}
                 </div>
               )}
             </div>
@@ -109,7 +109,7 @@ function TrueFalsePreview({ question }) {
         <div key={index} className="sp-tf-row">
           <span className="sp-match-letter">{index + 1}.</span>
           <span className="sp-tf-statement">
-            {item ? <MathText>{item}</MathText> : <em style={{ color: "#a3a3a3" }}>Statement...</em>}
+            {item ? <MathText>{item}</MathText> : <em className="sp-preview-placeholder-italics">Statement...</em>}
           </span>
           <span className="sp-tf-choice">
             <span className="sp-tf-circle" /> True
@@ -133,9 +133,9 @@ function MatchPreview({ question }) {
       <table className="sp-match-table">
         <thead>
           <tr>
-            <th style={{ width: "50%" }}>Column A</th>
-            <th style={{ width: 32 }} />
-            <th style={{ width: "50%" }}>Column B</th>
+            <th className="sp-match-col-half">Column A</th>
+            <th className="sp-match-col-narrow" />
+            <th className="sp-match-col-half">Column B</th>
           </tr>
         </thead>
         <tbody>
@@ -152,7 +152,7 @@ function MatchPreview({ question }) {
                     </div>
                   )}
                 </td>
-                <td className="sp-match-cell" style={{ textAlign: "center", color: "#cbd5e1" }}>
+                <td className="sp-match-cell sp-match-divider-cell">
                   {/* — */}
                 </td>
                 <td className="sp-match-cell">
@@ -168,25 +168,6 @@ function MatchPreview({ question }) {
           })}
         </tbody>
       </table>
-      {/* <div className="sp-answer-key">
-        <div
-          style={{
-            fontSize: "0.72rem",
-            fontWeight: 800,
-            textTransform: "uppercase",
-            color: "#94a3b8",
-            marginBottom: "0.25rem",
-          }}
-        >
-          Answer:
-        </div>
-        {left.map((item, i) => (
-          <div key={item.id} className="sp-answer-key-row">
-            <span className="sp-match-letter">{String.fromCharCode(65 + i)}</span>
-            <span className="sp-blank-line sp-w24" />
-          </div>
-        ))}
-      </div> */}
     </div>
   );
 }
@@ -251,10 +232,10 @@ export function PrintPreview({ totalMarks }) {
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      <div className="sp-preview-question-list">
         {questions.length === 0 && (
-          <div style={{ textAlign: "center", color: "#94a3b8", padding: "2rem 0" }}>
-            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📝</div>
+          <div className="sp-preview-empty-questions">
+            <div className="sp-preview-empty-emoji">📝</div>
             No questions yet. Add some from the editor!
           </div>
         )}
@@ -272,7 +253,7 @@ export function PrintPreview({ totalMarks }) {
                 ) : question.type === QUESTION_TYPES.FILL_BLANK ? (
                   <span className="sp-q-text-heading">{question.questionTitle || "Fill in the blanks"}</span>
                 ) : (
-                  <em style={{ color: "#a3a3a3" }}>Question text...</em>
+                  <em className="sp-preview-placeholder-italics">Question text...</em>
                 )}
               </span>
 
@@ -318,16 +299,16 @@ export function PrintPreview({ totalMarks }) {
         <div className="sp-footer-block">
           <div className="lbl">Teacher's Signature:</div>
           <span className="sp-blank-line sp-w40" />
-          <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.2rem" }}>{header.teacherName}</div>
+          <div className="sp-footer-meta-text">{header.teacherName}</div>
         </div>
         <div className="sp-footer-central">
-          {/* <div style={{ fontSize: '1.4rem', marginBottom: '0.2rem' }}>🌟</div> */}
+          {/* <div className="sp-footer-star">🌟</div> */}
           <div>All the best !!</div>
         </div>
-        <div className="sp-footer-block" style={{ textAlign: "right" }}>
+        <div className="sp-footer-block sp-footer-right">
           <div className="lbl">Marks Obtained:</div>
           <span className="sp-blank-line sp-w24" />
-          <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.2rem" }}>Out of {totalMarks}</div>
+          <div className="sp-footer-meta-text">Out of {totalMarks}</div>
         </div>
       </div>
     </div>

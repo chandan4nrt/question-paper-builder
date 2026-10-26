@@ -78,124 +78,61 @@ function PaperPreviewModalContent({ initialPaper, onClose }) {
   }
 
   return createPortal(
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 99999 }}>
+    <div className="modal-overlay sp-preview-modal-overlay" onClick={onClose}>
       <div
-        className="modal sp-preview-modal"
+        className="modal sp-preview-modal sp-preview-modal-dialog"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "95vw",
-          maxWidth: "940px",
-          height: "92vh",
-          maxHeight: "92vh",
-          display: "flex",
-          flexDirection: "column",
-          padding: 0,
-          overflow: "hidden",
-          borderRadius: 14,
-          background: "#f8fafc",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-        }}
       >
         {/* Header toolbar */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "0.75rem",
-            padding: "0.85rem 1.25rem",
-            background: "#fff",
-            borderBottom: "1px solid #e2e8f0",
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span style={{ fontWeight: 700, fontSize: "1rem", color: "#1e293b" }}>
+        <div className="sp-preview-modal-header">
+          <div className="sp-preview-modal-info">
+            <div className="sp-preview-modal-title-row">
+              <span className="sp-preview-modal-title">
                 {activePaper.subject} — {activePaper.classLevel}
               </span>
-              <span
-                style={{
-                  fontSize: "0.7rem",
-                  fontWeight: 600,
-                  padding: "0.15rem 0.5rem",
-                  background: "#f1f5f9",
-                  color: "#475569",
-                  borderRadius: 999,
-                }}
-              >
+              <span className="sp-preview-modal-badge">
                 Paper Preview
               </span>
             </div>
-            <div style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "2px" }}>
+            <div className="sp-preview-modal-meta">
               {activePaper.examTerm && `${activePaper.examTerm} · `}
               {activePaper.academicYear && `${activePaper.academicYear} · `}
               {totalMarks} marks · {activePaper.durationInMin ?? 30} min
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+          <div className="sp-preview-modal-actions">
             <button
               type="button"
-              className="sp-tab"
+              className="sp-tab sp-preview-modal-edit-btn"
               onClick={() => navigate(`/staff/paper-builder/${activePaper.paperId}`)}
-              style={{
-                fontSize: "0.82rem",
-                padding: "0.4rem 0.8rem",
-                background: "#fff",
-                color: "#8f240b",
-                border: "1px solid #fed7aa",
-                borderRadius: 8,
-              }}
               title="Open full editor"
             >
               <Pencil size={13} /> Update Paper
             </button>
             <button
               type="button"
-              className="sp-tab sp-tab-export"
+              className="sp-tab sp-tab-export sp-preview-modal-export-btn"
               onClick={() => handleGeneratePDF(false)}
               disabled={exporting !== null}
-              style={{
-                fontSize: "0.82rem",
-                padding: "0.4rem 0.8rem",
-                borderRadius: 8,
-              }}
             >
               {exporting === "plain" ? <Loader2 size={13} className="sp-spin" /> : <Download size={13} />}
               {exporting === "plain" ? "Generating..." : "Generate PDF"}
             </button>
             <button
               type="button"
-              className="sp-tab sp-tab-export"
+              className="sp-tab sp-tab-export sp-preview-modal-export-btn"
               onClick={() => handleGeneratePDF(true)}
               disabled={exporting !== null}
-              style={{
-                fontSize: "0.82rem",
-                padding: "0.4rem 0.8rem",
-                borderRadius: 8,
-              }}
             >
               {exporting === "answer-key" ? <Loader2 size={13} className="sp-spin" /> : <Download size={13} />}
               {exporting === "answer-key" ? "Generating..." : "PDF with Answer Key"}
             </button>
             <button
               type="button"
-              className="modal-close"
+              className="modal-close sp-preview-modal-close-btn"
               onClick={onClose}
               aria-label="Close"
-              style={{
-                background: "#f1f5f9",
-                border: "none",
-                borderRadius: 8,
-                padding: "0.4rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                color: "#64748b",
-                marginLeft: "0.25rem",
-              }}
             >
               <X size={18} />
             </button>
@@ -203,16 +140,9 @@ function PaperPreviewModalContent({ initialPaper, onClose }) {
         </div>
 
         {/* Paper scrollable body */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "1.5rem 1rem",
-            background: "#f8fafc",
-          }}
-        >
-          <div style={{ maxWidth: 840, margin: "0 auto" }}>
-            <div className="sp-gradient-border" style={{ marginBottom: "2rem" }}>
+        <div className="sp-preview-modal-body">
+          <div className="sp-preview-modal-inner">
+            <div className="sp-gradient-border sp-preview-modal-print-border">
               <PrintPreview totalMarks={totalMarks} />
             </div>
             <AnswerKey />
@@ -222,9 +152,8 @@ function PaperPreviewModalContent({ initialPaper, onClose }) {
         {/* Toast */}
         {showToast && (
           <div
-            className="sp-toast sp-toast-success"
+            className="sp-toast sp-toast-success sp-preview-modal-toast"
             role="status"
-            style={{ position: "fixed", bottom: 20, right: 20, zIndex: 100000 }}
           >
             {toastMessage}
           </div>

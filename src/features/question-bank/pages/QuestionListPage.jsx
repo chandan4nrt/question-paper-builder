@@ -291,10 +291,10 @@ export function QuestionListPage() {
         <div className="selection-bar qb-selection-bar-sticky">
           <span><strong>{selectedKeys.size}</strong> question{selectedKeys.size === 1 ? '' : 's'} selected</span>
           <button type="button" className="btn-secondary btn-sm" onClick={() => setShowAddModal(true)}>
-            <FolderPlus size={13} style={{ verticalAlign: 'middle' }} /> Add to Paper
+            <FolderPlus size={13} className="icon-middle" /> Add to Paper
           </button>
           <button type="button" className="btn-ghost btn-sm" onClick={clearSelection}>
-            <X size={13} style={{ verticalAlign: 'middle' }} /> Clear
+            <X size={13} className="icon-middle" /> Clear
           </button>
         </div>
       )}
@@ -311,7 +311,7 @@ export function QuestionListPage() {
           <table className="data-table qb-table">
             <thead>
               <tr>
-                <th style={{ width: 36 }}>
+                <th className="col-checkbox">
                   <input
                     type="checkbox"
                     checked={allFilteredSelected}
@@ -399,7 +399,7 @@ export function QuestionListPage() {
                               </div>
                             )}
                             {row.question?.solution && (
-                              <div style={{ marginTop: '0.25rem' }}>
+                              <div className="qb-details-solution">
                                 <strong>Solution:</strong>{' '}
                                 <MathText>{row.question.solution}</MathText>
                               </div>
@@ -427,11 +427,11 @@ export function QuestionListPage() {
                             onClick={() => toggleExpand(row.key)}
                             title={isExpanded ? 'Hide answers' : 'View answers'}
                           >
-                            <Eye size={13} style={{ verticalAlign: 'middle' }} /> {isExpanded ? 'Hide' : 'View'}
+                            <Eye size={13} className="icon-middle" /> {isExpanded ? 'Hide' : 'View'}
                           </button>
                         )}
                         <Link to={`/staff/paper-builder/${row.paperId}`}>
-                          <button className="btn-secondary btn-sm"><Pencil size={13} style={{ verticalAlign: 'middle' }} /> Open Paper</button>
+                          <button className="btn-secondary btn-sm"><Pencil size={13} className="icon-middle" /> Open Paper</button>
                         </Link>
                       </div>
                     </td>

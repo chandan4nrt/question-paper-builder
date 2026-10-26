@@ -29,7 +29,7 @@ export function QuestionDetailPage() {
   if (isLoading || !question) return <div className="loading"><span className="spinner" /> Loading…</div>;
 
   return (
-    <div className="page" style={{ maxWidth: 720 }}>
+    <div className="page question-detail-page">
       <div className="page-header">
         <div>
           <h1>Question #{question.id}</h1>
@@ -40,23 +40,23 @@ export function QuestionDetailPage() {
         <StatusBadge status={question.status} />
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+      <div className="detail-badge-row">
         <span className="kbd-chip">{question.questionType.replace('_', ' ')}</span>
         <span className="kbd-chip">{question.difficulty}</span>
         <span className="kbd-chip">{question.language}</span>
         <span className="kbd-chip">{question.marks} mark(s)</span>
       </div>
 
-      <div className="card" style={{ whiteSpace: 'pre-wrap' }}>
+      <div className="card card-prewrap">
         <MathText>{question.questionText}</MathText>
       </div>
 
       {question.options.length > 0 && (
-        <div className="card" style={{ marginTop: '1rem' }}>
+        <div className="card card-spaced">
           <strong>Options</strong>
-          <ul style={{ paddingLeft: '1.25rem', margin: '0.5rem 0 0' }}>
+          <ul className="detail-options-list">
             {question.options.map((o) => (
-              <li key={o.optionText} style={{ fontWeight: o.isCorrect ? 700 : 400 }}>
+              <li key={o.optionText} className={`detail-option-item${o.isCorrect ? ' is-correct' : ''}`}>
                 <MathText>{o.optionText}</MathText> {o.isCorrect && '✓'}
               </li>
             ))}
@@ -65,14 +65,14 @@ export function QuestionDetailPage() {
       )}
 
       {(question.expectedAnswer || question.explanation) && (
-        <div className="card" style={{ marginTop: '1rem' }}>
+        <div className="card card-spaced">
           {question.expectedAnswer && (
-            <p style={{ margin: 0 }}>
+            <p className="detail-text-clean">
               <strong>Expected Answer:</strong> <MathText>{question.expectedAnswer}</MathText>
             </p>
           )}
           {question.explanation && (
-            <p style={{ margin: '0.5rem 0 0' }}>
+            <p className="detail-text-spaced">
               <strong>Explanation:</strong> <MathText>{question.explanation}</MathText>
             </p>
           )}
@@ -103,7 +103,7 @@ export function QuestionDetailPage() {
         </table>
       )}
 
-      <div className="button-row" style={{ marginTop: '1.5rem' }}>
+      <div className="button-row button-row-spaced">
         <Link to={`/staff/question-bank/${question.id}/edit`}><button className="btn-secondary">Edit</button></Link>
         <Link to={`/staff/question-bank/${question.id}/reviews`}><button className="btn-secondary">Review History</button></Link>
 

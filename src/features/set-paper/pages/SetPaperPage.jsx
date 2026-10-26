@@ -128,25 +128,25 @@ function PaperBuilder({ paperId }) {
   const isPaperLoading = paperId && !loadedPaper && (papersQuery.isLoading || paperQuery.isLoading);
   if (isPaperLoading) {
     return (
-      <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-        <Loader2 size={24} className="sp-spin" style={{ color: "#64748b" }} />
-        <span style={{ marginLeft: "0.5rem", color: "#64748b" }}>Loading paper...</span>
+      <div className="sp-app page sp-page-state-center">
+        <Loader2 size={24} className="sp-spin sp-loading-spinner-muted" />
+        <span className="sp-loading-text">Loading paper...</span>
       </div>
     );
   }
 
   if (paperId && !loadedPaper && papersQuery.isError && (paperQuery.isError || !paperQuery.isLoading)) {
     return (
-      <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-        <p style={{ color: "#ef4444" }}>Failed to load papers. Please try again.</p>
+      <div className="sp-app page sp-page-state-center">
+        <p className="sp-state-error-text">Failed to load papers. Please try again.</p>
       </div>
     );
   }
 
   if (paperId && !loadedPaper && !papersQuery.isLoading && !paperQuery.isLoading && (papersQuery.isSuccess || paperQuery.isSuccess)) {
     return (
-      <div className="sp-app page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-        <p style={{ color: "#ef4444" }}>Paper not found. Please check the ID and try again.</p>
+      <div className="sp-app page sp-page-state-center">
+        <p className="sp-state-error-text">Paper not found. Please check the ID and try again.</p>
       </div>
     );
   }

@@ -57,19 +57,14 @@ export function FillBlankQuestion({
         </div>
 
         {/* Fill in the Blanks Header */}
-        <div
-          className="sp-q-number"
-          style={{
-            background: 'linear-gradient(135deg, #347a58, #63ad82)',
-          }}
-        >
+        <div className="sp-q-number sp-q-number-fill-blank">
           {question.number}
         </div>
 
         <span className="sp-q-type green">Fill in the Blanks</span>
 
         <div className="sp-q-actions">
-<div className="sp-marks">
+          <div className="sp-marks">
             <input
               type="number"
               min={0}
@@ -98,14 +93,7 @@ export function FillBlankQuestion({
       </div>
 
       {/* Sub-Questions List */}
-      <div
-        className="sp-q-body"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem',
-        }}
-      >
+      <div className="sp-q-body">
         <CommonTitleField
           value={question.questionTitle}
           onChange={(questionTitle) => update({ questionTitle })}
@@ -113,21 +101,8 @@ export function FillBlankQuestion({
         />
         {items.map((item, index) => (
           <Fragment key={index}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <span
-                style={{
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  color: '#4b5563',
-                  minWidth: '1.25rem',
-                }}
-              >
+            <div className="sp-subq-row">
+              <span className="sp-subq-number">
                 {index + 1}.
               </span>
 
@@ -136,23 +111,21 @@ export function FillBlankQuestion({
                 onChange={(e) => handleItemChange(index, e.target.value)}
                 placeholder='Use ___ in your sentence, e.g. "The sun rises in the ___."'
                 rows={1}
-                className="sp-textarea"
-                style={{ flex: 1, resize: 'vertical' }}
+                className="sp-textarea sp-subq-textarea"
               />
 
               {items.length > 1 && (
                 <button
                   type="button"
-                  className="sp-icon-btn"
+                  className="sp-icon-btn sp-subq-remove-btn"
                   onClick={() => handleRemoveItem(index)}
                   title="Remove item"
-                  style={{ color: '#ef4444' }}
                 >
                   <X size={16} />
                 </button>
               )}
             </div>
-            <div className="sp-answer-section sp-answer-inline" style={{ marginTop: 0, paddingTop: 0, border: 'none', paddingLeft: '1.75rem' }}>
+            <div className="sp-answer-section sp-answer-inline sp-answer-inline-borderless">
               <input
                 className="sp-answer-input"
                 value={question.answers?.[index] ?? ''}
@@ -166,19 +139,7 @@ export function FillBlankQuestion({
         <button
           type="button"
           onClick={handleAddItem}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            alignSelf: 'flex-start',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: '#347a58',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0.25rem 0',
-          }}
+          className="sp-add-subq-btn green"
         >
           <Plus size={16} /> Add Blank Question
         </button>

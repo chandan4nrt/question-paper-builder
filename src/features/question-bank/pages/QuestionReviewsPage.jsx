@@ -14,7 +14,7 @@ export function QuestionReviewsPage() {
   const { data: reviews, isLoading } = useQuestionReviews(questionId);
 
   return (
-    <div className="page" style={{ maxWidth: 640 }}>
+    <div className="page question-reviews-page">
       <div className="page-header">
         <div>
           <h1>Review History</h1>
@@ -26,12 +26,12 @@ export function QuestionReviewsPage() {
       {reviews && reviews.length > 0 && (
         <div className="card">
           {reviews.map((r) => (
-            <div key={r.id} style={{ borderBottom: '1px solid var(--border)', padding: '0.75rem 0' }}>
+            <div key={r.id} className="review-item">
               <div>
                 <span className={`badge ${ACTION_CLASS[r.action] ?? 'status-draft'}`}>{r.action}</span>{' '}
                 <span className="muted text-sm">by {r.reviewerName} — {new Date(r.createdAt).toLocaleString()}</span>
               </div>
-              {r.remarks && <p style={{ margin: '0.35rem 0 0' }}>{r.remarks}</p>}
+              {r.remarks && <p className="review-remarks">{r.remarks}</p>}
             </div>
           ))}
         </div>

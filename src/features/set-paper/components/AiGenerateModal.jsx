@@ -113,7 +113,7 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
     <div className="modal-overlay" onClick={!isLoading ? onClose : undefined}>
       <div className="modal sp-ai-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <h2 className="sp-ai-title-row">
             <span className={`sp-add-icon ${typeConfig.colorClass}`}><Sparkles size={16} /></span>
             Generate {isNormal ? variantLabel : typeConfig.label} with AI
           </h2>
@@ -123,11 +123,10 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
         </div>
 
         <div className="sp-ai-form">
-          <label className="sp-field-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
+          <label className="sp-field-label sp-block-label">
             Topic *
             <input
-              className="sp-input"
-              style={{ marginTop: '0.3rem' }}
+              className="sp-input sp-input-spaced"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g. Photosynthesis in plants"
@@ -136,11 +135,10 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
           </label>
 
           {isNormal && (
-            <label className="sp-field-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            <label className="sp-field-label sp-block-label">
               Question Type
               <select
-                className="sp-input"
-                style={{ marginTop: '0.3rem' }}
+                className="sp-input sp-input-spaced"
                 value={variant}
                 onChange={(e) => setVariant(e.target.value)}
               >
@@ -206,7 +204,7 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
           </div>
 
           <div className="sp-ai-uploads">
-            <label className="sp-field-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            <label className="sp-field-label sp-block-label">
               Reference material (optional) — max 20 MB per file
             </label>
 
@@ -280,19 +278,19 @@ export function AiGenerateModal({ type, typeConfig, onClose }) {
           </div>
         </div>
 
-        {error && <div className="alert alert-error" style={{ marginTop: '0.5rem' }}>{error}</div>}
+        {error && <div className="alert alert-error sp-alert-spaced">{error}</div>}
 
         <div className="sp-theme-modal-actions sp-ai-actions">
           <button type="button" className="btn-ghost" onClick={addBlankInstead} disabled={isLoading}>
             <Plus size={15} /> Add empty question instead
           </button>
-          <span style={{ flex: 1 }} />
+          <span className="sp-flex-spacer" />
           <button type="button" className="btn-secondary" onClick={onClose} disabled={isLoading}>
             Cancel
           </button>
           <button type="button" onClick={handleGenerate} disabled={!canGenerate}>
-            {isLoading ? <Loader2 size={15} className="sp-spin" style={{ verticalAlign: 'middle' }} /> : <Sparkles size={15} style={{ verticalAlign: 'middle' }} />}
-            <span style={{ marginLeft: '0.35rem' }}>{isLoading ? 'Generating…' : 'Generate'}</span>
+            {isLoading ? <Loader2 size={15} className="sp-spin icon-middle" /> : <Sparkles size={15} className="icon-middle" />}
+            <span className="sp-btn-text-spaced">{isLoading ? 'Generating…' : 'Generate'}</span>
           </button>
         </div>
       </div>

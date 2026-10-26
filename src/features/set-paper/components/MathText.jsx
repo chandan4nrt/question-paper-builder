@@ -92,7 +92,7 @@ export function MathText({ children, className = '' }) {
     <span className={`math-text ${className}`.trim()}>
       {tokens.map((token, index) => {
         if (token.type === 'text') {
-          return <span key={index} style={{ whiteSpace: 'pre-wrap' }}>{token.value}</span>;
+          return <span key={index} className="sp-math-prewrap">{token.value}</span>;
         }
         return (
           <span

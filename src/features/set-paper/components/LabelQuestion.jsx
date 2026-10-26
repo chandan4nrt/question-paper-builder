@@ -75,13 +75,7 @@ function Markers({
   return (
     <div
       ref={stageRef}
-      className={draggable ? 'sp-label-stage sp-label-stage-editable' : 'sp-label-stage'}
-      style={{
-        position: 'relative',
-        display: 'inline-block',
-        maxWidth: '100%',
-        alignSelf: 'center',
-      }}
+      className={`${draggable ? 'sp-label-stage sp-label-stage-editable' : 'sp-label-stage'} sp-label-stage-container`}
     >
       <img src={image} alt="diagram" className="sp-label-diagram" />
       {markers.map((m, i) => (
@@ -207,7 +201,7 @@ export function LabelQuestion({
             <ChevronDown size={14} />
           </button>
         </div>
-        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#9333ea,#ff7a52)' }}>
+        <div className="sp-q-number sp-q-number-label">
           {question.number}
         </div>
         <span className="sp-q-type pink">Picture Labeling</span>
@@ -233,7 +227,7 @@ export function LabelQuestion({
         </div>
       </div>
 
-      <div className="sp-q-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div className="sp-q-body">
         <input
           value={question.text}
           onChange={(e) => update({ text: e.target.value })}
@@ -241,7 +235,7 @@ export function LabelQuestion({
           className="sp-input"
         />
 
-        <div className="sp-diagram-upload" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+        <div className="sp-diagram-upload sp-diagram-upload-stacked">
           {question.image ? (
             <>
               <div className="sp-label-hint">
@@ -250,8 +244,7 @@ export function LabelQuestion({
               <Markers markers={markers} image={question.image} draggable onMove={moveMarker} />
               <button
                 type="button"
-                className="sp-icon-btn"
-                style={{ alignSelf: 'flex-end' }}
+                className="sp-icon-btn sp-align-end"
                 onClick={() => update({ image: null, imageName: null, imageBlob: null, pictureKey: null })}
                 title="Remove diagram"
               >
@@ -259,12 +252,12 @@ export function LabelQuestion({
               </button>
             </>
           ) : (
-            <label className="sp-upload-label" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem', alignSelf: 'center' }}>
+            <label className="sp-upload-label sp-upload-label-centered">
               <ImageIcon size={14} /> Upload diagram / picture
               <input
                 type="file"
                 accept="image/*"
-                style={{ display: 'none' }}
+                className="sp-hidden-file-input"
                 onChange={handleImageUpload}
               />
             </label>
@@ -272,7 +265,7 @@ export function LabelQuestion({
         </div>
 
         <div className="sp-line-control">
-          <span className="sp-field-label" style={{ margin: 0 }}>
+          <span className="sp-field-label sp-no-margin">
             Number of labels:
           </span>
           <button

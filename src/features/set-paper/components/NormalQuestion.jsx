@@ -29,7 +29,7 @@ export function NormalQuestion({
         </div>
         <div className="sp-q-number">{question.number}</div>
         <span className="sp-q-type blue">
-          <GripVertical size={10} style={{ display: 'none' }} />
+          <GripVertical size={10} className="sp-hidden-icon" />
           Question
         </span>
         <div className="sp-q-actions">

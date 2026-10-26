@@ -108,12 +108,12 @@ export function QuestionFormPage({ mode }) {
   }
 
   return (
-    <div className="page" style={{ maxWidth: 760 }}>
+    <div className="page question-form-page">
       <div className="page-header">
         <h1>{mode === 'create' ? 'New Question' : 'Edit Question'}</h1>
       </div>
       <form className="form-card" onSubmit={handleSubmit(onSubmit)}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+        <div className="form-grid-2col">
           <label className="field">
             <span>Academic Year</span>
             <select {...register('academicYearId', { valueAsNumber: true })}>
@@ -189,25 +189,25 @@ export function QuestionFormPage({ mode }) {
           </label>
         </div>
 
-        <label className="field" style={{ marginTop: '0.25rem' }}>
+        <label className="field field-compact">
           <span>Question</span>
-          <textarea rows={3} style={{ width: '100%' }} {...register('questionText')} />
+          <textarea rows={3} className="form-textarea-full" {...register('questionText')} />
           <MathPreview value={watch('questionText')} />
           {formState.errors.questionText && <span className="error-text">{formState.errors.questionText.message}</span>}
         </label>
 
         <label className="field">
           <span>Explanation (optional)</span>
-          <textarea rows={2} style={{ width: '100%' }} {...register('explanation')} />
+          <textarea rows={2} className="form-textarea-full" {...register('explanation')} />
           <MathPreview value={watch('explanation')} />
         </label>
 
         {OPTION_BASED_TYPES.includes(questionType) && (
-          <fieldset style={{ marginTop: '1rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '1rem' }}>
+          <fieldset className="form-fieldset">
             <legend><strong>Options</strong></legend>
             {fields.map((field, index) => (
-              <div key={field.id} style={{ marginBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div key={field.id} className="form-option-wrap">
+                <div className="form-option-row">
                   <input
                     placeholder={`Option ${index + 1}`}
                     {...register(`options.${index}.optionText`)}
@@ -242,7 +242,7 @@ export function QuestionFormPage({ mode }) {
           <>
             <label className="field">
               <span>Expected Answer</span>
-              <textarea rows={2} style={{ width: '100%' }} {...register('expectedAnswer')} />
+              <textarea rows={2} className="form-textarea-full" {...register('expectedAnswer')} />
               <MathPreview value={watch('expectedAnswer')} />
               {formState.errors.expectedAnswer && (
                 <span className="error-text">{formState.errors.expectedAnswer.message}</span>
@@ -251,7 +251,7 @@ export function QuestionFormPage({ mode }) {
             {(questionType === 'SHORT_ANSWER' || questionType === 'LONG_ANSWER') && (
               <label className="field">
                 <span>Evaluation Guidance</span>
-                <textarea rows={2} style={{ width: '100%' }} {...register('evaluationGuidance')} />
+                <textarea rows={2} className="form-textarea-full" {...register('evaluationGuidance')} />
               </label>
             )}
           </>
@@ -264,7 +264,7 @@ export function QuestionFormPage({ mode }) {
           </div>
         )}
 
-        <div className="button-row" style={{ marginTop: '1.5rem' }}>
+        <div className="button-row button-row-spaced">
           <button type="submit" disabled={mutation.isPending}>
             {mutation.isPending
               ? mode === 'edit'

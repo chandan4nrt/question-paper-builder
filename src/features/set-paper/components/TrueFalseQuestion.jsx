@@ -74,14 +74,7 @@ export function TrueFalseQuestion({
         </div>
       </div>
 
-      <div
-        className="sp-q-body"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem',
-        }}
-      >
+      <div className="sp-q-body">
         <CommonTitleField
           value={question.questionTitle}
           onChange={(questionTitle) => update({ questionTitle })}
@@ -90,21 +83,9 @@ export function TrueFalseQuestion({
         {items.map((item, index) => (
           <div
             key={index}
-            className="sp-tf-row"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
+            className="sp-tf-row sp-subq-row"
           >
-            <span
-              style={{
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                color: '#4b5563',
-                minWidth: '1.25rem',
-              }}
-            >
+            <span className="sp-subq-number">
               {index + 1}.
             </span>
 
@@ -113,11 +94,10 @@ export function TrueFalseQuestion({
               onChange={(e) => handleItemChange(index, e.target.value)}
               placeholder='Write a statement, e.g. "The sun rises in the east."'
               rows={1}
-              className="sp-textarea"
-              style={{ flex: 1, resize: 'vertical' }}
+              className="sp-textarea sp-subq-textarea"
             />
 
-            <span className="sp-tf-options" style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span className="sp-tf-options sp-tf-options-wrap">
               <span className="sp-answer-tf">
                 <button
                   type="button"
@@ -141,10 +121,9 @@ export function TrueFalseQuestion({
             {items.length > 1 && (
               <button
                 type="button"
-                className="sp-icon-btn"
+                className="sp-icon-btn sp-subq-remove-btn"
                 onClick={() => handleRemoveItem(index)}
                 title="Remove item"
-                style={{ color: '#ef4444' }}
               >
                 <X size={16} />
               </button>
@@ -155,19 +134,7 @@ export function TrueFalseQuestion({
         <button
           type="button"
           onClick={handleAddItem}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            alignSelf: 'flex-start',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: '#a83d68',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0.25rem 0',
-          }}
+          className="sp-add-subq-btn pink"
         >
           <Plus size={16} /> Add True/False Statement
         </button>

@@ -66,9 +66,9 @@ export function AddToPaperModal({ rows, papers, onClose }) {
           )}
         </div>
 
-        <div className="sp-theme-modal-actions sp-ai-actions" style={{ marginTop: '1rem' }}>
+        <div className="sp-theme-modal-actions sp-ai-actions sp-modal-actions-spaced">
           <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-          <span style={{ flex: 1 }} />
+          <span className="sp-flex-spacer" />
           <button
             type="button"
             onClick={handleAdd}

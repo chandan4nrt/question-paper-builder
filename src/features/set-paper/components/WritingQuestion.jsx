@@ -9,8 +9,7 @@ export function WritingLines({ count, fragments = 1, sampleText }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="sp-writing-line"
-          style={{ gridTemplateColumns: `repeat(${fragmentCount}, minmax(0, 1fr))` }}
+          className={`sp-writing-line sp-cols-${Math.min(6, fragmentCount)}`}
         >
           {Array.from({ length: fragmentCount }).map((_, fragmentIndex) => (
             <div key={fragmentIndex} className="sp-line-fragment">
@@ -54,7 +53,7 @@ export function WritingQuestion({
             <ChevronDown size={14} />
           </button>
         </div>
-        <div className="sp-q-number" style={{ background: 'linear-gradient(135deg,#f4624f,#ff7a52)' }}>
+        <div className="sp-q-number sp-q-number-writing">
           {question.number}
         </div>
         <span className="sp-q-type pink">Writing Practice</span>
@@ -79,7 +78,7 @@ export function WritingQuestion({
           </button>
         </div>
       </div>
-      <div className="sp-q-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div className="sp-q-body">
         <input
           value={question.text}
           onChange={(e) => update({ text: e.target.value })}
@@ -90,12 +89,11 @@ export function WritingQuestion({
           value={question.sampleText ?? ''}
           onChange={(e) => update({ sampleText: e.target.value })}
           placeholder="Sample text to trace (optional, shown on first line)"
-          className="sp-input"
-          style={{ background: '#fff3e6', color: '#c43a22' }}
+          className="sp-input sp-writing-mode-btn"
         />
         <div className='sp-control'>
           <div className="sp-line-control">
-            <span className="sp-field-label" style={{ margin: 0 }}>
+            <span className="sp-field-label sp-no-margin">
               Number of lines:
             </span>
             <button
@@ -117,7 +115,7 @@ export function WritingQuestion({
             </button>
           </div>
           <div className="sp-line-control">
-            <span className="sp-field-label" style={{ margin: 0 }}>
+            <span className="sp-field-label sp-no-margin">
               Number of fragments:
             </span>
             <button

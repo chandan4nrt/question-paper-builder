@@ -89,7 +89,7 @@ export function AddQuestionBar({ disabled = false }) {
               <b>{config.label}</b>
               <span>{config.desc}</span>
             </span>
-            <Plus size={15} style={{ opacity: 0.6, marginLeft: 'auto' }} />
+            <Plus size={15} className="sp-add-q-end-icon" />
           </button>
         ))}
       </div>

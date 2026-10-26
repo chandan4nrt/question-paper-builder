@@ -14,12 +14,12 @@ export function LoginPage() {
   const loginMutation = useLogin();
 
   return (
-    <div className="app-shell" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-      <div style={{ width: '100%', maxWidth: 380, padding: '0 1rem' }}>
-        <div className="card" style={{ padding: '2rem' }}>
-          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-            <span className="app-logo" style={{ width: 44, height: 44, fontSize: 22, marginBottom: '0.75rem' }}>📚</span>
-            <h1 style={{ fontSize: '1.4rem', margin: 0 }}>Question Bank</h1>
+    <div className="app-shell login-shell">
+      <div className="login-wrapper">
+        <div className="card login-card">
+          <div className="login-header">
+            <span className="app-logo login-logo">📚</span>
+            <h1 className="login-title">Question Bank</h1>
             <p className="muted text-sm">Staff Portal — Sign in to continue</p>
           </div>
           <form onSubmit={handleSubmit((values) => loginMutation.mutate(values))}>
@@ -37,7 +37,7 @@ export function LoginPage() {
               {loginMutation.isPending ? 'Signing in…' : 'Sign in'}
             </button>
             {loginMutation.isError && (
-              <div className="alert alert-error" style={{ marginTop: '0.75rem' }}>{extractErrorMessage(loginMutation.error)}</div>
+              <div className="alert alert-error login-alert">{extractErrorMessage(loginMutation.error)}</div>
             )}
           </form>
         </div>
