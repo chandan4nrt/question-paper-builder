@@ -17,6 +17,8 @@ export function deserializePaper(res) {
       },
       questions: [],
       theme: 'colorful',
+      themeId: null,
+      fromTheme: null,
       nextId: 1,
       urls: {},
     };
@@ -111,6 +113,8 @@ export function deserializePaper(res) {
     },
     questions,
     theme: res.theme || 'colorful',
+    themeId: res.themeId ?? res.theme_id ?? template?.themeId ?? (typeof res.fromTheme !== 'boolean' ? res.fromTheme : null) ?? null,
+    fromTheme: res.fromTheme ?? res.themeId ?? res.theme_id ?? template?.themeId ?? null,
     nextId: maxId + 1,
     urls: urlMap,
   };

@@ -69,6 +69,8 @@ const initialState = {
   },
   questions: [],
   theme: 'colorful',
+  themeId: null,
+  fromTheme: null,
   nextId: 1,
 };
 
@@ -182,10 +184,17 @@ function paperReducer(state, action) {
       return { ...state, theme: action.payload };
 
     case 'GENERATE_FROM_THEME': {
+      const theme = action.payload ?? {};
+      const rawThemeId = theme.themeId ?? theme.id ?? null;
+      const themeId =
+        rawThemeId != null && Number.isInteger(Number(rawThemeId)) && Number(rawThemeId) > 0
+          ? Number(rawThemeId)
+          : rawThemeId;
+
       const questions = [];
       let id = 1;
       let number = 1;
-      action.payload.questions.forEach((cfg) => {
+      (theme.questions ?? []).forEach((cfg) => {
         if (cfg.count <= 0) return;
         for (let i = 0; i < cfg.count; i++) {
           const q = newQuestion(id, number, cfg.type);
@@ -201,6 +210,8 @@ function paperReducer(state, action) {
         questions,
         nextId: id,
         header: { ...state.header, totalMarks },
+        themeId,
+        fromTheme: themeId,
       };
     }
 

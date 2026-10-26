@@ -222,7 +222,9 @@ export function ThemePanel({ disabled = false }) {
   }, []);
 
   function generate(theme) {
-    dispatch({ type: "GENERATE_FROM_THEME", payload: theme });
+    const themeId = theme.themeId ?? theme.id;
+    dispatch({ type: "GENERATE_FROM_THEME", payload: { ...theme, themeId } });
+    showToast?.(`⚡ Generated questions from "${theme.name || "Theme"}".`);
   }
 
   function saveTheme(theme) {

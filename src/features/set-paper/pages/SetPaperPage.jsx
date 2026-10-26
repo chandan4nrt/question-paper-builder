@@ -110,7 +110,8 @@ function PaperBuilder({ paperId }) {
   function handleSetPaper() {
     const isEditMode = Boolean(paperId);
     const { formData, payload } = buildSetPaperFormData(state, paperId, loadedPaper);
-    console.log("Payload items:", payload.template.questions);
+    console.log("=== SET PAPER PAYLOAD ===", payload);
+    console.log("=== SET PAPER PAYLOAD (JSON) ===\n" + JSON.stringify(payload, null, 2));
     const onSuccess = (response) => {
       flashToast(`✅ Paper ${isEditMode ? "updated" : "saved"} successfully (${response?.paperId ?? paperId}).`);
       if (!paperId) navigate("/staff/paper-builder");

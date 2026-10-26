@@ -389,10 +389,18 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
   payload.academicYear = state.header.academicYear || existingPaper?.academicYear || '';
   payload.numberOfSectionsInPpr = existingPaper?.numberOfSectionsInPpr ?? includedSections.size ?? 1;
   payload.exam_board = existingPaper?.exam_board ?? null;
-  payload.fromTheme = existingPaper?.fromTheme ?? null;
-  payload.published = existingPaper?.published ?? null;
-  payload.publishedAt = existingPaper?.publishedAt ?? null;
-  payload.publish_link = existingPaper?.publish_link ?? null;
+  const resolvedThemeId =
+    state.themeId ??
+    state.fromTheme ??
+    existingPaper?.themeId ??
+    existingPaper?.fromTheme ??
+    null;
+  const finalThemeId =
+    resolvedThemeId != null && Number.isInteger(Number(resolvedThemeId)) && Number(resolvedThemeId) > 0
+      ? Number(resolvedThemeId)
+      : resolvedThemeId;
+  payload.themeId = finalThemeId;
+  payload.fromTheme = finalThemeId;
   payload.createdAt = existingPaper?.createdAt ?? null;
   payload.updatedAt = existingPaper?.updatedAt ?? null;
   payload.paperId = paperId || existingPaper?.paperId || `paper-${Date.now()}`;
@@ -409,6 +417,7 @@ export function buildSetPaperFormData(state, paperId, existingPaper) {
     if (state.header.logoBlob) images.push({ fileName: logoFileName, blob: state.header.logoBlob });
   }
 
+  console.log("=== SERIALIZED PAPER PAYLOAD ===", payload);
   const formData = new FormData();
   const jsonBlob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
   formData.append('metadata', jsonBlob);
