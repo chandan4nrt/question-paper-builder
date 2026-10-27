@@ -61,12 +61,13 @@ const TYPE_CONFIG = [
   },
 ];
 
-export function AddQuestionBar({ disabled = false }) {
+export function AddQuestionBar({ disabled = false, onQuestionAdded }) {
   const { dispatch } = usePaper();
 
   function addQuestion(type) {
     if (disabled) return;
     dispatch({ type: 'ADD_QUESTION', payload: { type } });
+    onQuestionAdded?.(type);
   }
 
   return (

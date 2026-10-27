@@ -196,7 +196,7 @@ function ThemeConfigModal({
   );
 }
 
-export function ThemePanel({ disabled = false }) {
+export function ThemePanel({ disabled = false, onGenerateApplied }) {
   const { dispatch, showToast } = usePaper();
   const [expanded, setExpanded] = useState(true);
   const [themes, setThemes] = useState(() => DEFAULT_THEMES);
@@ -225,6 +225,7 @@ export function ThemePanel({ disabled = false }) {
     const themeId = theme.themeId ?? theme.id;
     dispatch({ type: "GENERATE_FROM_THEME", payload: { ...theme, themeId } });
     showToast?.(`⚡ Generated questions from "${theme.name || "Theme"}".`);
+    onGenerateApplied?.();
   }
 
   function saveTheme(theme) {

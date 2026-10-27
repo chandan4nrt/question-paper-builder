@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Pencil, Printer, Download, Loader2, Upload } from "lucide-react";
+import { Pencil, Printer, Download, Loader2, Upload, SlidersHorizontal, X, Plus, Layers } from "lucide-react";
 import { PaperProvider, usePaper } from "../context/PaperContext";
 import { EditorPage } from "./EditorPage";
 import { PreviewPage } from "./PreviewPage";
@@ -47,11 +47,35 @@ function PaperBuilder({ paperId }) {
   const [exporting, setExporting] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const setPaperMutation = useSetPaper();
   const updatePaperMutation = useUpdatePaper();
   const paperQuery = useGetPaper(paperId);
   const papersQuery = useListPapers();
   const [loaded, setLoaded] = useState(false);
+
+  // Close mobile sidebar on Escape key
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape" && isMobileSidebarOpen) {
+        setIsMobileSidebarOpen(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMobileSidebarOpen]);
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isMobileSidebarOpen) {
+      document.body.classList.add("sp-mobile-sidebar-active");
+    } else {
+      document.body.classList.remove("sp-mobile-sidebar-active");
+    }
+    return () => {
+      document.body.classList.remove("sp-mobile-sidebar-active");
+    };
+  }, [isMobileSidebarOpen]);
 
   const saveMutation = paperId ? updatePaperMutation : setPaperMutation;
 
@@ -156,6 +180,23 @@ function PaperBuilder({ paperId }) {
     <div className="sp-app page">
       <div className="page-header">
         <div className="sp-tabs">
+          {/* Mobile sidebar toggle button */}
+          <button
+            type="button"
+            className={`sp-tab sp-mobile-tools-btn ${isMobileSidebarOpen ? "active" : ""}`}
+            onClick={() => {
+              if (activeTab !== "editor") {
+                setActiveTab("editor");
+              }
+              setIsMobileSidebarOpen((prev) => !prev);
+            }}
+            title="Question Tools & Themes"
+            aria-label="Toggle Question Tools & Themes"
+          >
+            <SlidersHorizontal size={15} />
+            <span>Tools</span>
+          </button>
+
           <button
             type="button"
             className={`sp-tab ${activeTab === "editor" ? "active" : ""}`}
@@ -178,6 +219,7 @@ function PaperBuilder({ paperId }) {
             className={`sp-tab ${activeTab === "preview" ? "active" : ""}`}
             onClick={() => {
               setActiveTab("preview");
+              setIsMobileSidebarOpen(false);
               setSearchParams(
                 (prev) => {
                   const next = new URLSearchParams(prev);
@@ -231,17 +273,73 @@ function PaperBuilder({ paperId }) {
       </div>
 
       <div className="sp-builder-layout sp-no-print">
-        <div className="layout-sec">
+        {/* Backdrop for mobile drawer */}
+        {isMobileSidebarOpen && (
+          <div
+            className="sp-mobile-sidebar-backdrop"
+            onClick={() => setIsMobileSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        <div className={`layout-sec ${isMobileSidebarOpen ? "sp-mobile-sidebar-open" : ""}`}>
+          <div className="sp-mobile-sidebar-header">
+            <div className="sp-mobile-sidebar-title">
+              <Layers size={18} color="#9333ea" />
+              <span>Paper Tools & Questions</span>
+            </div>
+            <button
+              type="button"
+              className="sp-mobile-sidebar-close"
+              onClick={() => setIsMobileSidebarOpen(false)}
+              aria-label="Close sidebar"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
           <aside className="sp-sidebar sp-sidebar-right">
             <AddQuestionBar disabled={activeTab === "preview"} />
           </aside>
           <aside className="sp-sidebar sp-sidebar-left">
-            <ThemePanel disabled={activeTab === "preview"} />
+            <ThemePanel
+              disabled={activeTab === "preview"}
+              onGenerateApplied={() => setIsMobileSidebarOpen(false)}
+            />
           </aside>
+
+          <div className="sp-mobile-sidebar-footer">
+            <button
+              type="button"
+              className="sp-mobile-sidebar-done-btn"
+              onClick={() => setIsMobileSidebarOpen(false)}
+            >
+              Done ({state.questions.length} Question{state.questions.length === 1 ? "" : "s"})
+            </button>
+          </div>
         </div>
 
-        <div className="sp-builder-main">{activeTab === "editor" ? <EditorPage /> : <PreviewPage />}</div>
+        <div className="sp-builder-main">
+          {activeTab === "editor" ? (
+            <EditorPage onOpenSidebar={() => setIsMobileSidebarOpen(true)} />
+          ) : (
+            <PreviewPage />
+          )}
+        </div>
       </div>
+
+      {/* Floating Action Button for mobile */}
+      {activeTab === "editor" && !isMobileSidebarOpen && (
+        <button
+          type="button"
+          className="sp-mobile-fab"
+          onClick={() => setIsMobileSidebarOpen(true)}
+          aria-label="Add Question & Tools"
+        >
+          <Plus size={20} />
+          <span>Add Question</span>
+        </button>
+      )}
 
       {showToast && (
         <div className="sp-toast sp-toast-success" role="status">
