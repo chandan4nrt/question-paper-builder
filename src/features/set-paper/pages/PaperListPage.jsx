@@ -1,15 +1,100 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Trash2, Pencil, Loader2, Eye } from 'lucide-react';
+import { FileText, Trash2, Pencil, Loader2, Eye, AlertTriangle } from 'lucide-react';
 import { useListPapers, useDeletePaper } from '../hooks/useQuestionPapers';
 import { PaperPreviewModal } from '../components/PaperPreviewModal';
 import { extractErrorMessage } from '../../../services/api';
+
+function DeleteConfirmModal({ paper, isDeleting, onConfirm, onClose }) {
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape' && !isDeleting) {
+        onClose();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, isDeleting]);
+
+  return createPortal(
+    <div
+      className="modal-overlay sp-delete-modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isDeleting) {
+          onClose();
+        }
+      }}
+      aria-modal="true"
+      role="dialog"
+    >
+      <div className="modal sp-delete-modal">
+        <div className="sp-delete-modal-icon-wrap">
+          <AlertTriangle size={28} className="sp-delete-modal-icon" />
+        </div>
+
+        <h3 className="sp-delete-modal-title">Are you sure?</h3>
+
+        <p className="sp-delete-modal-desc">
+          Are you sure you want to delete this paper? This action cannot be undone.
+        </p>
+
+        <div className="sp-delete-modal-paper-preview">
+          <div className="sp-delete-modal-paper-title">
+            {paper.subject || 'Untitled'} — {paper.classLevel || 'General'}
+          </div>
+          <div className="sp-delete-modal-paper-meta">
+            {[
+              paper.examTerm,
+              paper.academicYear,
+              paper.totalMarks != null ? `${paper.totalMarks} marks` : null,
+              paper.durationInMin != null ? `${paper.durationInMin} min` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </div>
+        </div>
+
+        <div className="sp-delete-modal-actions">
+          <button
+            type="button"
+            className="btn-secondary sp-delete-modal-cancel-btn"
+            onClick={onClose}
+            disabled={isDeleting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn-danger sp-delete-modal-confirm-btn"
+            onClick={onConfirm}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 size={15} className="sp-spin" />
+                <span>Deleting...</span>
+              </>
+            ) : (
+              <>
+                <Trash2 size={15} />
+                <span>Yes, Delete</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 export function PaperListPage() {
   const navigate = useNavigate();
   const papersQuery = useListPapers();
   const deleteMutation = useDeletePaper();
   const [viewingPaper, setViewingPaper] = useState(null);
+  const [paperToDelete, setPaperToDelete] = useState(null);
   const [toast, setToast] = useState(null);
 
   function flashToast(message, type = 'success') {
@@ -17,20 +102,22 @@ export function PaperListPage() {
     window.setTimeout(() => setToast(null), 4000);
   }
 
-  function handleDelete(paperId) {
-    deleteMutation.mutate(paperId, {
+  function handleConfirmDelete() {
+    if (!paperToDelete) return;
+    deleteMutation.mutate(paperToDelete.paperId, {
       onSuccess: () => {
         flashToast('✅ Paper deleted successfully');
+        setPaperToDelete(null);
       },
       onError: (error) => {
         flashToast(`❌ Failed to delete paper: ${extractErrorMessage(error)}`, 'error');
+        setPaperToDelete(null);
       },
     });
   }
 
   return (
     <div className="sp-app page">
-
       <div className="sp-paper-list-container">
         <div className="sp-paper-list-subtitle">
           Latest updated / created papers appear on top.
@@ -83,15 +170,10 @@ export function PaperListPage() {
                 <button
                   type="button"
                   className="sp-icon-btn sp-paper-list-delete-btn"
-                  onClick={() => handleDelete(paper.paperId)}
+                  onClick={() => setPaperToDelete(paper)}
                   title="Delete paper"
-                  disabled={deleteMutation.isPending}
                 >
-                  {deleteMutation.isPending && deleteMutation.variables === paper.paperId ? (
-                    <Loader2 size={14} className="sp-spin" />
-                  ) : (
-                    <Trash2 size={14} />
-                  )}
+                  <Trash2 size={14} />
                 </button>
               </div>
             ))}
@@ -103,6 +185,15 @@ export function PaperListPage() {
         <PaperPreviewModal
           paper={viewingPaper}
           onClose={() => setViewingPaper(null)}
+        />
+      )}
+
+      {paperToDelete && (
+        <DeleteConfirmModal
+          paper={paperToDelete}
+          isDeleting={deleteMutation.isPending}
+          onConfirm={handleConfirmDelete}
+          onClose={() => !deleteMutation.isPending && setPaperToDelete(null)}
         />
       )}
 
