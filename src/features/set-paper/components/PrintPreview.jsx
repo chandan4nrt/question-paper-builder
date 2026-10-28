@@ -53,7 +53,7 @@ function ImageMcqPreview({ question }) {
             <div className="sp-image-mcq-card">
               <span className="sp-image-mcq-circle">{getOptionLetter(i)}</span>
               {opt.image ? (
-                <img src={opt.image} alt={opt.label || "option"} />
+                <img src={opt.image} crossOrigin="anonymous" alt={opt.label || "option"} />
               ) : (
                 <div className="sp-image-mcq-placeholder">
                   {opt.label || <em className="sp-preview-option-placeholder">Option</em>}
@@ -148,7 +148,7 @@ function MatchPreview({ question }) {
                   {l && (
                     <div className="sp-match-box">
                       <span className="sp-match-letter">{String.fromCharCode(65 + i)}</span>
-                      {l.image ? <img src={l.image} alt="item" /> : <MathText>{l.label}</MathText>}
+                      {l.image ? <img src={l.image} crossOrigin="anonymous" alt="item" /> : <MathText>{l.label}</MathText>}
                     </div>
                   )}
                 </td>
@@ -181,7 +181,7 @@ export function PrintPreview({ totalMarks }) {
       <div className="sp-school-head">
         {header.logo && (
           <div className="sp-school-logo">
-            <img src={header.logo} alt="School logo" />
+            <img src={header.logo} crossOrigin="anonymous" alt="School logo" />
           </div>
         )}
         <div className="sp-school-name">{header.schoolName}</div>

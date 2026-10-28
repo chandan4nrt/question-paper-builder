@@ -40,10 +40,10 @@ export function StaffLayout() {
 
   const initials = profile?.fullName
     ? profile.fullName
-        .split(' ')
-        .map((p) => p[0])
-        .slice(0, 2)
-        .join('')
+      .split(' ')
+      .map((p) => p[0])
+      .slice(0, 2)
+      .join('')
     : '?';
 
   return (
@@ -56,15 +56,6 @@ export function StaffLayout() {
               <span>Paper Builder</span>
             </div>
           </NavLink>
-
-          <nav className="app-nav app-desktop-only">        
-            <NavLink
-              to="/staff/paper-builder"
-              className={({ isActive }) => (isActive ? 'active' : '')}
-            >
-              Paper Builder
-            </NavLink>
-          </nav>
         </div>
 
         {/* Desktop Navigation */}
@@ -82,14 +73,14 @@ export function StaffLayout() {
                 <FileText size={15} /> My Papers
               </span>
             )}
-          </NavLink>  
+          </NavLink>
           <NavLink to="/staff/paper-builder/new">
             {({ isActive }) => (
               <span className={`sp-tab sp-tab-save ${isActive ? 'active' : ''}`}>
                 <Pencil size={15} />New Paper
               </span>
             )}
-          </NavLink>  
+          </NavLink>
           <div className="app-user-block">
             {profile && (
               <div className="user-chip">
@@ -103,7 +94,7 @@ export function StaffLayout() {
             <button className="btn-ghost" onClick={handleLogout}>
               Log out
             </button>
-          </div>          
+          </div>
         </div>
 
         {/* Mobile Hamburger Button */}

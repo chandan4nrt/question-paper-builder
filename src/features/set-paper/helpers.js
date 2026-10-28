@@ -70,44 +70,62 @@ export function fireConfetti() {
 }
 
 /*
- * Decode a blob: <img> into an equivalent <canvas>. html2canvas 1.4.1 cannot
- * capture blob: images when useCORS is enabled, but it renders <canvas>
- * elements natively.
+ * Decode a blob: or remote (S3/HTTP) <img> into an equivalent <canvas>.
+ * html2canvas 1.4.1 cannot reliably capture cross-origin S3 images due to
+ * browser cache collisions without CORS headers, and cannot capture blob:
+ * images when useCORS is enabled. It renders <canvas> elements natively.
  */
 async function canvasFromImageElement(img) {
   const src = img.getAttribute("src") || img.src;
-  if (!src || !src.startsWith("blob:")) return null;
-  if (!img.complete || !img.naturalWidth) return null;
+  if (!src) return null;
+  if (!src.startsWith("blob:") && !src.startsWith("http://") && !src.startsWith("https://")) {
+    return null;
+  }
 
-  const draw = (source) => {
+  const draw = (source, naturalW, naturalH) => {
+    const width = naturalW || img.naturalWidth || 300;
+    const height = naturalH || img.naturalHeight || 200;
     const output = document.createElement("canvas");
-    output.width = img.naturalWidth;
-    output.height = img.naturalHeight;
+    output.width = width;
+    output.height = height;
     const context = output.getContext("2d");
-    context.drawImage(source, 0, 0);
+    context.drawImage(source, 0, 0, width, height);
     const rect = img.getBoundingClientRect();
     if (rect.width) output.style.width = `${rect.width}px`;
     if (rect.height) output.style.height = `${rect.height}px`;
+    if (img.className) output.className = img.className;
     return output;
   };
 
   try {
-    const blob = await fetch(src).then((res) => res.blob());
+    // For remote URLs, append ?cors=true to bypass the non-CORS browser cache entry
+    const fetchUrl = (src.startsWith("http://") || src.startsWith("https://"))
+      ? `${src}${src.includes("?") ? "&" : "?"}cors=true`
+      : src;
+
+    const response = await fetch(fetchUrl, { mode: "cors" });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+
     if (typeof createImageBitmap === "function") {
       const bitmap = await createImageBitmap(blob);
-      const canvas = draw(bitmap);
+      const canvas = draw(bitmap, bitmap.width, bitmap.height);
       bitmap.close?.();
       return canvas;
     }
+
     const bitmapLike = await new Promise((resolve, reject) => {
       const temporary = new Image();
+      temporary.crossOrigin = "anonymous";
       temporary.onload = () => resolve(temporary);
       temporary.onerror = () => reject(new Error("image decode failed"));
       temporary.src = URL.createObjectURL(blob);
     });
-    const canvas = draw(bitmapLike);
+    const canvas = draw(bitmapLike, bitmapLike.naturalWidth, bitmapLike.naturalHeight);
+    URL.revokeObjectURL(bitmapLike.src);
     return canvas;
-  } catch {
+  } catch (err) {
+    console.warn("canvasFromImageElement: Failed to convert image to canvas for PDF:", src, err);
     return null;
   }
 }
@@ -270,32 +288,31 @@ export async function exportToPDF(elementIds, filename = "question-paper.pdf") {
   // Wait for fonts
   await document.fonts.ready;
 
-  // Wait for images across all roots
+  /*
+   * Convert blob: and remote (S3) images to canvas copies in parallel so html2canvas
+   * can rasterize them without CORS or cache failures, then restore original <img> elements.
+   */
   const images = roots.flatMap((root) => Array.from(root.querySelectorAll("img")));
+  const restored = [];
+  let failedCount = 0;
 
   await Promise.all(
-    images.map((img) => {
-      if (img.complete) {
-        return Promise.resolve();
+    images.map(async (img) => {
+      const canvas = await canvasFromImageElement(img);
+      if (canvas) {
+        img.replaceWith(canvas);
+        restored.push({ canvas, img });
+      } else {
+        const src = img.getAttribute("src") || img.src;
+        if (src && (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("blob:"))) {
+          failedCount += 1;
+        }
       }
-
-      return new Promise((resolve) => {
-        img.onload = () => resolve();
-        img.onerror = () => resolve();
-      });
-    }),
+    })
   );
 
-  /*
-   * Temporarily replace blob: images with canvas copies so html2canvas can
-   * rasterize them, then restore the original <img> elements afterwards.
-   */
-  const restored = [];
-  for (const img of images) {
-    const canvas = await canvasFromImageElement(img);
-    if (!canvas) continue;
-    img.replaceWith(canvas);
-    restored.push({ canvas, img });
+  if (failedCount > 0) {
+    console.warn(`exportToPDF: ${failedCount} image(s) could not be loaded or converted.`);
   }
 
   const sections = roots.map(buildPageFragments);

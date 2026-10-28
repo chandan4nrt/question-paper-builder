@@ -23,6 +23,25 @@ function uniqueValues(items, key) {
   return [...new Set(items.map((item) => String(item[key] ?? '').trim()).filter(Boolean))].sort();
 }
 
+function getPaperDisplayName(paper) {
+  if (paper.paperName) {
+    return paper.paperName;
+  }
+  const classPart = paper.classLevel ? paper.classLevel.replace(/\s+/g, '_') : '';
+  const subjectPart = paper.subject ? paper.subject.replace(/\s+/g, '_') : '';
+
+  if (classPart && subjectPart) {
+    return `${classPart}_${subjectPart}`;
+  }
+  if (subjectPart) {
+    return `${subjectPart}_Paper`;
+  }
+  if (classPart) {
+    return `${classPart}_Paper`;
+  }
+  return 'Question_Paper';
+}
+
 function DeleteConfirmModal({ paper, isDeleting, onConfirm, onClose }) {
   useEffect(() => {
     function handleKeyDown(e) {
@@ -165,7 +184,7 @@ export function PaperListPage() {
   // Default sample fallback when user has not created any papers yet
   const defaultSamplePaper = {
     paperId: 'sample-geography-8',
-    paperName: 'Class_8_Geography_Half_Yearly_Exam_2026',
+    paperName: 'Class_8_Geography',
     subject: 'Geography',
     classLevel: 'Class 8',
     examTerm: 'Half-Yearly',
@@ -203,10 +222,7 @@ export function PaperListPage() {
 
       if (search.trim()) {
         const q = search.toLowerCase();
-        const displayName = (
-          paper.paperName ||
-          `${paper.classLevel ? paper.classLevel.replace(/\s+/g, '_') : 'Class'}_${paper.subject ? paper.subject.replace(/\s+/g, '_') : 'Paper'}_${paper.examTerm ? paper.examTerm.replace(/\s+/g, '_') : 'Exam'}`
-        ).toLowerCase();
+        const displayName = getPaperDisplayName(paper).toLowerCase();
         const subject = String(paper.subject ?? '').toLowerCase();
         const classLevel = String(paper.classLevel ?? '').toLowerCase();
         const examTerm = String(paper.examTerm ?? '').toLowerCase();
@@ -225,14 +241,17 @@ export function PaperListPage() {
       let bv = b[sortKey];
 
       if (sortKey === 'paperName') {
-        av = a.paperName || `${a.classLevel || ''}_${a.subject || ''}`;
-        bv = b.paperName || `${b.classLevel || ''}_${b.subject || ''}`;
+        av = getPaperDisplayName(a);
+        bv = getPaperDisplayName(b);
       } else if (sortKey === 'updatedAt') {
         av = new Date(a.updatedAt || a.createdAt || 0).getTime();
         bv = new Date(b.updatedAt || b.createdAt || 0).getTime();
       } else if (sortKey === 'totalMarks') {
         av = Number(a.totalMarks ?? 0);
         bv = Number(b.totalMarks ?? 0);
+      } else if (sortKey === 'examTerm') {
+        av = a.examTerm ?? '';
+        bv = b.examTerm ?? '';
       }
 
       let cmp;
@@ -390,6 +409,7 @@ export function PaperListPage() {
                     <SortHeader label="PAPER" column="paperName" className="db-col-paper" />
                     <SortHeader label="CLASS" column="classLevel" className="db-col-class" />
                     <SortHeader label="SUBJECT" column="subject" className="db-col-subject" />
+                    <SortHeader label="TERM" column="examTerm" className="db-col-term" />
                     <SortHeader label="MARKS" column="totalMarks" className="db-col-marks" />
                     <SortHeader label="STATUS" column="status" className="db-col-status" />
                     <th className="db-col-actions">ACTIONS</th>
@@ -398,7 +418,7 @@ export function PaperListPage() {
                 <tbody>
                   {sortedPapers.length === 0 ? (
                     <tr>
-                      <td colSpan={6}>
+                      <td colSpan={7}>
                         <div className="db-table-empty">
                           {hasActiveFilters ? (
                             <>
@@ -434,9 +454,7 @@ export function PaperListPage() {
                     </tr>
                   ) : (
                     sortedPapers.map((paper) => {
-                      const displayName =
-                        paper.paperName ||
-                        `${paper.subject ? paper.subject.replace(/\s+/g, '_') : 'Paper'}_${paper.examTerm ? paper.examTerm.replace(/\s+/g, '_') : 'Exam'}`;
+                      const displayName = getPaperDisplayName(paper);
                       const isDraft = paper.status === 'Draft';
 
                       return (
@@ -456,8 +474,9 @@ export function PaperListPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="db-col-class">{paper.classLevel || 'Class 8'}</td>
-                          <td className="db-col-subject">{paper.subject || 'Geography'}</td>
+                          <td className="db-col-class">{paper.classLevel || '—'}</td>
+                          <td className="db-col-subject">{paper.subject || '—'}</td>
+                          <td className="db-col-term">{paper.examTerm || '—'}</td>
                           <td className="db-col-marks">{paper.totalMarks != null ? `${paper.totalMarks}` : '—'}</td>
                           <td className="db-col-status">
                             <span className={`db-status-badge ${isDraft ? 'is-draft' : 'is-submitted'}`}>

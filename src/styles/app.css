@@ -5110,7 +5110,13 @@ body.sp-theme-light {
 
 .db-papers-table th.db-col-subject,
 .db-papers-table td.db-col-subject {
-  width: 150px;
+  width: 140px;
+  white-space: nowrap;
+}
+
+.db-papers-table th.db-col-term,
+.db-papers-table td.db-col-term {
+  width: 130px;
   white-space: nowrap;
 }
 
