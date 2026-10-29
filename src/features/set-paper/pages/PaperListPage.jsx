@@ -14,13 +14,30 @@ import {
   X,
   ArrowUp,
   ArrowDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-import { useListPapers, useDeletePaper } from '../hooks/useQuestionPapers';
+import { useListPapersPagewise, useListPapers, useDeletePaper } from '../hooks/useQuestionPapers';
 import { PaperPreviewModal } from '../components/PaperPreviewModal';
 import { extractErrorMessage } from '../../../services/api';
 
 function uniqueValues(items, key) {
   return [...new Set(items.map((item) => String(item[key] ?? '').trim()).filter(Boolean))].sort();
+}
+
+function getPageNumbers(currentPage, totalPages) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i);
+  }
+  const pages = [];
+  if (currentPage <= 3) {
+    pages.push(0, 1, 2, 3, 4, '...', totalPages - 1);
+  } else if (currentPage >= totalPages - 4) {
+    pages.push(0, '...', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1);
+  } else {
+    pages.push(0, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages - 1);
+  }
+  return pages;
 }
 
 function getPaperDisplayName(paper) {
@@ -142,7 +159,15 @@ function getRelativeTime(timestamp) {
 
 export function PaperListPage() {
   const navigate = useNavigate();
-  const papersQuery = useListPapers();
+
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Paginated papers query using /api/v3/question-papers/pagewise?page=...&size=...
+  const papersQuery = useListPapersPagewise({ page, size: pageSize });
+  // Query for all papers to populate filter options comprehensively
+  const allPapersQuery = useListPapers();
+
   const deleteMutation = useDeletePaper();
   const [viewingPaper, setViewingPaper] = useState(null);
   const [paperToDelete, setPaperToDelete] = useState(null);
@@ -179,7 +204,13 @@ export function PaperListPage() {
     });
   }
 
-  const realPapers = papersQuery.data ?? [];
+  const pagewiseData = papersQuery.data;
+  const realPapers = useMemo(() => {
+    if (!pagewiseData) return [];
+    if (Array.isArray(pagewiseData.content)) return pagewiseData.content;
+    if (Array.isArray(pagewiseData)) return pagewiseData;
+    return [];
+  }, [pagewiseData]);
 
   // Default sample fallback when user has not created any papers yet
   const defaultSamplePaper = {
@@ -197,11 +228,38 @@ export function PaperListPage() {
     isSample: true,
   };
 
-  const allDisplayPapers = realPapers.length > 0 ? realPapers : [defaultSamplePaper];
+  const allDisplayPapers = realPapers.length > 0 ? realPapers : (page === 0 && !papersQuery.isLoading && !search && !classFilter && !subjectFilter && !termFilter ? [defaultSamplePaper] : []);
 
-  const classOptions = useMemo(() => uniqueValues(allDisplayPapers, 'classLevel'), [allDisplayPapers]);
-  const subjectOptions = useMemo(() => uniqueValues(allDisplayPapers, 'subject'), [allDisplayPapers]);
-  const termOptions = useMemo(() => uniqueValues(allDisplayPapers, 'examTerm'), [allDisplayPapers]);
+  const allRealPapers = allPapersQuery.data ?? [];
+
+  const classOptions = useMemo(() => {
+    const fromAll = (allRealPapers ?? []).map((p) => String(p.classLevel ?? '').trim()).filter(Boolean);
+    const fromCurrent = realPapers.map((p) => String(p.classLevel ?? '').trim()).filter(Boolean);
+    const common = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+    const set = new Set([...fromAll, ...fromCurrent, ...common]);
+    return Array.from(set).sort((a, b) => {
+      const na = parseInt(a, 10);
+      const nb = parseInt(b, 10);
+      if (!isNaN(na) && !isNaN(nb)) return na - nb;
+      return a.localeCompare(b);
+    });
+  }, [allRealPapers, realPapers]);
+
+  const subjectOptions = useMemo(() => {
+    const fromAll = (allRealPapers ?? []).map((p) => String(p.subject ?? '').trim()).filter(Boolean);
+    const fromCurrent = realPapers.map((p) => String(p.subject ?? '').trim()).filter(Boolean);
+    const common = ['English', 'Hindi', 'Maths', 'Science', 'Social Science', 'EVS', 'G.K.', 'S.St.'];
+    const set = new Set([...fromAll, ...fromCurrent, ...common]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [allRealPapers, realPapers]);
+
+  const termOptions = useMemo(() => {
+    const fromAll = (allRealPapers ?? []).map((p) => String(p.examTerm ?? '').trim()).filter(Boolean);
+    const fromCurrent = realPapers.map((p) => String(p.examTerm ?? '').trim()).filter(Boolean);
+    const common = ['Unit Test 1', 'Unit Test 2', 'Mid-Term', 'Half-Yearly', 'Final-Term', 'Annual'];
+    const set = new Set([...fromAll, ...fromCurrent, ...common]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [allRealPapers, realPapers]);
 
   const hasActiveFilters = Boolean(search || classFilter || subjectFilter || statusFilter !== 'all' || termFilter);
 
@@ -211,6 +269,7 @@ export function PaperListPage() {
     setSubjectFilter('');
     setStatusFilter('all');
     setTermFilter('');
+    setPage(0);
   }
 
   const filteredPapers = useMemo(() => {
@@ -265,6 +324,22 @@ export function PaperListPage() {
     return list;
   }, [filteredPapers, sortKey, sortDir]);
 
+  // Pagination metrics from the pagewise backend API
+  const totalPapers = typeof pagewiseData?.totalElements === 'number'
+    ? pagewiseData.totalElements
+    : (hasActiveFilters ? filteredPapers.length : realPapers.length);
+
+  const totalPages = typeof pagewiseData?.totalPages === 'number'
+    ? Math.max(1, pagewiseData.totalPages)
+    : Math.max(1, Math.ceil(totalPapers / pageSize));
+
+  const currentPage = Math.min(page, totalPages - 1);
+  const isFirst = pagewiseData?.first ?? (currentPage === 0);
+  const isLast = pagewiseData?.last ?? (currentPage >= totalPages - 1);
+
+  const startIndex = totalPapers === 0 ? 0 : currentPage * pageSize + 1;
+  const endIndex = Math.min((currentPage + 1) * pageSize, totalPapers);
+
   function handleSort(key) {
     if (sortKey === key) {
       setSortDir((dir) => (dir === 'asc' ? 'desc' : 'asc'));
@@ -308,7 +383,7 @@ export function PaperListPage() {
 
         {/* Main Section */}
         <main className="db-main-layout">
-          {/* Filter Card (similar to question-bank) */}
+          {/* Filter Card */}
           <div className="qb-filter-card" style={{ margin: '0 0 1rem' }}>
             <div className="qb-search-input-wrap">
               <Search size={16} className="qb-search-icon" />
@@ -316,14 +391,20 @@ export function PaperListPage() {
                 type="text"
                 className="qb-search-input"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
                 placeholder="Search papers, subject or class…"
               />
               {search && (
                 <button
                   type="button"
                   className="qb-search-clear"
-                  onClick={() => setSearch('')}
+                  onClick={() => {
+                    setSearch('');
+                    setPage(0);
+                  }}
                   title="Clear search"
                   aria-label="Clear search"
                 >
@@ -336,7 +417,10 @@ export function PaperListPage() {
               <select
                 className={`qb-filter-select${classFilter ? ' is-active' : ''}`}
                 value={classFilter}
-                onChange={(e) => setClassFilter(e.target.value)}
+                onChange={(e) => {
+                  setClassFilter(e.target.value);
+                  setPage(0);
+                }}
               >
                 <option value="">All Classes</option>
                 {classOptions.map((o) => (
@@ -349,7 +433,10 @@ export function PaperListPage() {
               <select
                 className={`qb-filter-select${subjectFilter ? ' is-active' : ''}`}
                 value={subjectFilter}
-                onChange={(e) => setSubjectFilter(e.target.value)}
+                onChange={(e) => {
+                  setSubjectFilter(e.target.value);
+                  setPage(0);
+                }}
               >
                 <option value="">All Subjects</option>
                 {subjectOptions.map((o) => (
@@ -359,20 +446,13 @@ export function PaperListPage() {
                 ))}
               </select>
 
-              {/* <select
-                className={`qb-filter-select${statusFilter !== 'all' ? ' is-active' : ''}`}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">All Statuses</option>
-                <option value="Draft">Drafts</option>
-                <option value="Submitted">Submitted</option>
-              </select> */}
-
               <select
                 className={`qb-filter-select${termFilter ? ' is-active' : ''}`}
                 value={termFilter}
-                onChange={(e) => setTermFilter(e.target.value)}
+                onChange={(e) => {
+                  setTermFilter(e.target.value);
+                  setPage(0);
+                }}
               >
                 <option value="">All Terms</option>
                 {termOptions.map((o) => (
@@ -395,11 +475,11 @@ export function PaperListPage() {
             </div>
 
             <div className="qb-results-count">
-              {sortedPapers.length} {sortedPapers.length === 1 ? 'paper' : 'papers'}
+              {totalPapers} {totalPapers === 1 ? 'paper' : 'papers'}
             </div>
           </div>
 
-          {/* Recent Papers Card */}
+          {/* Papers Card */}
           <div className="db-card db-recent-papers-card">
             {/* Table */}
             <div className="db-table-wrapper">
@@ -416,7 +496,24 @@ export function PaperListPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedPapers.length === 0 ? (
+                  {papersQuery.isLoading ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="db-table-empty">
+                          <Loader2 size={24} className="sp-spin" style={{ margin: '0 auto 0.5rem', display: 'block', color: '#0d9488' }} />
+                          <p style={{ margin: 0, fontWeight: 600 }}>Loading papers…</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : papersQuery.isError ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="db-table-empty">
+                          <p style={{ margin: 0, fontWeight: 600, color: '#dc2626' }}>Could not load question papers.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : sortedPapers.length === 0 ? (
                     <tr>
                       <td colSpan={7}>
                         <div className="db-table-empty">
@@ -530,8 +627,94 @@ export function PaperListPage() {
                 </tbody>
               </table>
             </div>
-          </div>
 
+            {/* Pagination Bar */}
+            {!papersQuery.isLoading && !papersQuery.isError && totalPages > 0 && (
+              <div className="qb-pagination-bar" style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #e2e8f0' }}>
+                <div className="qb-pagination-info">
+                  <span>
+                    Showing Papers <strong>{startIndex}–{endIndex}</strong> of <strong>{totalPapers}</strong>{' '}
+                    <span className="muted">
+                      (Page {currentPage + 1} of {totalPages})
+                    </span>
+                  </span>
+                  {papersQuery.isFetching && (
+                    <span className="qb-pagination-fetching">
+                      <Loader2 size={13} className="sp-spin" /> Updating…
+                    </span>
+                  )}
+                </div>
+
+                <div className="qb-pagination-controls">
+                  <div className="qb-page-size-wrap">
+                    <span>Per page:</span>
+                    <select
+                      className="qb-page-size-select"
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setPage(0);
+                      }}
+                    >
+                      <option value={5}>5 papers</option>
+                      <option value={10}>10 papers</option>
+                      <option value={20}>20 papers</option>
+                      <option value={50}>50 papers</option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="qb-page-btn"
+                    onClick={() => {
+                      setPage((p) => Math.max(0, p - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={isFirst || papersQuery.isFetching}
+                    title="Previous page"
+                  >
+                    <ChevronLeft size={14} className="icon-middle" /> Prev
+                  </button>
+
+                  <div className="qb-page-numbers">
+                    {getPageNumbers(currentPage, totalPages).map((p, idx) =>
+                      typeof p === 'number' ? (
+                        <button
+                          key={p}
+                          type="button"
+                          className={`qb-page-number-btn${p === currentPage ? ' is-active' : ''}`}
+                          onClick={() => {
+                            setPage(p);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          disabled={papersQuery.isFetching}
+                        >
+                          {p + 1}
+                        </button>
+                      ) : (
+                        <span key={`ellipsis-${idx}`} className="qb-page-ellipsis">
+                          …
+                        </span>
+                      )
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="qb-page-btn"
+                    onClick={() => {
+                      setPage((p) => Math.min(totalPages - 1, p + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={isLast || papersQuery.isFetching}
+                    title="Next page"
+                  >
+                    Next <ChevronRight size={14} className="icon-middle" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </main>
       </div>
 

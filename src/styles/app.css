@@ -811,7 +811,8 @@ table.data-table {
 }
 
 .qb-table-wrap .qb-table thead th:last-child {
-  border-top-right-radius: var(--radius);
+  
+  text-align: center;
 }
 
 .qb-table-wrap .qb-table tbody tr:last-child td:first-child {
@@ -844,6 +845,143 @@ tr.row-selected td {
   background: var(--surface);
   border: 1px dashed var(--border);
   border-radius: var(--radius);
+}
+
+/* Question Bank Pagination */
+.qb-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.85rem 1.15rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.qb-pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.qb-pagination-info strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.qb-pagination-fetching {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+  color: #0d9488;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.qb-pagination-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.qb-page-size-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin-right: 0.5rem;
+}
+
+.qb-page-size-select {
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+.qb-page-size-select:focus {
+  border-color: #0d9488;
+}
+
+.qb-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.38rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text);
+  transition: all 0.15s ease;
+}
+
+.qb-page-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.qb-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.qb-page-numbers {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.qb-page-number-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qb-page-number-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.qb-page-number-btn.is-active {
+  background: #0d9488;
+  color: #ffffff;
+  border-color: #0d9488;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+}
+
+.qb-page-ellipsis {
+  padding: 0 0.25rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  user-select: none;
 }
 
 /* ---------- Cards & Pills ---------- */
@@ -1837,13 +1975,13 @@ body.sp-theme-light {
   border: 2px solid rgba(196, 58, 34, 0.45);
   border-radius: 16px;
   padding: 0.75rem 0.5rem;
-  background: #fff4e0;
+  background: #fff; height: 110px;
 }
 .sp-image-mcq-card img {
-  width: 110%;
-  height: 84px;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: 8px; background: #fff;
 }
 .sp-image-mcq-option > .sp-image-writing-lines {
   flex: none;
@@ -5139,6 +5277,7 @@ body.sp-theme-light {
   text-align: right;
   padding-right: 1.1rem;
 }
+.db-papers-table th.db-col-actions{text-align: center;}
 
 .db-paper-row:hover td {
   background: #f8fafc;

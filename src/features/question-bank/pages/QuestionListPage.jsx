@@ -1,7 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, ArrowUp, ArrowDown, FolderPlus, X, Eye, Search, RotateCcw } from 'lucide-react';
-import { useListPapers } from '../../set-paper/hooks/useQuestionPapers';
+import {
+  Pencil,
+  ArrowUp,
+  ArrowDown,
+  FolderPlus,
+  X,
+  Eye,
+  Search,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
+import { useQuestionBank, useListPapers } from '../../set-paper/hooks/useQuestionPapers';
 import { deserializeQuestion } from '../../set-paper/deserializePaper';
 import { AddToPaperModal } from '../components/AddToPaperModal';
 import { MathText } from '../../set-paper/components/MathText';
@@ -17,61 +29,27 @@ const TYPE_LABELS = {
   'writing-practice': 'Writing Practice',
 };
 
-function flattenQuestions(papers) {
-  const rows = [];
-  for (const paper of papers ?? []) {
-    let template = paper.template;
-    if (typeof template === 'string') {
-      try {
-        template = JSON.parse(template);
-      } catch (e) {
-        template = {};
-      }
-    }
-    if (!template || typeof template !== 'object') {
-      if (Array.isArray(paper.questions) || paper.sections) {
-        template = {
-          questions: paper.questions,
-          sections: paper.sections,
-          urls: paper.urls,
-        };
-      } else {
-        template = {};
-      }
-    }
-    const rawQuestions = template.sections?.length
-      ? template.sections.flatMap((s) => s?.questions ?? [])
-      : (template.questions ?? []);
-    const urlMap = template.urls ?? paper.urls ?? {};
-    for (const raw of rawQuestions) {
-      if (!raw) continue;
-      const subText = raw.subQuestions?.[0]?.subQuestion ?? '';
-      const qText = subText || raw.text || raw.questionText || raw.questionTitle || '(untitled question)';
-      rows.push({
-        key: `${paper.paperId}-${raw.questionId}`,
-        questionText: qText,
-        type: raw.type ?? 'normal',
-        marks: Number(raw.totalMarks ?? 0),
-        paperId: paper.paperId,
-        paperTitle: template.title || `${paper.subject ?? ''} ${paper.classLevel ?? ''}`.trim(),
-        subject: paper.subject ?? '',
-        className: paper.classLevel ?? '',
-        status: paper.status,
-        question: deserializeQuestion(raw, urlMap),
-      });
-    }
+function getPageNumbers(currentPage, totalPages) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i);
   }
-  return rows;
-}
-
-function uniqueValues(rows, key) {
-  return [...new Set(rows.map((row) => String(row[key] ?? '').trim()).filter(Boolean))].sort();
+  const pages = [];
+  if (currentPage <= 3) {
+    pages.push(0, 1, 2, 3, 4, '...', totalPages - 1);
+  } else if (currentPage >= totalPages - 4) {
+    pages.push(0, '...', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1);
+  } else {
+    pages.push(0, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages - 1);
+  }
+  return pages;
 }
 
 const SORTABLE = ['questionText', 'className', 'subject', 'type', 'marks'];
 
 export function QuestionListPage() {
-  const papersQuery = useListPapers();
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
@@ -80,8 +58,23 @@ export function QuestionListPage() {
   const [sortKey, setSortKey] = useState('className');
   const [sortDir, setSortDir] = useState('asc');
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
+  const [selectedRowsMap, setSelectedRowsMap] = useState(() => new Map());
   const [expandedKeys, setExpandedKeys] = useState(() => new Set());
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Server-side paginated question-bank query
+  const questionBankQuery = useQuestionBank({
+    page,
+    size: pageSize,
+    subject: subjectFilter || undefined,
+    classLevel: classFilter || undefined,
+    questionType: typeFilter || undefined,
+    search: search.trim() || undefined,
+  });
+
+  // Query papers for AddToPaperModal and dynamic subject/class options
+  const papersQuery = useListPapers();
+  const papers = useMemo(() => papersQuery.data ?? [], [papersQuery.data]);
 
   function toggleExpand(key) {
     setExpandedKeys((prev) => {
@@ -92,27 +85,76 @@ export function QuestionListPage() {
     });
   }
 
-  const rows = useMemo(() => flattenQuestions(papersQuery.data), [papersQuery.data]);
+  const qbData = questionBankQuery.data;
+  const content = useMemo(() => {
+    if (!qbData) return [];
+    if (Array.isArray(qbData.content)) return qbData.content;
+    if (Array.isArray(qbData)) return qbData;
+    return [];
+  }, [qbData]);
 
-  const byType = typeFilter ? rows.filter((r) => r.type === typeFilter) : rows;
-  const byClass = classFilter ? byType.filter((r) => r.className === classFilter) : byType;
-  const bySubject = subjectFilter ? byClass.filter((r) => r.subject === subjectFilter) : byClass;
-  const byMarks = marksFilter ? bySubject.filter((r) => Number(r.marks) === Number(marksFilter)) : bySubject;
+  const rows = useMemo(() => {
+    return content.map((item, index) => {
+      const rawQ = item.question || item;
+      const urls = item.urls || rawQ.urls || {};
+      const q = deserializeQuestion(rawQ, urls);
 
-  const classOptions = uniqueValues(byType, 'className');
-  const subjectOptions = uniqueValues(byClass, 'subject');
-  const marksOptions = uniqueValues(byMarks, 'marks').sort((a, b) => Number(a) - Number(b));
-  const typeOptions = uniqueValues(rows, 'type');
+      const rawSubQuestions = Array.isArray(rawQ.subQuestions)
+        ? rawQ.subQuestions
+        : (Array.isArray(rawQ.sub_questions) ? rawQ.sub_questions : []);
+      const firstSub = rawSubQuestions[0];
+      const subText = typeof firstSub === 'string' ? firstSub : (firstSub?.subQuestion ?? firstSub?.text ?? '');
+      const qText = subText || rawQ.text || rawQ.questionText || rawQ.questionTitle || '(untitled question)';
 
-  const filtered = byMarks.filter((row) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      row.questionText.toLowerCase().includes(q) ||
-      row.subject.toLowerCase().includes(q) ||
-      row.className.toLowerCase().includes(q)
-    );
-  });
+      const subject = item.subject || rawQ.subject || '';
+      const className = item.classLevel || item.className || rawQ.classLevel || '';
+      const qType = item.questionType || rawQ.type || 'normal';
+      const marks = Number(rawQ.totalMarks ?? rawQ.marks ?? 0);
+      const paperId = item.paperId || rawQ.paperId || null;
+      const paperTitle = item.paperTitle || rawQ.paperTitle || '';
+
+      const idPart = item.id ?? rawQ.id ?? rawQ.questionId ?? index;
+      const key = `${paperId || 'qb'}-${idPart}-${page * pageSize + index}`;
+
+      return {
+        key,
+        questionText: qText,
+        type: qType,
+        marks,
+        paperId,
+        paperTitle,
+        subject,
+        className,
+        status: item.status,
+        question: q || {
+          id: idPart,
+          type: qType,
+          text: qText,
+          marks,
+          answers: firstSub?.answer ?? (Array.isArray(rawQ.answers) ? rawQ.answers : []),
+          solution: rawQ.solution ?? '',
+        },
+      };
+    });
+  }, [content, page, pageSize]);
+
+  // Client-side fallback filter for marks or search if needed
+  const filtered = useMemo(() => {
+    let result = rows;
+    if (marksFilter) {
+      result = result.filter((r) => Number(r.marks) === Number(marksFilter));
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.questionText.toLowerCase().includes(q) ||
+          r.subject.toLowerCase().includes(q) ||
+          r.className.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [rows, marksFilter, search]);
 
   const sorted = useMemo(() => {
     const next = [...filtered];
@@ -130,14 +172,68 @@ export function QuestionListPage() {
     return next;
   }, [filtered, sortKey, sortDir]);
 
-  const selectedRows = rows.filter((row) => selectedKeys.has(row.key));
-  const allFilteredSelected = filtered.length > 0 && filtered.every((row) => selectedKeys.has(row.key));
+  const paginatedRows = sorted;
 
-  function toggleRow(key) {
+  // Metadata from backend pagination response
+  const totalQuestions = typeof qbData?.totalElements === 'number'
+    ? qbData.totalElements
+    : (marksFilter || search.trim() ? filtered.length : rows.length);
+
+  const totalPages = typeof qbData?.totalPages === 'number'
+    ? Math.max(1, qbData.totalPages)
+    : Math.max(1, Math.ceil(totalQuestions / pageSize));
+
+  const currentPage = Math.min(page, totalPages - 1);
+  const isFirst = qbData?.first ?? (currentPage === 0);
+  const isLast = qbData?.last ?? (currentPage >= totalPages - 1);
+
+  const startIndex = totalQuestions === 0 ? 0 : currentPage * pageSize + 1;
+  const endIndex = Math.min((currentPage + 1) * pageSize, totalQuestions);
+
+  // Filter option lists
+  const classOptions = useMemo(() => {
+    const fromPapers = (papers ?? []).map((p) => String(p.classLevel ?? '').trim()).filter(Boolean);
+    const fromRows = rows.map((r) => String(r.className ?? '').trim()).filter(Boolean);
+    const common = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+    const set = new Set([...fromPapers, ...fromRows, ...common]);
+    return Array.from(set).sort((a, b) => {
+      const na = parseInt(a, 10);
+      const nb = parseInt(b, 10);
+      if (!isNaN(na) && !isNaN(nb)) return na - nb;
+      return a.localeCompare(b);
+    });
+  }, [papers, rows]);
+
+  const subjectOptions = useMemo(() => {
+    const fromPapers = (papers ?? []).map((p) => String(p.subject ?? '').trim()).filter(Boolean);
+    const fromRows = rows.map((r) => String(r.subject ?? '').trim()).filter(Boolean);
+    const common = ['English', 'Hindi', 'Maths', 'Science', 'Social Science', 'EVS'];
+    const set = new Set([...fromPapers, ...fromRows, ...common]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [papers, rows]);
+
+  const marksOptions = useMemo(() => {
+    const fromRows = rows.map((r) => String(r.marks)).filter(Boolean);
+    const common = ['1', '2', '3', '4', '5', '6', '8', '10', '15', '20'];
+    const set = new Set([...fromRows, ...common]);
+    return Array.from(set).sort((a, b) => Number(a) - Number(b));
+  }, [rows]);
+
+  const selectedRows = useMemo(() => Array.from(selectedRowsMap.values()), [selectedRowsMap]);
+  const allCurrentPageSelected = paginatedRows.length > 0 && paginatedRows.every((row) => selectedKeys.has(row.key));
+
+  function toggleRow(row) {
     setSelectedKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      const nextMap = new Map(selectedRowsMap);
+      if (next.has(row.key)) {
+        next.delete(row.key);
+        nextMap.delete(row.key);
+      } else {
+        next.add(row.key);
+        nextMap.set(row.key, row);
+      }
+      setSelectedRowsMap(nextMap);
       return next;
     });
   }
@@ -145,17 +241,26 @@ export function QuestionListPage() {
   function toggleAll() {
     setSelectedKeys((prev) => {
       const next = new Set(prev);
-      if (allFilteredSelected) {
-        filtered.forEach((row) => next.delete(row.key));
+      const nextMap = new Map(selectedRowsMap);
+      if (allCurrentPageSelected) {
+        paginatedRows.forEach((row) => {
+          next.delete(row.key);
+          nextMap.delete(row.key);
+        });
       } else {
-        filtered.forEach((row) => next.add(row.key));
+        paginatedRows.forEach((row) => {
+          next.add(row.key);
+          nextMap.set(row.key, row);
+        });
       }
+      setSelectedRowsMap(nextMap);
       return next;
     });
   }
 
   function clearSelection() {
     setSelectedKeys(new Set());
+    setSelectedRowsMap(new Map());
   }
 
   const hasActiveFilters = Boolean(search || classFilter || subjectFilter || typeFilter || marksFilter);
@@ -166,6 +271,14 @@ export function QuestionListPage() {
     setSubjectFilter('');
     setTypeFilter('');
     setMarksFilter('');
+    setPage(0);
+  }
+
+  function handleFilterChange(setter) {
+    return (e) => {
+      setter(e.target.value);
+      setPage(0);
+    };
   }
 
   function handleSort(key) {
@@ -193,7 +306,7 @@ export function QuestionListPage() {
       <div className="page-header">
         <div>
           <h1>Question Bank</h1>
-          <p>Questions saved in your question papers.</p>
+          <p>Browse, filter, and select questions to use in your papers.</p>
         </div>
       </div>
 
@@ -204,14 +317,17 @@ export function QuestionListPage() {
             type="text"
             className="qb-search-input"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={handleFilterChange(setSearch)}
             placeholder="Search questions, subject or class…"
           />
           {search && (
             <button
               type="button"
               className="qb-search-clear"
-              onClick={() => setSearch('')}
+              onClick={() => {
+                setSearch('');
+                setPage(0);
+              }}
               title="Clear search"
               aria-label="Clear search"
             >
@@ -224,7 +340,7 @@ export function QuestionListPage() {
           <select
             className={`qb-filter-select${classFilter ? ' is-active' : ''}`}
             value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
+            onChange={handleFilterChange(setClassFilter)}
           >
             <option value="">All Classes</option>
             {classOptions.map((o) => (
@@ -236,7 +352,7 @@ export function QuestionListPage() {
           <select
             className={`qb-filter-select${subjectFilter ? ' is-active' : ''}`}
             value={subjectFilter}
-            onChange={(e) => setSubjectFilter(e.target.value)}
+            onChange={handleFilterChange(setSubjectFilter)}
           >
             <option value="">All Subjects</option>
             {subjectOptions.map((o) => (
@@ -248,19 +364,19 @@ export function QuestionListPage() {
           <select
             className={`qb-filter-select${typeFilter ? ' is-active' : ''}`}
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={handleFilterChange(setTypeFilter)}
           >
             <option value="">All Types</option>
-            {typeOptions.map((o) => (
-              <option key={o} value={o}>
-                {TYPE_LABELS[o] ?? o.replace('_', ' ')}
+            {Object.entries(TYPE_LABELS).map(([val, label]) => (
+              <option key={val} value={val}>
+                {label}
               </option>
             ))}
           </select>
           <select
             className={`qb-filter-select${marksFilter ? ' is-active' : ''}`}
             value={marksFilter}
-            onChange={(e) => setMarksFilter(e.target.value)}
+            onChange={handleFilterChange(setMarksFilter)}
           >
             <option value="">All Marks</option>
             {marksOptions.map((o) => (
@@ -283,7 +399,7 @@ export function QuestionListPage() {
         </div>
 
         <div className="qb-results-count">
-          {filtered.length} {filtered.length === 1 ? 'question' : 'questions'}
+          {totalQuestions} {totalQuestions === 1 ? 'question' : 'questions'}
         </div>
       </div>
 
@@ -299,10 +415,10 @@ export function QuestionListPage() {
         </div>
       )}
 
-      {papersQuery.isLoading && <div className="loading"><span className="spinner" /> Loading questions…</div>}
-      {papersQuery.isError && <div className="alert alert-error">Could not load question papers.</div>}
+      {questionBankQuery.isLoading && <div className="loading"><span className="spinner" /> Loading questions…</div>}
+      {questionBankQuery.isError && <div className="alert alert-error">Could not load question bank.</div>}
 
-      {!papersQuery.isLoading && !papersQuery.isError && sorted.length === 0 && (
+      {!questionBankQuery.isLoading && !questionBankQuery.isError && sorted.length === 0 && (
         <div className="empty-state">No questions match your filters.</div>
       )}
 
@@ -314,9 +430,9 @@ export function QuestionListPage() {
                 <th className="col-checkbox">
                   <input
                     type="checkbox"
-                    checked={allFilteredSelected}
+                    checked={allCurrentPageSelected}
                     onChange={toggleAll}
-                    aria-label="Select all filtered questions"
+                    aria-label="Select all questions on this page"
                   />
                 </th>
                 <SortHeader label="Question" column="questionText" />
@@ -328,7 +444,7 @@ export function QuestionListPage() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((row) => {
+              {paginatedRows.map((row) => {
                 const isExpanded = expandedKeys.has(row.key);
                 const hasExtraDetails = Boolean(row.question?.solution || (row.question?.answers?.length > 0));
 
@@ -338,7 +454,7 @@ export function QuestionListPage() {
                       <input
                         type="checkbox"
                         checked={selectedKeys.has(row.key)}
-                        onChange={() => toggleRow(row.key)}
+                        onChange={() => toggleRow(row)}
                         aria-label={`Select ${row.questionText.slice(0, 60)}`}
                       />
                     </td>
@@ -430,9 +546,24 @@ export function QuestionListPage() {
                             <Eye size={13} className="icon-middle" /> {isExpanded ? 'Hide' : 'View'}
                           </button>
                         )}
-                        <Link to={`/staff/paper-builder/${row.paperId}`}>
-                          <button className="btn-secondary btn-sm"><Pencil size={13} className="icon-middle" /> Open Paper</button>
-                        </Link>
+                        {row.paperId ? (
+                          <Link to={`/staff/paper-builder/${row.paperId}`}>
+                            <button className="btn-secondary btn-sm"><Pencil size={13} className="icon-middle" /> Open Paper</button>
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-secondary btn-sm"
+                            onClick={() => {
+                              if (!selectedKeys.has(row.key)) {
+                                toggleRow(row);
+                              }
+                              setShowAddModal(true);
+                            }}
+                          >
+                            <FolderPlus size={13} className="icon-middle" /> Add to Paper
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -443,10 +574,97 @@ export function QuestionListPage() {
         </div>
       )}
 
+      {/* Pagination Bar */}
+      {!questionBankQuery.isLoading && !questionBankQuery.isError && totalPages > 0 && (
+        <div className="qb-pagination-bar">
+          <div className="qb-pagination-info">
+            <span>
+              Showing Questions <strong>{startIndex}–{endIndex}</strong> of <strong>{totalQuestions}</strong>{' '}
+              <span className="muted">
+                (Page {currentPage + 1} of {totalPages})
+              </span>
+            </span>
+            {questionBankQuery.isFetching && (
+              <span className="qb-pagination-fetching">
+                <Loader2 size={13} className="sp-spin" /> Updating…
+              </span>
+            )}
+          </div>
+
+          <div className="qb-pagination-controls">
+            <div className="qb-page-size-wrap">
+              <span>Per page:</span>
+              <select
+                className="qb-page-size-select"
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(0);
+                }}
+              >
+                <option value={5}>5 questions</option>
+                <option value={10}>10 questions</option>
+                <option value={20}>20 questions</option>
+                <option value={50}>50 questions</option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              className="qb-page-btn"
+              onClick={() => {
+                setPage((p) => Math.max(0, p - 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              disabled={isFirst || questionBankQuery.isFetching}
+              title="Previous page"
+            >
+              <ChevronLeft size={14} className="icon-middle" /> Prev
+            </button>
+
+            <div className="qb-page-numbers">
+              {getPageNumbers(currentPage, totalPages).map((p, idx) =>
+                typeof p === 'number' ? (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`qb-page-number-btn${p === currentPage ? ' is-active' : ''}`}
+                    onClick={() => {
+                      setPage(p);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={questionBankQuery.isFetching}
+                  >
+                    {p + 1}
+                  </button>
+                ) : (
+                  <span key={`ellipsis-${idx}`} className="qb-page-ellipsis">
+                    …
+                  </span>
+                )
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="qb-page-btn"
+              onClick={() => {
+                setPage((p) => Math.min(totalPages - 1, p + 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              disabled={isLast || questionBankQuery.isFetching}
+              title="Next page"
+            >
+              Next <ChevronRight size={14} className="icon-middle" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {showAddModal && (
         <AddToPaperModal
           rows={selectedRows}
-          papers={papersQuery.data ?? []}
+          papers={papers}
           onClose={() => setShowAddModal(false)}
         />
       )}

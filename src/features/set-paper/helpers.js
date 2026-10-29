@@ -5,7 +5,7 @@ import { QUESTION_TYPES } from "./types";
 export const DEFAULT_THEMES = [
   {
     id: "theme-nursery",
-    name: "Nursery Worksheet",
+    name: "Dummy Worksheet",
     description: "Shapes, letters and picture-based fun",
     questions: [
       { type: QUESTION_TYPES.NORMAL, count: 2, marks: 2 },
@@ -15,28 +15,6 @@ export const DEFAULT_THEMES = [
       { type: QUESTION_TYPES.MCQ, count: 1, marks: 2 },
     ],
   },
-  // {
-  //   id: "theme-primary",
-  //   name: "Primary Assessment",
-  //   description: "Balanced mix for a quick test",
-  //   questions: [
-  //     { type: QUESTION_TYPES.NORMAL, count: 4, marks: 2 },
-  //     { type: QUESTION_TYPES.MATCH, count: 1, marks: 5 },
-  //     { type: QUESTION_TYPES.MCQ, count: 3, marks: 1 },
-  //     { type: QUESTION_TYPES.FILL_BLANK, count: 2, marks: 1 },
-  //   ],
-  // },
-  // {
-  //   id: "theme-science",
-  //   name: "Science / EVS Paper",
-  //   description: "Diagrams and labeling focus",
-  //   questions: [
-  //     { type: QUESTION_TYPES.NORMAL, count: 3, marks: 2 },
-  //     { type: QUESTION_TYPES.LABEL, count: 1, marks: 4 },
-  //     { type: QUESTION_TYPES.FILL_BLANK, count: 2, marks: 1 },
-  //     { type: QUESTION_TYPES.MATCH, count: 1, marks: 4 },
-  //   ],
-  // },
 ];
 
 export function formatDate(dateStr) {
@@ -78,28 +56,104 @@ export function fireConfetti() {
 async function canvasFromImageElement(img) {
   const src = img.getAttribute("src") || img.src;
   if (!src) return null;
-  if (!src.startsWith("blob:") && !src.startsWith("http://") && !src.startsWith("https://")) {
+  if (
+    !src.startsWith("blob:") &&
+    !src.startsWith("http://") &&
+    !src.startsWith("https://") &&
+    !src.startsWith("data:")
+  ) {
     return null;
   }
 
   const draw = (source, naturalW, naturalH) => {
-    const width = naturalW || img.naturalWidth || 300;
-    const height = naturalH || img.naturalHeight || 200;
-    const output = document.createElement("canvas");
-    output.width = width;
-    output.height = height;
-    const context = output.getContext("2d");
-    context.drawImage(source, 0, 0, width, height);
+    const nw = naturalW || img.naturalWidth || 300;
+    const nh = naturalH || img.naturalHeight || 200;
+
     const rect = img.getBoundingClientRect();
-    if (rect.width) output.style.width = `${rect.width}px`;
-    if (rect.height) output.style.height = `${rect.height}px`;
+    const targetWidth = rect.width || img.offsetWidth || img.clientWidth || nw;
+    const targetHeight = rect.height || img.offsetHeight || img.clientHeight || nh;
+
+    const computed = window.getComputedStyle(img);
+    const padLeft = parseFloat(computed.paddingLeft) || 0;
+    const padRight = parseFloat(computed.paddingRight) || 0;
+    const padTop = parseFloat(computed.paddingTop) || 0;
+    const padBottom = parseFloat(computed.paddingBottom) || 0;
+    const borderLeft = parseFloat(computed.borderLeftWidth) || 0;
+    const borderRight = parseFloat(computed.borderRightWidth) || 0;
+    const borderTop = parseFloat(computed.borderTopWidth) || 0;
+    const borderBottom = parseFloat(computed.borderBottomWidth) || 0;
+
+    const contentWidth = Math.max(1, targetWidth - padLeft - padRight - borderLeft - borderRight);
+    const contentHeight = Math.max(1, targetHeight - padTop - padBottom - borderTop - borderBottom);
+
+    const scale = 2;
+    const output = document.createElement("canvas");
+    output.width = Math.max(1, Math.round(contentWidth * scale));
+    output.height = Math.max(1, Math.round(contentHeight * scale));
+
     if (img.className) output.className = img.className;
+    if (img.style.cssText) output.style.cssText = img.style.cssText;
+
+    output.style.boxSizing = "border-box";
+    output.style.width = `${targetWidth}px`;
+    output.style.height = `${targetHeight}px`;
+
+    if (computed.borderRadius && computed.borderRadius !== "0px") {
+      output.style.borderRadius = computed.borderRadius;
+    }
+    if (computed.display && computed.display !== "inline") {
+      output.style.display = computed.display;
+    }
+    if (computed.verticalAlign) {
+      output.style.verticalAlign = computed.verticalAlign;
+    }
+
+    const context = output.getContext("2d");
+    if (!context) return output;
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+
+    const objectFit = computed.objectFit || "contain";
+    const imageAspect = nw / nh;
+    const containerAspect = output.width / output.height;
+
+    let drawW, drawH, drawX, drawY;
+
+    if (objectFit === "contain") {
+      if (imageAspect > containerAspect) {
+        drawH = output.height;
+        drawW = drawH * imageAspect;
+        drawX = (output.width - drawW) / 2;
+        drawY = 0;
+      } else {
+        drawW = output.width;
+        drawH = drawW / imageAspect;
+        drawX = 0;
+        drawY = (output.height - drawH) / 2;
+      }
+    } else {
+      // "contain" (default): preserve aspect ratio with letterboxing/pillarboxing
+      if (imageAspect > containerAspect) {
+        drawW = output.width;
+        drawH = drawW / imageAspect;
+        drawX = 0;
+        drawY = (output.height - drawH) / 2;
+      } else {
+        drawH = output.height;
+        drawW = drawH * imageAspect;
+        drawX = (output.width - drawW) / 2;
+        drawY = 0;
+      }
+    }
+
+    context.drawImage(source, drawX, drawY, drawW, drawH);
     return output;
   };
 
   try {
-    // For remote URLs, append ?cors=true to bypass the non-CORS browser cache entry
-    const fetchUrl = (src.startsWith("http://") || src.startsWith("https://"))
+    const isSignedAwsUrl = src.includes("X-Amz-Signature") || src.includes("Signature=");
+    const fetchUrl = (!isSignedAwsUrl && (src.startsWith("http://") || src.startsWith("https://")))
       ? `${src}${src.includes("?") ? "&" : "?"}cors=true`
       : src;
 
@@ -107,24 +161,49 @@ async function canvasFromImageElement(img) {
     if (!response.ok) return null;
     const blob = await response.blob();
 
+    let source = null;
+    let nw = 0;
+    let nh = 0;
+    let cleanup = null;
+
     if (typeof createImageBitmap === "function") {
-      const bitmap = await createImageBitmap(blob);
-      const canvas = draw(bitmap, bitmap.width, bitmap.height);
-      bitmap.close?.();
-      return canvas;
+      try {
+        const bitmap = await createImageBitmap(blob);
+        source = bitmap;
+        nw = bitmap.width;
+        nh = bitmap.height;
+        cleanup = () => bitmap.close?.();
+      } catch {
+        // Fall back to Image
+      }
     }
 
-    const bitmapLike = await new Promise((resolve, reject) => {
-      const temporary = new Image();
-      temporary.crossOrigin = "anonymous";
-      temporary.onload = () => resolve(temporary);
-      temporary.onerror = () => reject(new Error("image decode failed"));
-      temporary.src = URL.createObjectURL(blob);
-    });
-    const canvas = draw(bitmapLike, bitmapLike.naturalWidth, bitmapLike.naturalHeight);
-    URL.revokeObjectURL(bitmapLike.src);
+    if (!source) {
+      const objectUrl = URL.createObjectURL(blob);
+      const imgElem = await new Promise((resolve, reject) => {
+        const temp = new Image();
+        temp.crossOrigin = "anonymous";
+        temp.onload = () => resolve(temp);
+        temp.onerror = (e) => reject(e);
+        temp.src = objectUrl;
+      });
+      source = imgElem;
+      nw = imgElem.naturalWidth;
+      nh = imgElem.naturalHeight;
+      cleanup = () => URL.revokeObjectURL(objectUrl);
+    }
+
+    const canvas = draw(source, nw, nh);
+    cleanup?.();
     return canvas;
   } catch (err) {
+    if (img.complete && img.naturalWidth > 0) {
+      try {
+        return draw(img, img.naturalWidth, img.naturalHeight);
+      } catch {
+        // Tainted canvas, fallback to null
+      }
+    }
     console.warn("canvasFromImageElement: Failed to convert image to canvas for PDF:", src, err);
     return null;
   }
