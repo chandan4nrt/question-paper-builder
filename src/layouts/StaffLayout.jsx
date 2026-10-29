@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { clearToken } from '../services/api';
 import { getStoredProfile } from '../features/auth/hooks/useAuth';
-import { Book, FileText, Pencil, Menu, X, LogOut } from 'lucide-react';
+import { Book, FileText, Pencil, Menu, X, LogOut, BrainCircuit } from 'lucide-react';
 
 export function StaffLayout() {
   const navigate = useNavigate();
@@ -78,6 +78,13 @@ export function StaffLayout() {
             {({ isActive }) => (
               <span className={`sp-tab sp-tab-save ${isActive ? 'active' : ''}`}>
                 <Pencil size={15} />New Paper
+              </span>
+            )}
+          </NavLink>
+          <NavLink to="/staff/bloom-generator">
+            {({ isActive }) => (
+              <span className={`sp-tab ${isActive ? 'active' : ''}`}>
+                <BrainCircuit size={15} /> AI Exams
               </span>
             )}
           </NavLink>
@@ -169,6 +176,14 @@ export function StaffLayout() {
           >
             <Book size={18} />
             <span>Question Bank</span>
+          </NavLink>
+          <NavLink
+            to="/staff/bloom-generator"
+            className={({ isActive }) => `app-mobile-nav-link ${isActive ? 'active' : ''}`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <BrainCircuit size={18} />
+            <span>AI Exams</span>
           </NavLink>
         </nav>
 
